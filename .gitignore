@@ -1,5 +1,10 @@
 # Athletikclub Steiermark – .gitignore
 
+# Umgebungsvariablen / sensible Zugangsdaten
+.env
+.env.*
+!.env.example
+
 # Konfiguration mit sensiblen Daten (lokal anpassen)
 config/database.php
 
