@@ -5,6 +5,11 @@
 .env.*
 !.env.example
 
+# SSH Keys (niemals ins Repository!)
+keys/
+*.pem
+*.ppk
+
 # Konfiguration mit sensiblen Daten (lokal anpassen)
 config/database.php
 
