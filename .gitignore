@@ -1,0 +1,29 @@
+# Athletikclub Steiermark – .gitignore
+
+# Konfiguration mit sensiblen Daten (lokal anpassen)
+config/database.php
+
+# Uploads (keine Dateien ins Git)
+uploads/pdfs/*.pdf
+uploads/images/*.jpg
+uploads/images/*.png
+uploads/images/*.webp
+uploads/images/*.gif
+
+# PHP Logs
+*.log
+error_log
+
+# OS-Dateien
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.idea/
+.vscode/
+*.suo
+*.user
+
+# Node (falls später verwendet)
+node_modules/
