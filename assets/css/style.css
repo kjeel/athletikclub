@@ -1358,6 +1358,7 @@ textarea.form-control {
     background: radial-gradient(circle, rgba(198,161,53,0.12) 0%, transparent 70%);
     top: -100px;
     right: -100px;
+    animation: auroraFloat 15s ease-in-out infinite;
 }
 
 .cta-section::after {
@@ -1479,6 +1480,20 @@ textarea.form-control {
     background: linear-gradient(90deg, transparent, var(--gold-accent), transparent);
 }
 
+.page-header::before {
+    content: '';
+    position: absolute;
+    width: 480px;
+    height: 480px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(198,161,53,0.22) 0%, transparent 70%);
+    top: -220px;
+    right: -80px;
+    filter: blur(10px);
+    z-index: 0;
+    animation: auroraFloat 14s ease-in-out infinite;
+}
+
 .page-header-pattern {
     position: absolute;
     inset: 0;
@@ -1492,6 +1507,16 @@ textarea.form-control {
 .page-header-content {
     position: relative;
     z-index: 1;
+}
+
+@keyframes auroraFloat {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33%      { transform: translate(3%, -4%) scale(1.08); }
+    66%      { transform: translate(-3%, 3%) scale(0.96); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .page-header::before { animation: none; }
 }
 
 .page-header h1 {
