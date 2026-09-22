@@ -4,7 +4,7 @@
  */
 define('ROOT_PATH', __DIR__);
 $page_title       = 'Athletikclub Steiermark – Ganzheitliches Training & Sport';
-$meta_description = 'Willkommen beim Athletikclub für Individualsportarten. Ganzheitliches Athletik- und polysportives Training in St. Georgen an der Stiefing, Steiermark.';
+$meta_description = 'Willkommen beim Athletikclub Steiermark. Ganzheitliches Athletik- und polysportives Training in St. Georgen an der Stiefing, Steiermark.';
 
 require_once ROOT_PATH . '/includes/header.php';
 
@@ -329,7 +329,7 @@ try {
                     Dein Verein für ganzheitliche Athletik
                 </h2>
                 <p style="margin-bottom: 1.25rem; font-size: 1.05rem; line-height: 1.85;">
-                    Der <strong>Athletikclub für Individualsportarten (ACI)</strong> ist dein Zuhause für
+                    Der <strong>Athletikclub Steiermark</strong> ist dein Zuhause für
                     polysportives Training in der Steiermark. Wir fördern Kraft, Ausdauer,
                     Beweglichkeit und Koordination – für alle Leistungsniveaus.
                 </p>

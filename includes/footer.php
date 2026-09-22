@@ -97,7 +97,7 @@
 
         <!-- Footer-Bottom -->
         <div class="footer-bottom">
-            <p>&copy; <?= date('Y') ?> Athletikclub für Individualsportarten – ACI. Alle Rechte vorbehalten.</p>
+            <p>&copy; <?= date('Y') ?> Athletikclub Steiermark. Alle Rechte vorbehalten.</p>
             <ul class="footer-legal">
                 <li><a href="<?= APP_URL ?>/pages/impressum.php">Impressum</a></li>
                 <li><a href="<?= APP_URL ?>/pages/datenschutz.php">Datenschutz</a></li>

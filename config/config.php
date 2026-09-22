@@ -13,7 +13,7 @@ define('APP_ENV', 'production');
 // App-Grundeinstellungen
 // ----------------------------------------------------------------
 define('APP_NAME',    'Athletikclub Steiermark');
-define('APP_SHORT',   'ACI');
+define('APP_SHORT',   'AC Steiermark');
 
 // APP_URL automatisch aus dem aktuellen Request ableiten, damit Assets
 // (CSS/JS) immer über das Protokoll geladen werden, mit dem die Seite

@@ -86,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         . "Bitte bestätige deine E-Mail-Adresse durch Klick auf folgenden Link:\n"
                         . $verify_url . "\n\n"
                         . "Der Link ist 48 Stunden gültig.\n\n"
-                        . "Sportliche Grüße,\nDas ACI-Team";
+                        . "Sportliche Grüße,\nDas Athletikclub-Steiermark-Team";
             $headers = 'From: ' . MAIL_FROM_NAME . ' <' . MAIL_FROM . '>';
             @mail($email, $subject, $message, $headers);
 

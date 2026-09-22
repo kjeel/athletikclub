@@ -1,9 +1,11 @@
 # Athletikclub Steiermark – Webhosting
 
 # HTTPS erzwingen (Hetzner Webhosting L)
+# Deaktiviert: SSL-Zertifikat für aci-stmk.at ist laut Server noch nicht
+# installiert ("HTTPS Not Available"-Seite von Hetzner)
 RewriteEngine On
-RewriteCond %{HTTPS} off
-RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+# RewriteCond %{HTTPS} off
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
 # www erzwingen (optional)
 # RewriteCond %{HTTP_HOST} !^www\. [NC]

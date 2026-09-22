@@ -71,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
                      . "für dich wurde ein Konto beim Athletikclub Steiermark als " . ucfirst($rolle) . " angelegt.\n\n"
                      . "Lege dein Passwort über folgenden Link fest (gültig für 7 Tage):\n"
                      . $invite_link . "\n\n"
-                     . "Sportliche Grüße,\nDas ACI-Team";
+                     . "Sportliche Grüße,\nDas Athletikclub-Steiermark-Team";
             @mail($email, $subject, $message, 'From: ' . MAIL_FROM_NAME . ' <' . MAIL_FROM . '>');
 
             logActivity('nutzer_angelegt', "Neuer {$rolle}: {$email}");

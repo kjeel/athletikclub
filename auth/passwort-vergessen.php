@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                            . "Klicke auf folgenden Link (gültig für 2 Stunden):\n"
                            . $reset_url . "\n\n"
                            . "Falls du dies nicht angefordert hast, ignoriere diese E-Mail.\n\n"
-                           . "Sportliche Grüße,\nDas ACI-Team";
+                           . "Sportliche Grüße,\nDas Athletikclub-Steiermark-Team";
                 @mail($email, $subject, $message, 'From: ' . MAIL_FROM_NAME . ' <' . MAIL_FROM . '>');
             }
 

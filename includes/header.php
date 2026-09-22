@@ -18,7 +18,7 @@ $current_path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $flash        = getFlashMessage();
 
 $page_title = isset($page_title) ? e($page_title) . ' | ' . APP_NAME : APP_NAME;
-$meta_desc  = isset($meta_description) ? e($meta_description) : 'Athletikclub für Individualsportarten – ganzheitliches Athletik- und polysportives Training in St. Georgen an der Stiefing.';
+$meta_desc  = isset($meta_description) ? e($meta_description) : 'Athletikclub Steiermark – ganzheitliches Athletik- und polysportives Training in St. Georgen an der Stiefing.';
 ?>
 <!DOCTYPE html>
 <html lang="de">

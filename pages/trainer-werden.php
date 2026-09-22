@@ -57,7 +57,7 @@ $sportarten = ['Calisthenics', 'Skateboarding', 'Tischtennis', 'Padel Tennis', '
 </section>
 
 <!-- ============================================================
-     WARUM TRAINER*IN BEIM ACI
+     WARUM TRAINER*IN BEIM ATHLETIKCLUB STEIERMARK
 ============================================================ -->
 <section class="section bg-white">
     <div class="container">
@@ -106,7 +106,7 @@ $sportarten = ['Calisthenics', 'Skateboarding', 'Tischtennis', 'Padel Tennis', '
                 </h2>
                 <p style="margin-bottom: 1.25rem; font-size: 1.05rem; line-height: 1.85;">
                     Du brennst für deinen Sport und möchtest diese Begeisterung weitergeben?
-                    Beim ACI unterrichtest du in einem von sechs Disziplinen und begleitest
+                    Beim Athletikclub Steiermark unterrichtest du in einem von sechs Disziplinen und begleitest
                     Mitglieder vom Einstieg bis zum Leistungssport.
                 </p>
                 <p style="margin-bottom: 2rem; line-height: 1.85;">
@@ -261,7 +261,7 @@ $sportarten = ['Calisthenics', 'Skateboarding', 'Tischtennis', 'Padel Tennis', '
 
                         <div class="form-group">
                             <label class="form-label" for="nachricht">Über dich <span class="required">*</span></label>
-                            <textarea class="form-control <?= isset($errors['nachricht']) ? 'error' : '' ?>" id="nachricht" name="nachricht" required rows="5" placeholder="Erzähl uns von deiner Erfahrung, Qualifikation und warum du Trainer*in beim ACI werden möchtest…"><?= e($_POST['nachricht'] ?? '') ?></textarea>
+                            <textarea class="form-control <?= isset($errors['nachricht']) ? 'error' : '' ?>" id="nachricht" name="nachricht" required rows="5" placeholder="Erzähl uns von deiner Erfahrung, Qualifikation und warum du Trainer*in beim Athletikclub Steiermark werden möchtest…"><?= e($_POST['nachricht'] ?? '') ?></textarea>
                             <?php if (isset($errors['nachricht'])): ?><span class="form-error"><?= e($errors['nachricht']) ?></span><?php endif; ?>
                         </div>
 
