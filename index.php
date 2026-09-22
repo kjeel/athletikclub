@@ -35,103 +35,66 @@ try {
             position: absolute; inset: 0;
             background: linear-gradient(135deg,
                 #0D1F35 0%,
-                #1F3556 40%,
-                #2A4570 70%,
-                #1F3556 100%);
+                #1F3556 45%,
+                #24406A 100%);
         "></div>
     </div>
 
-    <!-- Geometrisches Muster -->
-    <div class="hero-pattern"></div>
-
-    <!-- Dekorative Kreise -->
-    <div style="
-        position: absolute; width: 600px; height: 600px;
-        border-radius: 50%;
-        border: 1px solid rgba(198,161,53,0.12);
-        top: -200px; right: -200px; z-index: 1;
-    "></div>
-    <div style="
-        position: absolute; width: 400px; height: 400px;
-        border-radius: 50%;
-        border: 1px solid rgba(198,161,53,0.08);
-        bottom: -100px; left: -100px; z-index: 1;
-    "></div>
-    <div style="
-        position: absolute; width: 200px; height: 200px;
-        border-radius: 50%;
-        background: radial-gradient(circle, rgba(198,161,53,0.1) 0%, transparent 70%);
-        top: 20%; right: 15%; z-index: 1;
-    "></div>
-
-    <!-- Sanfter Glow hinter dem Headline -->
-    <div style="
-        position: absolute; width: 900px; height: 900px;
-        border-radius: 50%;
-        background: radial-gradient(circle, rgba(198,161,53,0.14) 0%, transparent 65%);
-        top: 50%; left: 50%; transform: translate(-60%, -50%);
-        z-index: 1;
-        animation: heroGlow 8s ease-in-out infinite;
-    "></div>
+    <!-- Aurora-Blobs (Sportfarben-Mesh) -->
+    <div class="aurora-blob" style="width: 620px; height: 620px; background: #0055D4; top: -12%; left: -8%; animation-delay: 0s;"></div>
+    <div class="aurora-blob" style="width: 520px; height: 520px; background: #C6A135; bottom: -14%; right: -6%; animation-delay: -4s;"></div>
+    <div class="aurora-blob" style="width: 420px; height: 420px; background: #7C3AED; top: 30%; right: 18%; animation-delay: -8s;"></div>
+    <div class="aurora-blob" style="width: 380px; height: 380px; background: #00A896; bottom: 8%; left: 30%; animation-delay: -12s;"></div>
 
     <div class="container" style="position: relative; z-index: 2; width: 100%;">
-        <div class="hero-content" style="max-width: 820px;">
-            <div class="hero-eyebrow reveal">
-                <div class="hero-eyebrow-line"></div>
-                <span>Athletikclub Steiermark</span>
-                <div class="hero-eyebrow-line"></div>
+        <div class="hero-grid">
+
+            <!-- Hero Content -->
+            <div class="hero-content" style="max-width: 620px;">
+                <div class="hero-eyebrow reveal">
+                    <div class="hero-eyebrow-line"></div>
+                    <span>Athletikclub Steiermark</span>
+                    <div class="hero-eyebrow-line"></div>
+                </div>
+
+                <h1 class="hero-title reveal reveal-delay-1">
+                    Beweg dich.
+                    <em>Auf deine Art.</em>
+                </h1>
+
+                <p class="hero-subtitle reveal reveal-delay-2" style="max-width: 520px;">
+                    Ganzheitliches Athletik- und polysportives Training in St. Georgen an der Stiefing.
+                    Sechs Disziplinen, ein Verein, unendlich viele Wege, dich zu bewegen.
+                </p>
+
+                <div class="hero-actions reveal reveal-delay-3">
+                    <a href="/pages/mitglied-werden.php" class="btn btn-primary btn-xl">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                        Mitglied werden
+                    </a>
+                    <a href="/pages/vision.php" class="btn btn-ghost btn-xl">
+                        Unsere Vision
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                    </a>
+                </div>
             </div>
 
-            <h1 class="hero-title reveal reveal-delay-1">
-                Stärker.
-                <em>Schneller.</em>
-                Athletischer.
-            </h1>
-
-            <p class="hero-subtitle reveal reveal-delay-2" style="max-width: 620px;">
-                Ganzheitliches Athletik- und polysportives Training in St. Georgen an der Stiefing.
-                Für Anfänger bis ambitionierte Leistungssportler.
-            </p>
-
-            <div class="hero-actions reveal reveal-delay-3">
-                <a href="/pages/mitglied-werden.php" class="btn btn-primary btn-xl">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-                    Mitglied werden
-                </a>
-                <a href="/pages/vision.php" class="btn btn-ghost btn-xl">
-                    Unsere Vision
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-                </a>
-            </div>
-
-            <!-- Sport-Badges -->
-            <div class="reveal reveal-delay-4" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 2.75rem;">
+            <!-- 3D-Karten-Cluster -->
+            <div class="hero-art reveal reveal-delay-4" aria-hidden="true">
                 <?php
-                $sportarten = [
-                    ['name' => 'Calisthenics',   'color' => '#0055D4'],
-                    ['name' => 'Skateboarding',   'color' => '#FF7B37'],
-                    ['name' => 'Tischtennis',     'color' => '#00A896'],
-                    ['name' => 'Padel Tennis',    'color' => '#4EBA6F'],
-                    ['name' => 'Athletiktraining','color' => '#C6A135'],
-                    ['name' => 'Ausdauer',        'color' => '#7C3AED'],
+                $art_cards = [
+                    ['icon' => '🤸', 'name' => 'Calisthenics',    'color' => '#0055D4'],
+                    ['icon' => '🛹', 'name' => 'Skateboarding',   'color' => '#FF7B37'],
+                    ['icon' => '🏓', 'name' => 'Tischtennis',     'color' => '#00A896'],
+                    ['icon' => '🎾', 'name' => 'Padel Tennis',    'color' => '#4EBA6F'],
+                    ['icon' => '💪', 'name' => 'Athletik',        'color' => '#C6A135'],
+                    ['icon' => '🏃', 'name' => 'Ausdauer',        'color' => '#7C3AED'],
                 ];
-                foreach ($sportarten as $s): ?>
-                    <span style="
-                        display: inline-flex; align-items: center; gap: 0.4rem;
-                        padding: 0.3rem 0.85rem;
-                        background: rgba(255,255,255,0.07);
-                        border: 1px solid rgba(255,255,255,0.12);
-                        border-radius: 999px;
-                        font-family: 'Montserrat', sans-serif;
-                        font-size: 0.7rem;
-                        font-weight: 600;
-                        letter-spacing: 0.06em;
-                        color: rgba(255,255,255,0.8);
-                        backdrop-filter: blur(4px);
-                    ">
-                        <span style="width: 6px; height: 6px; border-radius: 50%; background: <?= $s['color'] ?>; flex-shrink: 0;"></span>
-                        <?= htmlspecialchars($s['name']) ?>
-                    </span>
+                foreach ($art_cards as $i => $c): ?>
+                    <div class="hero-art-card hero-art-card-<?= $i + 1 ?>">
+                        <div class="hero-art-icon" style="background: <?= $c['color'] ?>1a; box-shadow: inset 0 0 0 1px <?= $c['color'] ?>4d;"><?= $c['icon'] ?></div>
+                        <span><?= htmlspecialchars($c['name']) ?></span>
+                    </div>
                 <?php endforeach; ?>
             </div>
         </div>
@@ -161,9 +124,71 @@ try {
 </div>
 
 <style>
-@keyframes heroGlow {
-    0%, 100% { opacity: 0.7; transform: translate(-60%, -50%) scale(1); }
-    50%      { opacity: 1;   transform: translate(-60%, -50%) scale(1.08); }
+/* ---------- Hero: Aurora-Blobs + 3D-Karten-Cluster ---------- */
+.hero-grid {
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+    gap: 2rem;
+    align-items: center;
+}
+.aurora-blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(90px);
+    opacity: 0.35;
+    z-index: 1;
+    animation: auroraFloat 16s ease-in-out infinite;
+    pointer-events: none;
+}
+@keyframes auroraFloat {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33%      { transform: translate(3%, -4%) scale(1.08); }
+    66%      { transform: translate(-3%, 3%) scale(0.96); }
+}
+.hero-art {
+    position: relative;
+    height: 480px;
+    perspective: 1400px;
+}
+.hero-art-card {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.9rem 1.25rem;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 1.1rem;
+    backdrop-filter: blur(14px);
+    box-shadow: 0 20px 45px rgba(0,0,0,0.28);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: rgba(255,255,255,0.92);
+    white-space: nowrap;
+    transform-style: preserve-3d;
+    animation: cardFloat 7s ease-in-out infinite;
+}
+.hero-art-icon {
+    width: 34px; height: 34px;
+    border-radius: 0.65rem;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.05rem;
+    flex-shrink: 0;
+}
+.hero-art-card-1 { top: 2%;  left: 6%;  transform: perspective(1400px) rotateY(-12deg) rotateX(6deg) rotateZ(-4deg); animation-delay: 0s; }
+.hero-art-card-2 { top: 20%; right: 0%; transform: perspective(1400px) rotateY(14deg) rotateX(-4deg) rotateZ(3deg); animation-delay: -1.2s; }
+.hero-art-card-3 { top: 44%; left: 0%;  transform: perspective(1400px) rotateY(-10deg) rotateX(-6deg) rotateZ(2deg); animation-delay: -2.4s; }
+.hero-art-card-4 { top: 62%; right: 8%; transform: perspective(1400px) rotateY(10deg) rotateX(6deg) rotateZ(-3deg); animation-delay: -3.6s; }
+.hero-art-card-5 { top: 82%; left: 16%; transform: perspective(1400px) rotateY(-8deg) rotateX(4deg) rotateZ(3deg); animation-delay: -4.8s; }
+.hero-art-card-6 { top: 34%; left: 30%; transform: perspective(1400px) rotateY(6deg) rotateX(-8deg) rotateZ(-2deg); animation-delay: -6s; }
+@keyframes cardFloat {
+    0%, 100% { margin-top: 0; }
+    50%      { margin-top: -14px; }
+}
+@media (max-width: 900px) {
+    .hero-grid { grid-template-columns: 1fr; }
+    .hero-art { display: none; }
 }
 .marquee-strip {
     background: var(--navy-deeper, #0D1F35);
@@ -196,7 +221,7 @@ try {
 }
 @media (prefers-reduced-motion: reduce) {
     .marquee-track { animation: none; }
-    [style*="heroGlow"] { animation: none !important; }
+    .aurora-blob, .hero-art-card { animation: none !important; }
 }
 </style>
 
