@@ -10,6 +10,63 @@ require_once ROOT_PATH . '/includes/auth.php';
 requireTrainer();
 
 $db = getDB();
+$errors = [];
+$invite_link = null;
+
+// ----------------------------------------------------------------
+// Neues Mitglied anlegen (Trainer/Admin) – immer Rolle "mitglied"
+// ----------------------------------------------------------------
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'create_mitglied') {
+    requireCsrf();
+
+    $vorname  = trim($_POST['vorname'] ?? '');
+    $nachname = trim($_POST['nachname'] ?? '');
+    $email    = trim(strtolower($_POST['email'] ?? ''));
+
+    if (empty($vorname) || mb_strlen($vorname) < 2) $errors['vorname'] = 'Vorname muss mindestens 2 Zeichen haben.';
+    if (empty($nachname) || mb_strlen($nachname) < 2) $errors['nachname'] = 'Nachname muss mindestens 2 Zeichen haben.';
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors['email'] = 'Bitte gib eine gültige E-Mail-Adresse ein.';
+
+    if (empty($errors)) {
+        $stmt = $db->prepare('SELECT id FROM users WHERE email = ? LIMIT 1');
+        $stmt->execute([$email]);
+        if ($stmt->fetch()) {
+            $errors['email'] = 'Diese E-Mail-Adresse ist bereits registriert.';
+        }
+    }
+
+    if (empty($errors)) {
+        try {
+            $token = generateToken(32);
+            $exp   = date('Y-m-d H:i:s', strtotime('+7 days'));
+            $placeholder_hash = hashPassword(bin2hex(random_bytes(16)));
+
+            $stmt = $db->prepare(
+                'INSERT INTO users (vorname, nachname, email, passwort_hash, rolle, email_verified, reset_token, reset_token_exp)
+                 VALUES (?, ?, ?, ?, \'mitglied\', 0, ?, ?)'
+            );
+            $stmt->execute([$vorname, $nachname, $email, $placeholder_hash, $token, $exp]);
+            $new_user_id = (int)$db->lastInsertId();
+
+            $db->prepare('INSERT INTO mitglieder_profile (user_id, mitglied_seit, mitgliedsstatus) VALUES (?, NOW(), \'aktiv\')')
+               ->execute([$new_user_id]);
+
+            $invite_link = APP_URL . '/auth/passwort-reset.php?token=' . $token;
+
+            $subject = 'Dein Konto beim ' . APP_NAME;
+            $message = "Hallo {$vorname},\n\n"
+                     . "für dich wurde ein Mitgliedskonto beim Athletikclub Steiermark angelegt.\n\n"
+                     . "Lege dein Passwort über folgenden Link fest (gültig für 7 Tage):\n"
+                     . $invite_link . "\n\n"
+                     . "Sportliche Grüße,\nDas Athletikclub-Steiermark-Team";
+            @mail($email, $subject, $message, 'From: ' . MAIL_FROM_NAME . ' <' . MAIL_FROM . '>');
+
+            logActivity('mitglied_angelegt', "Von Trainer/Admin, neues Mitglied: {$email}");
+        } catch (Exception $e) {
+            $errors['general'] = 'Mitglied konnte nicht angelegt werden. Bitte versuche es später erneut.';
+        }
+    }
+}
 
 // ----------------------------------------------------------------
 // Mitgliedsstatus / Notizen aktualisieren
@@ -76,9 +133,59 @@ $status_labels = [
 ];
 ?>
 
-<div class="dashboard-header">
-    <h1 class="dashboard-title">Mitglieder</h1>
-    <p class="dashboard-subtitle">Alle Mitglieder des Athletikclub Steiermark (<?= count($mitglieder) ?>)</p>
+<div class="dashboard-header" style="display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 class="dashboard-title">Mitglieder</h1>
+        <p class="dashboard-subtitle">Alle Mitglieder des Athletikclub Steiermark (<?= count($mitglieder) ?>)</p>
+    </div>
+    <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('create-mitglied-form').classList.toggle('open-row')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Mitglied anlegen
+    </button>
+</div>
+
+<?php if ($invite_link): ?>
+<div class="flash-message flash-success" style="border-radius: 0.5rem; margin-bottom: 1.5rem; align-items: flex-start;">
+    <span>
+        ✅ Mitglied wurde angelegt und Einladung per E-Mail verschickt.<br>
+        Falls die Mail nicht ankommt, hier der direkte Link zum Passwort-Setzen:<br>
+        <code style="word-break: break-all;"><?= e($invite_link) ?></code>
+    </span>
+</div>
+<?php endif; ?>
+
+<?php if (!empty($errors['general'])): ?>
+<div class="flash-message flash-error" style="border-radius: 0.5rem; margin-bottom: 1.5rem;">
+    <span><?= e($errors['general']) ?></span>
+</div>
+<?php endif; ?>
+
+<div id="create-mitglied-form" class="form-card edit-row" style="display: none; margin-bottom: 1.5rem;">
+    <h2 style="font-family: 'Montserrat', sans-serif; font-size: 1rem; font-weight: 800; text-transform: uppercase; margin-bottom: 1.25rem;">Neues Mitglied anlegen</h2>
+    <form method="POST" action="" data-validate novalidate>
+        <?= csrfField() ?>
+        <input type="hidden" name="action" value="create_mitglied">
+
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label" for="vorname">Vorname <span class="required">*</span></label>
+                <input class="form-control <?= isset($errors['vorname']) ? 'error' : '' ?>" type="text" id="vorname" name="vorname" value="<?= e($_POST['vorname'] ?? '') ?>" required placeholder="Vorname">
+                <?php if (isset($errors['vorname'])): ?><span class="form-error"><?= e($errors['vorname']) ?></span><?php endif; ?>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="nachname">Nachname <span class="required">*</span></label>
+                <input class="form-control <?= isset($errors['nachname']) ? 'error' : '' ?>" type="text" id="nachname" name="nachname" value="<?= e($_POST['nachname'] ?? '') ?>" required placeholder="Nachname">
+                <?php if (isset($errors['nachname'])): ?><span class="form-error"><?= e($errors['nachname']) ?></span><?php endif; ?>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="email">E-Mail <span class="required">*</span></label>
+                <input class="form-control <?= isset($errors['email']) ? 'error' : '' ?>" type="email" id="email" name="email" value="<?= e($_POST['email'] ?? '') ?>" required placeholder="name@beispiel.at">
+                <?php if (isset($errors['email'])): ?><span class="form-error"><?= e($errors['email']) ?></span><?php endif; ?>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Mitglied anlegen &amp; einladen</button>
+    </form>
 </div>
 
 <!-- Filter -->
@@ -124,7 +231,7 @@ $status_labels = [
                         <th>Sportarten</th>
                         <th>Kurse</th>
                         <th>Status</th>
-                        <?php if (isAdmin()): ?><th></th><?php endif; ?>
+                        <th></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -144,11 +251,12 @@ $status_labels = [
                         <td><?= $m['sportarten'] ? e($m['sportarten']) : '–' ?></td>
                         <td><?= (int)$m['aktive_kurse'] ?></td>
                         <td><span class="badge <?= $sl['class'] ?>"><?= e($sl['label']) ?></span></td>
-                        <?php if (isAdmin()): ?>
-                        <td>
+                        <td style="white-space: nowrap;">
+                            <a href="<?= APP_URL ?>/dashboard/mitglied-detail.php?id=<?= $m['id'] ?>" class="btn btn-primary btn-sm">Fortschritt &amp; Dokumente</a>
+                            <?php if (isAdmin()): ?>
                             <button type="button" class="btn btn-ghost-light btn-sm" onclick="document.getElementById('edit-<?= $m['id'] ?>').classList.toggle('open-row')">Bearbeiten</button>
+                            <?php endif; ?>
                         </td>
-                        <?php endif; ?>
                     </tr>
                     <?php if (isAdmin()): ?>
                     <tr id="edit-<?= $m['id'] ?>" class="edit-row" style="display: none;">

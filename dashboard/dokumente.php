@@ -94,15 +94,13 @@ $filter_kategorie = $_GET['kategorie'] ?? '';
 $filter_suche     = trim($_GET['suche'] ?? '');
 
 if (isAdmin()) {
-    $where = '1=1';
-    $params = [];
+    $where = 'd.mitglied_id IS NULL';
 } elseif (isTrainer()) {
-    $where = "sichtbar_fuer IN ('alle','mitglieder','trainer')";
-    $params = [];
+    $where = "d.mitglied_id IS NULL AND sichtbar_fuer IN ('alle','mitglieder','trainer')";
 } else {
-    $where = "sichtbar_fuer IN ('alle','mitglieder')";
-    $params = [];
+    $where = "d.mitglied_id IS NULL AND sichtbar_fuer IN ('alle','mitglieder')";
 }
+$params = [];
 
 if ($filter_kategorie) {
     $where .= ' AND d.kategorie = ?';

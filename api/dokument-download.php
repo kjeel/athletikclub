@@ -28,19 +28,25 @@ if (!$dok) {
 
 // Zugriffsprüfung
 $allowed = false;
-switch ($dok['sichtbar_fuer']) {
-    case 'alle':
-        $allowed = true;
-        break;
-    case 'mitglieder':
-        $allowed = isLoggedIn();
-        break;
-    case 'trainer':
-        $allowed = isTrainer();
-        break;
-    case 'admin':
-        $allowed = isAdmin();
-        break;
+
+if (!empty($dok['mitglied_id'])) {
+    // Dokument im persönlichen Archiv eines Mitglieds: nur das Mitglied selbst + Trainer/Admin
+    $allowed = isTrainer() || (int)$dok['mitglied_id'] === getCurrentUserId();
+} else {
+    switch ($dok['sichtbar_fuer']) {
+        case 'alle':
+            $allowed = true;
+            break;
+        case 'mitglieder':
+            $allowed = isLoggedIn();
+            break;
+        case 'trainer':
+            $allowed = isTrainer();
+            break;
+        case 'admin':
+            $allowed = isAdmin();
+            break;
+    }
 }
 
 if (!$allowed) {

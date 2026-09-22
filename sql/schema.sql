@@ -128,12 +128,30 @@ CREATE TABLE IF NOT EXISTS `dokumente` (
   `kategorie`        ENUM('vereinsdokument','trainingsplan','kursinformation','protokoll','sonstiges') NOT NULL DEFAULT 'sonstiges',
   `sichtbar_fuer`    ENUM('alle','mitglieder','trainer','admin') NOT NULL DEFAULT 'mitglieder',
   `hochgeladen_von`  INT UNSIGNED   NOT NULL,
+  `mitglied_id`      INT UNSIGNED   NULL COMMENT 'Falls gesetzt: Dokument ist Teil des Dokumentenarchivs dieses Mitglieds',
   `downloads`        INT UNSIGNED   NOT NULL DEFAULT 0,
   `created_at`       DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   INDEX `idx_kategorie` (`kategorie`),
   INDEX `idx_sichtbar_fuer` (`sichtbar_fuer`),
-  CONSTRAINT `fk_dokument_user` FOREIGN KEY (`hochgeladen_von`) REFERENCES `users`(`id`)
+  INDEX `idx_mitglied_id` (`mitglied_id`),
+  CONSTRAINT `fk_dokument_user` FOREIGN KEY (`hochgeladen_von`) REFERENCES `users`(`id`),
+  CONSTRAINT `fk_dokument_mitglied` FOREIGN KEY (`mitglied_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================
+-- Fortschrittseinträge (Trainer dokumentieren Mitglieder-Fortschritt)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `fortschritt_eintraege` (
+  `id`          INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+  `user_id`     INT UNSIGNED  NOT NULL COMMENT 'Mitglied, auf das sich der Eintrag bezieht',
+  `trainer_id`  INT UNSIGNED  NOT NULL COMMENT 'Autor des Eintrags',
+  `eintrag`     TEXT          NOT NULL,
+  `created_at`  DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  INDEX `idx_user_id` (`user_id`),
+  CONSTRAINT `fk_fortschritt_user` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_fortschritt_trainer` FOREIGN KEY (`trainer_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================
