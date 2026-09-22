@@ -64,89 +64,75 @@ try {
         top: 20%; right: 15%; z-index: 1;
     "></div>
 
+    <!-- Sanfter Glow hinter dem Headline -->
+    <div style="
+        position: absolute; width: 900px; height: 900px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(198,161,53,0.14) 0%, transparent 65%);
+        top: 50%; left: 50%; transform: translate(-60%, -50%);
+        z-index: 1;
+        animation: heroGlow 8s ease-in-out infinite;
+    "></div>
+
     <div class="container" style="position: relative; z-index: 2; width: 100%;">
-        <div style="display: grid; grid-template-columns: 1fr auto; gap: 4rem; align-items: center;">
-
-            <!-- Hero Content -->
-            <div class="hero-content">
-                <div class="hero-eyebrow reveal">
-                    <div class="hero-eyebrow-line"></div>
-                    <span>Athletikclub Steiermark</span>
-                    <div class="hero-eyebrow-line"></div>
-                </div>
-
-                <h1 class="hero-title reveal reveal-delay-1">
-                    Stärker.
-                    <em>Schneller.</em>
-                    Athletischer.
-                </h1>
-
-                <p class="hero-subtitle reveal reveal-delay-2">
-                    Ganzheitliches Athletik- und polysportives Training in St. Georgen an der Stiefing.
-                    Für Anfänger bis ambitionierte Leistungssportler.
-                </p>
-
-                <div class="hero-actions reveal reveal-delay-3">
-                    <a href="/pages/mitglied-werden.php" class="btn btn-primary btn-xl">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-                        Mitglied werden
-                    </a>
-                    <a href="/pages/leistung.php" class="btn btn-ghost btn-xl">
-                        Unsere Angebote
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-                    </a>
-                </div>
-
-                <!-- Sport-Badges -->
-                <div class="reveal reveal-delay-4" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 2.5rem;">
-                    <?php
-                    $sportarten = [
-                        ['name' => 'Calisthenics',   'color' => '#0055D4'],
-                        ['name' => 'Skateboarding',   'color' => '#FF7B37'],
-                        ['name' => 'Tischtennis',     'color' => '#00A896'],
-                        ['name' => 'Padel Tennis',    'color' => '#4EBA6F'],
-                        ['name' => 'Athletiktraining','color' => '#C6A135'],
-                        ['name' => 'Ausdauer',        'color' => '#7C3AED'],
-                    ];
-                    foreach ($sportarten as $s): ?>
-                        <span style="
-                            display: inline-flex; align-items: center; gap: 0.4rem;
-                            padding: 0.3rem 0.85rem;
-                            background: rgba(255,255,255,0.07);
-                            border: 1px solid rgba(255,255,255,0.12);
-                            border-radius: 999px;
-                            font-family: 'Montserrat', sans-serif;
-                            font-size: 0.7rem;
-                            font-weight: 600;
-                            letter-spacing: 0.06em;
-                            color: rgba(255,255,255,0.8);
-                            backdrop-filter: blur(4px);
-                        ">
-                            <span style="width: 6px; height: 6px; border-radius: 50%; background: <?= $s['color'] ?>; flex-shrink: 0;"></span>
-                            <?= htmlspecialchars($s['name']) ?>
-                        </span>
-                    <?php endforeach; ?>
-                </div>
+        <div class="hero-content" style="max-width: 820px;">
+            <div class="hero-eyebrow reveal">
+                <div class="hero-eyebrow-line"></div>
+                <span>Athletikclub Steiermark</span>
+                <div class="hero-eyebrow-line"></div>
             </div>
 
-            <!-- Floating Stats -->
-            <div class="hero-deco">
-                <div class="hero-stat">
-                    <div class="hero-stat-number" data-count="150">0</div>
-                    <div class="hero-stat-label">Mitglieder</div>
-                </div>
-                <div class="hero-stat">
-                    <div class="hero-stat-number" data-count="6">0</div>
-                    <div class="hero-stat-label">Sportarten</div>
-                </div>
-                <div class="hero-stat">
-                    <div class="hero-stat-number" data-count="10">0</div>
-                    <div class="hero-stat-label">Trainer</div>
-                </div>
-                <div class="hero-stat">
-                    <div class="hero-stat-number" data-count="2019">0</div>
-                    <div class="hero-stat-label">Gegründet</div>
-                </div>
+            <h1 class="hero-title reveal reveal-delay-1">
+                Stärker.
+                <em>Schneller.</em>
+                Athletischer.
+            </h1>
+
+            <p class="hero-subtitle reveal reveal-delay-2" style="max-width: 620px;">
+                Ganzheitliches Athletik- und polysportives Training in St. Georgen an der Stiefing.
+                Für Anfänger bis ambitionierte Leistungssportler.
+            </p>
+
+            <div class="hero-actions reveal reveal-delay-3">
+                <a href="/pages/mitglied-werden.php" class="btn btn-primary btn-xl">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                    Mitglied werden
+                </a>
+                <a href="/pages/vision.php" class="btn btn-ghost btn-xl">
+                    Unsere Vision
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                </a>
+            </div>
+
+            <!-- Sport-Badges -->
+            <div class="reveal reveal-delay-4" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 2.75rem;">
+                <?php
+                $sportarten = [
+                    ['name' => 'Calisthenics',   'color' => '#0055D4'],
+                    ['name' => 'Skateboarding',   'color' => '#FF7B37'],
+                    ['name' => 'Tischtennis',     'color' => '#00A896'],
+                    ['name' => 'Padel Tennis',    'color' => '#4EBA6F'],
+                    ['name' => 'Athletiktraining','color' => '#C6A135'],
+                    ['name' => 'Ausdauer',        'color' => '#7C3AED'],
+                ];
+                foreach ($sportarten as $s): ?>
+                    <span style="
+                        display: inline-flex; align-items: center; gap: 0.4rem;
+                        padding: 0.3rem 0.85rem;
+                        background: rgba(255,255,255,0.07);
+                        border: 1px solid rgba(255,255,255,0.12);
+                        border-radius: 999px;
+                        font-family: 'Montserrat', sans-serif;
+                        font-size: 0.7rem;
+                        font-weight: 600;
+                        letter-spacing: 0.06em;
+                        color: rgba(255,255,255,0.8);
+                        backdrop-filter: blur(4px);
+                    ">
+                        <span style="width: 6px; height: 6px; border-radius: 50%; background: <?= $s['color'] ?>; flex-shrink: 0;"></span>
+                        <?= htmlspecialchars($s['name']) ?>
+                    </span>
+                <?php endforeach; ?>
             </div>
         </div>
     </div>
@@ -157,6 +143,62 @@ try {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
     </div>
 </section>
+
+<!-- ============================================================
+     DISZIPLIN-MARQUEE
+============================================================ -->
+<div class="marquee-strip">
+    <div class="marquee-track">
+        <?php
+        $marquee_items = ['Calisthenics', 'Skateboarding', 'Tischtennis', 'Padel Tennis', 'Athletiktraining', 'Ausdauer'];
+        for ($r = 0; $r < 2; $r++):
+            foreach ($marquee_items as $mi): ?>
+                <span class="marquee-item"><?= htmlspecialchars($mi) ?></span>
+                <span class="marquee-dot">✦</span>
+            <?php endforeach;
+        endfor; ?>
+    </div>
+</div>
+
+<style>
+@keyframes heroGlow {
+    0%, 100% { opacity: 0.7; transform: translate(-60%, -50%) scale(1); }
+    50%      { opacity: 1;   transform: translate(-60%, -50%) scale(1.08); }
+}
+.marquee-strip {
+    background: var(--navy-deeper, #0D1F35);
+    overflow: hidden;
+    white-space: nowrap;
+    padding: 1.1rem 0;
+    border-bottom: 1px solid rgba(198,161,53,0.15);
+}
+.marquee-track {
+    display: inline-flex;
+    align-items: center;
+    animation: marqueeScroll 32s linear infinite;
+}
+.marquee-item {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.55);
+    padding: 0 1.25rem;
+}
+.marquee-dot {
+    color: var(--gold-accent, #C6A135);
+    font-size: 0.7rem;
+}
+@keyframes marqueeScroll {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .marquee-track { animation: none; }
+    [style*="heroGlow"] { animation: none !important; }
+}
+</style>
 
 <!-- ============================================================
      SPORTARTEN / DISZIPLINEN
@@ -246,26 +288,28 @@ try {
 </section>
 
 <!-- ============================================================
-     STATS / KENNZAHLEN
+     PHILOSOPHIE-TEASER
 ============================================================ -->
-<section class="bg-navy" style="padding: 5rem 0;">
-    <div class="container">
-        <div class="stats-grid">
-            <?php
-            $stats = [
-                ['number' => 150,   'suffix' => '+', 'label' => 'Aktive Mitglieder'],
-                ['number' => 6,     'suffix' => '',  'label' => 'Sportdisziplinen'],
-                ['number' => 10,    'suffix' => '+', 'label' => 'Qualifizierte Trainer'],
-                ['number' => 5,     'suffix' => '+', 'label' => 'Jahre Erfahrung'],
-            ];
-            foreach ($stats as $i => $s): ?>
-                <div class="stat-item reveal reveal-delay-<?= $i + 1 ?>">
-                    <div class="stat-number">
-                        <span data-count="<?= $s['number'] ?>">0</span><?= $s['suffix'] ?>
-                    </div>
-                    <div class="stat-label"><?= htmlspecialchars($s['label']) ?></div>
-                </div>
-            <?php endforeach; ?>
+<section class="bg-navy" style="padding: 6rem 0; position: relative; overflow: hidden;">
+    <div style="
+        position: absolute; width: 500px; height: 500px;
+        border-radius: 50%; border: 1px solid rgba(198,161,53,0.1);
+        top: -150px; left: -150px;
+    "></div>
+    <div class="container" style="position: relative;">
+        <div class="reveal" style="max-width: 780px; margin: 0 auto; text-align: center;">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="var(--gold-accent)" style="margin: 0 auto 1.75rem;"><path d="M9.983 3v7.391c0 5.704-3.731 9.57-8.983 10.609l-.995-2.151c2.432-.917 3.995-3.638 3.995-5.849h-4v-10h9.983zm14.017 0v7.391c0 5.704-3.748 9.571-9 10.609l-.996-2.151c2.433-.917 3.996-3.638 3.996-5.849h-4v-10h10z"/></svg>
+            <p style="font-size: clamp(1.3rem, 2.4vw, 1.75rem); line-height: 1.6; color: white; font-weight: 300;">
+                Ein vielseitig bewegter Mensch ist gesünder, anpassungsfähiger und
+                leistungsfähiger. Deshalb glauben wir an polysportive Entwicklung statt
+                früher Spezialisierung.
+            </p>
+        </div>
+
+        <div class="reveal reveal-delay-1" style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; margin-top: 3rem;">
+            <a href="/pages/vision.php" class="btn btn-ghost-light">Unsere Vision</a>
+            <a href="/pages/mission.php" class="btn btn-ghost-light">Unsere Mission</a>
+            <a href="/pages/leitbild.php" class="btn btn-ghost-light">Unser Leitbild</a>
         </div>
     </div>
 </section>
@@ -281,45 +325,26 @@ try {
                     aspect-ratio: 4/3;
                     background: linear-gradient(135deg, var(--navy-primary), var(--navy-light));
                     border-radius: 1.5rem;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
                     position: relative;
                     overflow: hidden;
                 ">
-                    <!-- Placeholder Graphic -->
-                    <div style="
-                        width: 200px; height: 200px;
-                        border-radius: 50%;
-                        border: 3px solid rgba(198,161,53,0.3);
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        position: relative;
-                    ">
-                        <div style="
-                            position: absolute; inset: -20px;
-                            border-radius: 50%;
-                            border: 1px solid rgba(198,161,53,0.1);
-                        "></div>
-                        <svg width="80" height="80" viewBox="0 0 50 50" fill="none">
-                            <circle cx="25" cy="25" r="23" stroke="#C6A135" stroke-width="2"/>
-                            <path d="M14 34L25 14L36 34" stroke="#C6A135" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            <path d="M18 28H32" stroke="#C6A135" stroke-width="2" stroke-linecap="round"/>
-                            <circle cx="25" cy="14" r="2.5" fill="#C6A135"/>
-                        </svg>
-                    </div>
-                    <div style="
-                        position: absolute;
-                        bottom: 2rem; right: 2rem;
-                        background: rgba(198,161,53,0.9);
-                        border-radius: 1rem;
-                        padding: 1rem 1.25rem;
-                        backdrop-filter: blur(8px);
-                    ">
-                        <div style="font-family: 'Montserrat', sans-serif; font-size: 1.5rem; font-weight: 900; color: #0D1F35; line-height: 1;">2019</div>
-                        <div style="font-family: 'Montserrat', sans-serif; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(13,31,53,0.7);">Gegründet</div>
-                    </div>
+                    <div style="position: absolute; inset: 0; opacity: 0.06; background-image: linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px); background-size: 32px 32px;"></div>
+
+                    <!-- Präsidium-Portraits -->
+                    <img src="<?= APP_URL ?>/assets/images/team/jacob-kysela.jpg" alt="Jacob Kysela"
+                         style="
+                            position: absolute; width: 44%; aspect-ratio: 3/4; object-fit: cover; object-position: center 30%;
+                            border-radius: 1rem; border: 4px solid rgba(255,255,255,0.9);
+                            box-shadow: 0 20px 40px rgba(0,0,0,0.35);
+                            left: 8%; top: 12%; z-index: 2;
+                         ">
+                    <img src="<?= APP_URL ?>/assets/images/team/christof-oster.jpeg" alt="Christof Oster"
+                         style="
+                            position: absolute; width: 44%; aspect-ratio: 3/4; object-fit: cover; object-position: center 30%;
+                            border-radius: 1rem; border: 4px solid rgba(255,255,255,0.9);
+                            box-shadow: 0 20px 40px rgba(0,0,0,0.35);
+                            right: 8%; bottom: 10%; z-index: 1;
+                         ">
                 </div>
             </div>
 
@@ -334,15 +359,15 @@ try {
                     Beweglichkeit und Koordination – für alle Leistungsniveaus.
                 </p>
                 <p style="margin-bottom: 2rem; line-height: 1.85;">
-                    Unser Team aus qualifizierten Trainern begleitet dich auf deinem
-                    persönlichen Weg – egal ob du gerade erst anfängst oder als
+                    Geführt von Jacob Kysela und Christof Oster begleitet dich unser Team auf
+                    deinem persönlichen Weg – egal ob du gerade erst anfängst oder als
                     ambitionierter Sportler deine Leistung optimieren möchtest.
                 </p>
 
                 <div class="feature-list">
                     <?php
                     $features = [
-                        ['icon' => 'users',      'title' => 'Starke Gemeinschaft',      'desc' => 'Über 150 Mitglieder, die sich gegenseitig motivieren und unterstützen.'],
+                        ['icon' => 'users',      'title' => 'Starke Gemeinschaft',      'desc' => 'Ein Verein, der Bewegung, Begegnung und Entwicklung zusammenbringt.'],
                         ['icon' => 'award',      'title' => 'Qualifizierte Trainer',    'desc' => 'Zertifizierte Übungsleiter mit Leidenschaft für ihren Sport.'],
                         ['icon' => 'activity',   'title' => 'Ganzheitliches Training',  'desc' => 'Sechs Disziplinen für ein breites, ausgewogenes Sportprogramm.'],
                     ];
