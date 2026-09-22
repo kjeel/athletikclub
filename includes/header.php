@@ -23,6 +23,15 @@ $meta_desc  = isset($meta_description) ? e($meta_description) : 'Athletikclub St
 <!DOCTYPE html>
 <html lang="de">
 <head>
+    <script>
+    (function () {
+        try {
+            var t = localStorage.getItem('aci-theme');
+            if (!t) t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', t);
+        } catch (e) {}
+    })();
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="<?= $meta_desc ?>">
@@ -111,6 +120,10 @@ $meta_desc  = isset($meta_description) ? e($meta_description) : 'Athletikclub St
 
         <!-- Auth-Bereich -->
         <div class="header-actions">
+            <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Farbschema wechseln" title="Hell/Dunkel umschalten">
+                <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+                <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            </button>
             <?php if (isLoggedIn() && $current_user): ?>
                 <a href="<?= APP_URL ?>/dashboard/index.php" class="btn btn-ghost btn-sm">
                     <i data-feather="grid"></i>

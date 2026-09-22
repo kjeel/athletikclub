@@ -23,7 +23,9 @@ $unread_kontakt = 0;
 if (isAdmin()) {
     try {
         $db = getDB();
-        $unread_kontakt = (int)$db->query('SELECT COUNT(*) FROM kontakt_anfragen WHERE gelesen = 0')->fetchColumn();
+        $stmt = $db->prepare('SELECT COUNT(*) FROM kontakt_anfragen WHERE gelesen = 0 AND organization_id = ?');
+        $stmt->execute([currentOrgId()]);
+        $unread_kontakt = (int)$stmt->fetchColumn();
     } catch (Exception $e) {}
 }
 
@@ -35,9 +37,9 @@ if (isTrainer()) {
         $stmt = $db->prepare(
             'SELECT COUNT(*) FROM kurs_anmeldungen ka
              JOIN kurse k ON ka.kurs_id = k.id
-             WHERE k.trainer_id = ? AND ka.status = "angemeldet"'
+             WHERE k.trainer_id = ? AND ka.status = "angemeldet" AND k.organization_id = ?'
         );
-        $stmt->execute([$user['id']]);
+        $stmt->execute([$user['id'], currentOrgId()]);
         $pending_anmeldungen = (int)$stmt->fetchColumn();
     } catch (Exception $e) {}
 }
@@ -50,17 +52,26 @@ try {
     $platzhalter = implode(',', array_fill(0, count($zielgruppen), '?'));
     $stmt = $db->prepare(
         "SELECT n.* FROM news n
-         WHERE n.zielgruppe IN ({$platzhalter})
+         WHERE n.organization_id = ? AND n.zielgruppe IN ({$platzhalter})
            AND NOT EXISTS (SELECT 1 FROM news_gelesen ng WHERE ng.news_id = n.id AND ng.user_id = ?)
          ORDER BY n.created_at ASC"
     );
-    $stmt->execute([...$zielgruppen, $user['id']]);
+    $stmt->execute([currentOrgId(), ...$zielgruppen, $user['id']]);
     $ungelesene_news = $stmt->fetchAll();
 } catch (Exception $e) {}
 ?>
 <!DOCTYPE html>
 <html lang="de">
 <head>
+    <script>
+    (function () {
+        try {
+            var t = localStorage.getItem('aci-theme');
+            if (!t) t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', t);
+        } catch (e) {}
+    })();
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $page_title ?></title>
@@ -82,7 +93,7 @@ try {
     background: rgba(13,31,53,0.6); backdrop-filter: blur(4px);
 ">
     <div style="
-        background: white; border-radius: 1.25rem; width: 100%; max-width: 520px;
+        background: var(--surface); border-radius: 1.25rem; width: 100%; max-width: 520px;
         max-height: 85vh; overflow-y: auto;
         box-shadow: 0 25px 50px rgba(0,0,0,0.25);
     ">
@@ -147,6 +158,10 @@ try {
         </div>
 
         <div style="display: flex; align-items: center; gap: 1rem;">
+            <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Farbschema wechseln" title="Hell/Dunkel umschalten">
+                <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+                <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            </button>
             <a href="<?= APP_URL ?>/" class="btn btn-ghost btn-sm">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                 Website

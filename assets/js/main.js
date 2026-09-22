@@ -16,6 +16,19 @@
     });
 
     // ============================================================
+    // Dark-Modus umschalten
+    // ============================================================
+    const themeToggle = document.getElementById('theme-toggle');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', function () {
+            const root = document.documentElement;
+            const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            root.setAttribute('data-theme', next);
+            try { localStorage.setItem('aci-theme', next); } catch (e) {}
+        });
+    }
+
+    // ============================================================
     // Sticky Header: Klasse bei Scroll hinzufügen
     // ============================================================
     const header = document.getElementById('site-header');
