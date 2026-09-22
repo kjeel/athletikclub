@@ -1,10 +1,10 @@
 <?php
 /**
- * Athletikclub Steiermark – Trainer*in werden
+ * Athletikclub Steiermark – Trainer*innen-Anbindung
  */
 define('ROOT_PATH', dirname(__DIR__));
 $page_title       = 'Trainer*in werden';
-$meta_description = 'Werde Trainer*in beim Athletikclub Steiermark und gib deine Leidenschaft für Sport an unsere Mitglieder weiter.';
+$meta_description = 'Trainiere selbstständig beim Athletikclub Steiermark – Infrastruktur, Kundenbasis und rechtlicher Rahmen inklusive. Du bringst deine Expertise mit.';
 require_once ROOT_PATH . '/includes/header.php';
 
 $success = false;
@@ -13,33 +13,34 @@ $errors  = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireCsrf();
 
-    $name      = trim($_POST['name'] ?? '');
-    $email     = trim($_POST['email'] ?? '');
-    $sportart  = trim($_POST['sportart'] ?? '');
-    $nachricht = trim($_POST['nachricht'] ?? '');
+    $vorname       = trim($_POST['vorname'] ?? '');
+    $nachname      = trim($_POST['nachname'] ?? '');
+    $email         = trim($_POST['email'] ?? '');
+    $qualifikation = trim($_POST['qualifikation'] ?? '');
+    $nachricht     = trim($_POST['nachricht'] ?? '');
 
-    if (empty($name) || mb_strlen($name) < 2) $errors['name'] = 'Bitte gib deinen Namen ein.';
+    if (empty($vorname) || mb_strlen($vorname) < 2) $errors['vorname'] = 'Bitte gib deinen Vornamen ein.';
+    if (empty($nachname) || mb_strlen($nachname) < 2) $errors['nachname'] = 'Bitte gib deinen Nachnamen ein.';
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors['email'] = 'Bitte gib eine gültige E-Mail-Adresse ein.';
-    if (empty($nachricht) || mb_strlen($nachricht) < 10) $errors['nachricht'] = 'Bitte schreibe mindestens 10 Zeichen über dich und deine Erfahrung.';
+    if (empty($nachricht) || mb_strlen($nachricht) < 10) $errors['nachricht'] = 'Bitte schreib uns kurz von dir und deinen Vorstellungen.';
 
     if (empty($errors)) {
         try {
-            $betreff = 'Trainer-Bewerbung' . ($sportart !== '' ? ' – ' . $sportart : '');
+            $betreff = 'Trainer-Anbindung' . ($qualifikation !== '' ? ' – ' . $qualifikation : '');
+            $name    = $vorname . ' ' . $nachname;
             $db = getDB();
-            $db->prepare('INSERT INTO kontakt_anfragen (name, email, betreff, nachricht) VALUES (?, ?, ?, ?)')
-               ->execute([$name, $email, $betreff, $nachricht]);
+            $db->prepare('INSERT INTO kontakt_anfragen (organization_id, name, email, betreff, nachricht) VALUES (?, ?, ?, ?, ?)')
+               ->execute([currentOrgId(), $name, $email, $betreff, $nachricht]);
 
-            $mail_body  = "Neue Trainer-Bewerbung über die Website:\n\n";
-            $mail_body .= "Name: {$name}\nE-Mail: {$email}\nSportart/Bereich: {$sportart}\n\nNachricht:\n{$nachricht}";
-            @mail(MAIL_ADMIN, "Neue Trainer-Bewerbung: {$name}", $mail_body, 'From: ' . MAIL_FROM);
+            $mail_body  = "Neue Trainer-Anbindungsanfrage über die Website:\n\n";
+            $mail_body .= "Name: {$name}\nE-Mail: {$email}\nQualifikation/Schwerpunkt: {$qualifikation}\n\nNachricht:\n{$nachricht}";
+            @mail(MAIL_ADMIN, "Neue Trainer-Anfrage: {$name}", $mail_body, 'From: ' . MAIL_FROM);
             $success = true;
         } catch (Exception $e) {
             $errors['general'] = 'Fehler beim Senden. Bitte versuche es später erneut.';
         }
     }
 }
-
-$sportarten = ['Calisthenics', 'Skateboarding', 'Tischtennis', 'Padel Tennis', 'Athletiktraining', 'Ausdauer', 'Sonstiges'];
 ?>
 
 <!-- Page Header -->
@@ -51,152 +52,44 @@ $sportarten = ['Calisthenics', 'Skateboarding', 'Tischtennis', 'Padel Tennis', '
             <span class="breadcrumb-sep">›</span>
             <span class="breadcrumb-current">Trainer*in werden</span>
         </nav>
-        <h1>Trainer*in werden</h1>
-        <p>Gib deine Leidenschaft für Sport weiter und werde Teil unseres Trainer-Teams.</p>
+        <h1>Trainiere selbstständig. Mit unserem Rücken.</h1>
+        <p>Du willst als Trainer*in durchstarten — ohne Vereinsgründung, ohne Bürokratie, ohne das Risiko allein zu tragen?</p>
     </div>
 </section>
 
 <!-- ============================================================
-     WARUM TRAINER*IN BEIM ATHLETIKCLUB STEIERMARK
+     INTRO + STICHWORTE
 ============================================================ -->
 <section class="section bg-white">
     <div class="container">
-        <div class="feature-block">
-            <div class="feature-visual reveal">
-                <div style="
-                    aspect-ratio: 4/3;
-                    background: linear-gradient(135deg, var(--navy-primary), var(--navy-light));
-                    border-radius: 1.5rem;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    position: relative;
-                    overflow: hidden;
-                ">
-                    <div style="
-                        width: 200px; height: 200px;
-                        border-radius: 50%;
-                        border: 3px solid rgba(198,161,53,0.3);
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                    ">
-                        <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#C6A135" stroke-width="1.5">
-                            <circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/>
-                        </svg>
-                    </div>
-                    <div style="
-                        position: absolute;
-                        bottom: 2rem; right: 2rem;
-                        background: rgba(198,161,53,0.9);
-                        border-radius: 1rem;
-                        padding: 1rem 1.25rem;
-                        backdrop-filter: blur(8px);
-                    ">
-                        <div style="font-family: 'Montserrat', sans-serif; font-size: 1.5rem; font-weight: 900; color: #0D1F35; line-height: 1;">10+</div>
-                        <div style="font-family: 'Montserrat', sans-serif; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(13,31,53,0.7);">Trainer im Team</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="reveal reveal-delay-1">
-                <span class="section-label">Werde Teil des Teams</span>
-                <h2 class="section-title" style="margin-bottom: 1.25rem;">
-                    Trainer*in beim Athletikclub Steiermark
-                </h2>
-                <p style="margin-bottom: 1.25rem; font-size: 1.05rem; line-height: 1.85;">
-                    Du brennst für deinen Sport und möchtest diese Begeisterung weitergeben?
-                    Beim Athletikclub Steiermark unterrichtest du in einem von sechs Disziplinen und begleitest
-                    Mitglieder vom Einstieg bis zum Leistungssport.
-                </p>
-                <p style="margin-bottom: 2rem; line-height: 1.85;">
-                    Wir legen Wert auf ein familiäres Trainer-Team, flexible Trainingszeiten
-                    und die Möglichkeit, dein eigenes Angebot mitzugestalten.
-                </p>
-
-                <div class="feature-list">
-                    <?php
-                    $vorteile = [
-                        ['icon' => 'clock',    'title' => 'Flexible Zeiten',        'desc' => 'Trainingszeiten, die sich mit Job, Studium oder anderen Verpflichtungen vereinbaren lassen.'],
-                        ['icon' => 'users',    'title' => 'Starkes Team',           'desc' => 'Austausch und Zusammenarbeit mit erfahrenen Trainer*innen aus allen Disziplinen.'],
-                        ['icon' => 'trending', 'title' => 'Weiterentwicklung',      'desc' => 'Unterstützung bei Fort- und Weiterbildungen im Trainerbereich.'],
-                    ];
-                    foreach ($vorteile as $v): ?>
-                        <div class="feature-item">
-                            <div class="feature-icon">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <?php
-                                    $icons = [
-                                        'clock'    => '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
-                                        'users'    => '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
-                                        'trending' => '<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>',
-                                    ];
-                                    echo $icons[$v['icon']];
-                                    ?>
-                                </svg>
-                            </div>
-                            <div>
-                                <h4 style="font-family: 'Montserrat', sans-serif; font-size: 0.95rem; font-weight: 700; margin-bottom: 0.25rem;">
-                                    <?= htmlspecialchars($v['title']) ?>
-                                </h4>
-                                <p style="font-size: 0.875rem; margin: 0; line-height: 1.6;">
-                                    <?= htmlspecialchars($v['desc']) ?>
-                                </p>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- ============================================================
-     ANFORDERUNGEN
-============================================================ -->
-<section class="section bg-light">
-    <div class="container">
-        <div class="text-center" style="margin-bottom: 3.5rem;">
-            <span class="section-label reveal">Das bringst du mit</span>
-            <h2 class="section-title reveal reveal-delay-1">Anforderungen</h2>
-            <p class="section-subtitle reveal reveal-delay-2" style="margin: 0 auto;">
-                Fachliche Qualifikation ist wichtig – genauso wichtig ist uns Motivation
-                und Freude am Umgang mit Menschen.
+        <div class="text-center" style="margin-bottom: 2.5rem; max-width: 720px; margin-inline: auto;">
+            <span class="section-label reveal">Trainer*innen-Anbindung</span>
+            <p class="section-subtitle reveal reveal-delay-1" style="margin: 0 auto;">
+                Wir bieten dir die Infrastruktur, die Kunden und den rechtlichen Rahmen.
+                Du bringst deine Expertise mit.
             </p>
         </div>
 
-        <div class="grid-3">
+        <div class="reveal reveal-delay-2" style="display: flex; justify-content: center; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 3.5rem;">
+            <?php foreach (['Sofort einsatzbereit', 'Kein Gründungsaufwand', 'Faire Vergütung'] as $badge): ?>
+                <span class="badge badge-gold" style="font-size: 0.8rem; padding: 0.5rem 1rem;"><?= e($badge) ?></span>
+            <?php endforeach; ?>
+        </div>
+
+        <div class="grid-4">
             <?php
-            $anforderungen = [
-                ['icon' => 'award',   'title' => 'Qualifikation', 'desc' => 'Trainerausbildung, Übungsleiterschein oder vergleichbare Qualifikation in deiner Sportart.'],
-                ['icon' => 'heart',   'title' => 'Leidenschaft',  'desc' => 'Begeisterung für deinen Sport und die Motivation, diese an andere weiterzugeben.'],
-                ['icon' => 'users',   'title' => 'Teamfähigkeit', 'desc' => 'Freude an der Arbeit mit Menschen jeden Alters und Leistungsniveaus.'],
+            $intro_cards = [
+                ['icon' => '🚀', 'title' => 'Sofort loslegen',          'desc' => 'Kein Gründungsaufwand, keine Bürokratie — direkt starten.'],
+                ['icon' => '📋', 'title' => 'Rechtlicher Rahmen',       'desc' => 'Versicherung, Verträge und Abrechnung über uns geregelt.'],
+                ['icon' => '👥', 'title' => 'Bestehende Kundenbasis',   'desc' => 'Zugang zu unserem Mitglieder- und Interessentennetzwerk.'],
+                ['icon' => '💶', 'title' => 'Faire Vergütung',          'desc' => 'Transparentes Provisionsmodell — du verdienst, was du leistest.'],
             ];
-            foreach ($anforderungen as $i => $a): ?>
-                <div class="card reveal reveal-delay-<?= $i + 1 ?>" style="text-align: center;">
+            foreach ($intro_cards as $i => $c): ?>
+                <div class="card reveal reveal-delay-<?= ($i % 4) + 1 ?>">
                     <div class="card-body">
-                        <div style="
-                            width: 56px; height: 56px;
-                            border-radius: 1rem;
-                            background: var(--gold-dim);
-                            display: flex; align-items: center; justify-content: center;
-                            margin: 0 auto 1.25rem;
-                        ">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C6A135" stroke-width="2">
-                                <?php
-                                $icons = [
-                                    'award' => '<circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/>',
-                                    'heart' => '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>',
-                                    'users' => '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
-                                ];
-                                echo $icons[$a['icon']];
-                                ?>
-                            </svg>
-                        </div>
-                        <h3 style="font-family: 'Montserrat', sans-serif; font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem;">
-                            <?= htmlspecialchars($a['title']) ?>
-                        </h3>
-                        <p style="font-size: 0.875rem; margin: 0;"><?= htmlspecialchars($a['desc']) ?></p>
+                        <div style="font-size: 1.75rem; margin-bottom: 0.75rem;"><?= $c['icon'] ?></div>
+                        <h3 style="font-family: 'Montserrat', sans-serif; font-size: 0.95rem; font-weight: 700; margin-bottom: 0.4rem;"><?= e($c['title']) ?></h3>
+                        <p style="font-size: 0.85rem; margin: 0;"><?= e($c['desc']) ?></p>
                     </div>
                 </div>
             <?php endforeach; ?>
@@ -205,17 +98,158 @@ $sportarten = ['Calisthenics', 'Skateboarding', 'Tischtennis', 'Padel Tennis', '
 </section>
 
 <!-- ============================================================
-     BEWERBUNGSFORMULAR
+     SO FUNKTIONIERT ES
+============================================================ -->
+<section class="section bg-light">
+    <div class="container">
+        <div class="text-center" style="margin-bottom: 3.5rem; max-width: 680px; margin-inline: auto;">
+            <span class="section-label reveal">So funktioniert es</span>
+            <h2 class="section-title reveal reveal-delay-1">Von der Idee zum ersten Training — in vier Schritten</h2>
+            <p class="section-subtitle reveal reveal-delay-2" style="margin: 0 auto;">
+                Der Einstieg ist unkompliziert. Wir begleiten dich durch den gesamten Prozess,
+                damit du dich auf das Wesentliche konzentrieren kannst: dein Training.
+            </p>
+        </div>
+
+        <div class="grid-4">
+            <?php
+            $schritte = [
+                ['nr' => '01', 'title' => 'Erstes Gespräch',    'desc' => 'Du meldest dich bei uns — wir lernen uns kennen, besprechen deine Qualifikationen, Schwerpunkte und Vorstellungen. Völlig unverbindlich.'],
+                ['nr' => '02', 'title' => 'Anbindungsvertrag',  'desc' => 'Wir schließen einen klaren Kooperationsvertrag. Darin sind Vergütung, Rahmenbedingungen und gegenseitige Rechte und Pflichten transparent geregelt.'],
+                ['nr' => '03', 'title' => 'Onboarding',         'desc' => 'Du wirst in unsere Strukturen eingeführt — Buchungssystem, Kommunikation mit Kunden, Nutzung unserer Räumlichkeiten und Materialien.'],
+                ['nr' => '04', 'title' => 'Loslegen',           'desc' => 'Du trainierst — unter deinem Namen, mit deiner Methode, zu deinen Zeiten. Wir kümmern uns um Abrechnung, Verwaltung und Support im Hintergrund.'],
+            ];
+            foreach ($schritte as $i => $s): ?>
+                <div class="reveal reveal-delay-<?= ($i % 4) + 1 ?>">
+                    <div style="font-family: 'Montserrat', sans-serif; font-size: 2rem; font-weight: 900; color: var(--gold-accent); margin-bottom: 0.5rem;"><?= $s['nr'] ?></div>
+                    <h3 style="font-family: 'Montserrat', sans-serif; font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem;"><?= e($s['title']) ?></h3>
+                    <p style="font-size: 0.875rem; line-height: 1.7; margin: 0;"><?= e($s['desc']) ?></p>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
+
+<!-- ============================================================
+     DEINE VORTEILE
 ============================================================ -->
 <section class="section bg-white">
     <div class="container">
+        <div class="text-center" style="margin-bottom: 3.5rem; max-width: 680px; margin-inline: auto;">
+            <span class="section-label reveal">Deine Vorteile</span>
+            <h2 class="section-title reveal reveal-delay-1">Alles, was du brauchst — ohne den Aufwand dahinter</h2>
+            <p class="section-subtitle reveal reveal-delay-2" style="margin: 0 auto;">
+                Selbstständig arbeiten bedeutet nicht, alles alleine stemmen zu müssen. Mit uns im
+                Rücken konzentrierst du dich auf Leistung, wir übernehmen den Rest.
+            </p>
+        </div>
+
+        <div class="grid-3">
+            <?php
+            $vorteile = [
+                ['icon' => '🏛️', 'title' => 'Kein Gründungsaufwand',     'desc' => 'Du arbeitest unter dem rechtlichen Dach unserer Organisation — sofort und unkompliziert, ohne eigenen Gründungsaufwand.'],
+                ['icon' => '🔒', 'title' => 'Versicherungsschutz',       'desc' => 'Unsere Haftpflicht- und Unfallversicherung deckt deine Trainingstätigkeit ab. Du bist von Anfang an auf der sicheren Seite.'],
+                ['icon' => '📊', 'title' => 'Buchhaltung & Abrechnung',  'desc' => 'Rechnungen, Honorarabrechnungen und die steuerliche Abwicklung laufen über uns. Du erhältst monatlich eine transparente Abrechnung.'],
+                ['icon' => '📍', 'title' => 'Infrastruktur & Räume',     'desc' => 'Zugang zu unseren Trainingsräumen, Equipment und Buchungssystemen — ohne eigene Investitionen in Ausstattung oder Mietverträge.'],
+                ['icon' => '📣', 'title' => 'Marketing & Sichtbarkeit',  'desc' => 'Du wirst auf unserer Website, in Social Media und in unserem Newsletter als Trainer*in vorgestellt. Wir bringen dir Kunden — du musst nicht selbst akquirieren.'],
+                ['icon' => '🤝', 'title' => 'Kollegiales Netzwerk',      'desc' => 'Du bist Teil eines Teams aus gleichgesinnten Trainer*innen. Austausch, gegenseitige Unterstützung und gemeinsame Weiterentwicklung inklusive.'],
+            ];
+            foreach ($vorteile as $i => $v): ?>
+                <div class="card reveal reveal-delay-<?= ($i % 4) + 1 ?>">
+                    <div class="card-body">
+                        <div style="
+                            width: 56px; height: 56px;
+                            border-radius: 1rem;
+                            background: var(--gold-dim);
+                            display: flex; align-items: center; justify-content: center;
+                            margin-bottom: 1.25rem;
+                            font-size: 1.5rem;
+                        "><?= $v['icon'] ?></div>
+                        <h3 style="font-family: 'Montserrat', sans-serif; font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem;"><?= e($v['title']) ?></h3>
+                        <p style="font-size: 0.875rem; margin: 0;"><?= e($v['desc']) ?></p>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
+
+<!-- ============================================================
+     WAS WIR UNS WÜNSCHEN
+============================================================ -->
+<section class="section bg-light">
+    <div class="container">
+        <div class="text-center" style="margin-bottom: 2.5rem; max-width: 680px; margin-inline: auto;">
+            <span class="section-label reveal">Was wir uns wünschen</span>
+            <h2 class="section-title reveal reveal-delay-1">Deine Qualifikation ist unsere Grundlage</h2>
+        </div>
+
+        <div style="max-width: 680px; margin: 0 auto;">
+            <?php
+            $anforderungen = [
+                'Abgeschlossene Trainer*innenausbildung — anerkannte Lizenz im Bereich Sport, Fitness, Gesundheit oder verwandten Feldern',
+                'Verlässlichkeit & Professionalität — pünktlich, vorbereitet und im Umgang mit Kunden stets freundlich und kompetent',
+                'Eigenverantwortung — du organisierst deinen Alltag selbst und bringst den Antrieb mit, als Selbstständige*r zu arbeiten',
+                'Identifikation mit unseren Werten — Ehrlichkeit, Qualität im Training und Wohl der Kund*innen stehen bei uns an erster Stelle',
+                'Bereitschaft zur Zusammenarbeit — wir sind kein anonymes Netzwerk, sondern ein echtes Team mit regelmäßigem Austausch',
+            ];
+            foreach ($anforderungen as $i => $a): ?>
+                <div class="reveal reveal-delay-<?= ($i % 4) + 1 ?>" style="display: flex; gap: 0.85rem; align-items: flex-start; margin-bottom: 1.25rem;">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C6A135" stroke-width="2.5" style="flex-shrink: 0; margin-top: 2px;"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span style="font-size: 0.95rem; line-height: 1.7;"><?= e($a) ?></span>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
+
+<!-- ============================================================
+     TESTIMONIAL
+============================================================ -->
+<section class="section bg-white">
+    <div class="container">
+        <div class="reveal" style="max-width: 680px; margin: 0 auto; text-align: center;">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="#C6A135" style="margin: 0 auto 1.5rem;"><path d="M9.983 3v7.391c0 5.704-3.731 9.57-8.983 10.609l-.995-2.151c2.432-.917 3.995-3.638 3.995-5.849h-4v-10h9.983zm14.017 0v7.391c0 5.704-3.748 9.571-9 10.609l-.996-2.151c2.433-.917 3.996-3.638 3.996-5.849h-4v-10h10z"/></svg>
+            <p style="font-size: 1.15rem; line-height: 1.8; font-style: italic; color: var(--text-secondary); margin-bottom: 1.5rem;">
+                Ich wollte schon lange selbstständig trainieren — aber der Aufwand mit Versicherung,
+                Verträgen und Buchhaltung hat mich zurückgehalten. Die Anbindung war der perfekte
+                Einstieg.
+            </p>
+            <span style="font-family: 'Montserrat', sans-serif; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">
+                — Trainer*in im Athletikclub Steiermark
+            </span>
+        </div>
+    </div>
+</section>
+
+<!-- ============================================================
+     QUEREINSTIEG
+============================================================ -->
+<div class="container" style="padding-bottom: 1rem;">
+    <div class="card" style="max-width: 680px; margin: 0 auto; border-left: 3px solid var(--gold-accent);">
+        <div class="card-body">
+            <h3 style="font-family: 'Montserrat', sans-serif; font-size: 0.95rem; font-weight: 700; margin-bottom: 0.5rem;">Quereinstieg möglich?</h3>
+            <p style="font-size: 0.9rem; margin: 0; line-height: 1.7;">
+                Wenn du gerade eine Ausbildung absolvierst oder kurz vor dem Abschluss stehst, melde
+                dich trotzdem gerne. Wir besprechen gemeinsam, ob und wie eine frühe Zusammenarbeit
+                möglich ist.
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     KONTAKTFORMULAR
+============================================================ -->
+<section class="section bg-light">
+    <div class="container">
         <div style="max-width: 640px; margin: 0 auto;">
             <div class="text-center" style="margin-bottom: 2.5rem;">
-                <span class="section-label reveal">Interesse geweckt?</span>
-                <h2 class="section-title reveal reveal-delay-1">Jetzt bewerben</h2>
+                <span class="section-label reveal">Bereit für den nächsten Schritt?</span>
+                <h2 class="section-title reveal reveal-delay-1">Wir freuen uns auf dich.</h2>
                 <p class="section-subtitle reveal reveal-delay-2" style="margin: 0 auto;">
-                    Schreib uns kurz, welche Sportart du trainieren möchtest und welche
-                    Erfahrung du mitbringst.
+                    Füll das Formular aus — wir melden uns innerhalb von 48 Stunden bei dir.
+                    Kein Druck, keine Verpflichtung, nur ein ehrlicher Austausch.
                 </p>
             </div>
 
@@ -223,8 +257,8 @@ $sportarten = ['Calisthenics', 'Skateboarding', 'Tischtennis', 'Padel Tennis', '
                 <?php if ($success): ?>
                     <div style="text-align: center; padding: 3rem;">
                         <div style="font-size: 3rem; margin-bottom: 1rem;">✅</div>
-                        <h3 style="font-family: 'Montserrat', sans-serif; font-size: 1.5rem; font-weight: 800; text-transform: uppercase; margin-bottom: 0.75rem;">Danke für deine Bewerbung!</h3>
-                        <p>Wir melden uns so schnell wie möglich bei dir.</p>
+                        <h3 style="font-family: 'Montserrat', sans-serif; font-size: 1.5rem; font-weight: 800; text-transform: uppercase; margin-bottom: 0.75rem;">Danke für deine Anfrage!</h3>
+                        <p>Wir melden uns innerhalb von 48 Stunden bei dir.</p>
                         <a href="<?= APP_URL ?>/" class="btn btn-navy" style="margin-top: 1.5rem;">Zurück zur Startseite</a>
                     </div>
                 <?php else: ?>
@@ -238,34 +272,35 @@ $sportarten = ['Calisthenics', 'Skateboarding', 'Tischtennis', 'Padel Tennis', '
 
                         <div class="form-row">
                             <div class="form-group">
-                                <label class="form-label" for="name">Name <span class="required">*</span></label>
-                                <input class="form-control <?= isset($errors['name']) ? 'error' : '' ?>" type="text" id="name" name="name" value="<?= e($_POST['name'] ?? '') ?>" required placeholder="Dein Name">
-                                <?php if (isset($errors['name'])): ?><span class="form-error"><?= e($errors['name']) ?></span><?php endif; ?>
+                                <label class="form-label" for="vorname">Vorname <span class="required">*</span></label>
+                                <input class="form-control <?= isset($errors['vorname']) ? 'error' : '' ?>" type="text" id="vorname" name="vorname" value="<?= e($_POST['vorname'] ?? '') ?>" required placeholder="Max">
+                                <?php if (isset($errors['vorname'])): ?><span class="form-error"><?= e($errors['vorname']) ?></span><?php endif; ?>
                             </div>
                             <div class="form-group">
-                                <label class="form-label" for="email">E-Mail <span class="required">*</span></label>
-                                <input class="form-control <?= isset($errors['email']) ? 'error' : '' ?>" type="email" id="email" name="email" value="<?= e($_POST['email'] ?? '') ?>" required placeholder="deine@email.at">
-                                <?php if (isset($errors['email'])): ?><span class="form-error"><?= e($errors['email']) ?></span><?php endif; ?>
+                                <label class="form-label" for="nachname">Nachname <span class="required">*</span></label>
+                                <input class="form-control <?= isset($errors['nachname']) ? 'error' : '' ?>" type="text" id="nachname" name="nachname" value="<?= e($_POST['nachname'] ?? '') ?>" required placeholder="Mustermann">
+                                <?php if (isset($errors['nachname'])): ?><span class="form-error"><?= e($errors['nachname']) ?></span><?php endif; ?>
                             </div>
                         </div>
 
                         <div class="form-group">
-                            <label class="form-label" for="sportart">Sportart / Bereich</label>
-                            <select class="form-control" id="sportart" name="sportart">
-                                <option value="">Bitte wählen…</option>
-                                <?php foreach ($sportarten as $s): ?>
-                                    <option value="<?= e($s) ?>" <?= (($_POST['sportart'] ?? '') === $s) ? 'selected' : '' ?>><?= e($s) ?></option>
-                                <?php endforeach; ?>
-                            </select>
+                            <label class="form-label" for="email">E-Mail <span class="required">*</span></label>
+                            <input class="form-control <?= isset($errors['email']) ? 'error' : '' ?>" type="email" id="email" name="email" value="<?= e($_POST['email'] ?? '') ?>" required placeholder="deine@email.at">
+                            <?php if (isset($errors['email'])): ?><span class="form-error"><?= e($errors['email']) ?></span><?php endif; ?>
                         </div>
 
                         <div class="form-group">
-                            <label class="form-label" for="nachricht">Über dich <span class="required">*</span></label>
-                            <textarea class="form-control <?= isset($errors['nachricht']) ? 'error' : '' ?>" id="nachricht" name="nachricht" required rows="5" placeholder="Erzähl uns von deiner Erfahrung, Qualifikation und warum du Trainer*in beim Athletikclub Steiermark werden möchtest…"><?= e($_POST['nachricht'] ?? '') ?></textarea>
+                            <label class="form-label" for="qualifikation">Deine Qualifikation / Schwerpunkt</label>
+                            <input class="form-control" type="text" id="qualifikation" name="qualifikation" value="<?= e($_POST['qualifikation'] ?? '') ?>" placeholder="z. B. Personal Trainer*in, Kraftsport, Yoga …">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="nachricht">Nachricht <span class="required">*</span></label>
+                            <textarea class="form-control <?= isset($errors['nachricht']) ? 'error' : '' ?>" id="nachricht" name="nachricht" required rows="5" placeholder="Erzähl uns kurz von dir und deinen Vorstellungen …"><?= e($_POST['nachricht'] ?? '') ?></textarea>
                             <?php if (isset($errors['nachricht'])): ?><span class="form-error"><?= e($errors['nachricht']) ?></span><?php endif; ?>
                         </div>
 
-                        <button type="submit" class="btn btn-primary w-full btn-lg">Bewerbung absenden</button>
+                        <button type="submit" class="btn btn-primary w-full btn-lg">Anfrage absenden</button>
                     </form>
                 </div>
                 <?php endif; ?>
