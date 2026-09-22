@@ -6,6 +6,13 @@ define('ROOT_PATH', dirname(__DIR__));
 $page_title       = 'Leitbild';
 $meta_description = 'Das Leitbild des Athletikclub Steiermark – unsere Werte im Training und im Verein.';
 require_once ROOT_PATH . '/includes/header.php';
+
+$seite = null;
+try {
+    $stmt = getDB()->prepare('SELECT * FROM seiten_inhalte WHERE seiten_slug = ? LIMIT 1');
+    $stmt->execute(['leitbild']);
+    $seite = $stmt->fetch() ?: null;
+} catch (Exception $e) {}
 ?>
 
 <!-- Page Header -->
@@ -24,6 +31,12 @@ require_once ROOT_PATH . '/includes/header.php';
 
 <section class="section bg-white">
     <div class="container">
+        <?php if ($seite && ($seite['untertitel'] || $seite['inhalt'])): ?>
+        <div class="text-center" style="margin-bottom: 3rem; max-width: 720px; margin-inline: auto;">
+            <?php if ($seite['untertitel']): ?><h2 class="section-title reveal"><?= e($seite['untertitel']) ?></h2><?php endif; ?>
+            <?php if ($seite['inhalt']): ?><div class="section-subtitle reveal reveal-delay-1" style="margin: 0 auto;"><?= nl2br(e($seite['inhalt'])) ?></div><?php endif; ?>
+        </div>
+        <?php endif; ?>
         <div class="grid-4">
             <?php
             $werte = [
@@ -57,14 +70,16 @@ require_once ROOT_PATH . '/includes/header.php';
     </div>
 </section>
 
+<?php if (!$seite): ?>
 <div class="container" style="padding-bottom: 2rem;">
     <div class="card" style="border-style: dashed; text-align: center;">
         <div class="card-body">
             <p style="margin: 0; color: var(--text-muted); font-size: 0.9rem;">
-                Entwurfstext – bitte durch euer offizielles Leitbild ersetzen.
+                Entwurfstext – im Admin-Dashboard unter „Seiteninhalte" bearbeitbar.
             </p>
         </div>
     </div>
 </div>
+<?php endif; ?>
 
 <?php require_once ROOT_PATH . '/includes/footer.php'; ?>

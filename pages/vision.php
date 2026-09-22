@@ -6,6 +6,13 @@ define('ROOT_PATH', dirname(__DIR__));
 $page_title       = 'Vision';
 $meta_description = 'Die Vision des Athletikclub Steiermark – ganzheitliches Athletik- und polysportives Training in St. Georgen an der Stiefing.';
 require_once ROOT_PATH . '/includes/header.php';
+
+$seite = null;
+try {
+    $stmt = getDB()->prepare('SELECT * FROM seiten_inhalte WHERE seiten_slug = ? LIMIT 1');
+    $stmt->execute(['vision']);
+    $seite = $stmt->fetch() ?: null;
+} catch (Exception $e) {}
 ?>
 
 <!-- Page Header -->
@@ -47,31 +54,37 @@ require_once ROOT_PATH . '/includes/header.php';
             <div class="reveal reveal-delay-1">
                 <span class="section-label">Unser Antrieb</span>
                 <h2 class="section-title" style="margin-bottom: 1.25rem;">
-                    Athletik für alle – ein Leben lang
+                    <?= $seite && $seite['untertitel'] ? e($seite['untertitel']) : 'Athletik für alle – ein Leben lang' ?>
                 </h2>
-                <p style="margin-bottom: 1.25rem; font-size: 1.05rem; line-height: 1.85;">
-                    Wir wollen der Verein in der Steiermark sein, in dem Menschen jeden Alters
-                    und jeder Leistungsstufe eine sportliche Heimat finden – vom ersten
-                    Trainingstag bis zum Leistungssport.
-                </p>
-                <p style="line-height: 1.85;">
-                    Athletik, Beweglichkeit und Ausdauer sind für uns die Basis für ein
-                    aktives, gesundes Leben. Unsere Vision ist eine starke, wachsende
-                    Sportgemeinschaft, die genau dort ansetzt.
-                </p>
+                <?php if ($seite && $seite['inhalt']): ?>
+                    <div style="line-height: 1.85;"><?= nl2br(e($seite['inhalt'])) ?></div>
+                <?php else: ?>
+                    <p style="margin-bottom: 1.25rem; font-size: 1.05rem; line-height: 1.85;">
+                        Wir wollen der Verein in der Steiermark sein, in dem Menschen jeden Alters
+                        und jeder Leistungsstufe eine sportliche Heimat finden – vom ersten
+                        Trainingstag bis zum Leistungssport.
+                    </p>
+                    <p style="line-height: 1.85;">
+                        Athletik, Beweglichkeit und Ausdauer sind für uns die Basis für ein
+                        aktives, gesundes Leben. Unsere Vision ist eine starke, wachsende
+                        Sportgemeinschaft, die genau dort ansetzt.
+                    </p>
+                <?php endif; ?>
             </div>
         </div>
     </div>
 </section>
 
+<?php if (!$seite): ?>
 <div class="container" style="padding-bottom: 2rem;">
     <div class="card" style="border-style: dashed; text-align: center;">
         <div class="card-body">
             <p style="margin: 0; color: var(--text-muted); font-size: 0.9rem;">
-                Entwurfstext – bitte durch euren offiziellen Vision-Text ersetzen.
+                Entwurfstext – im Admin-Dashboard unter „Seiteninhalte" bearbeitbar.
             </p>
         </div>
     </div>
 </div>
+<?php endif; ?>
 
 <?php require_once ROOT_PATH . '/includes/footer.php'; ?>

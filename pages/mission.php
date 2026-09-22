@@ -6,6 +6,13 @@ define('ROOT_PATH', dirname(__DIR__));
 $page_title       = 'Mission';
 $meta_description = 'Die Mission des Athletikclub Steiermark – ganzheitliches Athletik- und polysportives Training in St. Georgen an der Stiefing.';
 require_once ROOT_PATH . '/includes/header.php';
+
+$seite = null;
+try {
+    $stmt = getDB()->prepare('SELECT * FROM seiten_inhalte WHERE seiten_slug = ? LIMIT 1');
+    $stmt->execute(['mission']);
+    $seite = $stmt->fetch() ?: null;
+} catch (Exception $e) {}
 ?>
 
 <!-- Page Header -->
@@ -26,11 +33,15 @@ require_once ROOT_PATH . '/includes/header.php';
     <div class="container">
         <div class="text-center" style="margin-bottom: 3.5rem; max-width: 720px; margin-inline: auto;">
             <span class="section-label reveal">Unser Auftrag</span>
-            <h2 class="section-title reveal reveal-delay-1">Training, das wirklich weiterbringt</h2>
-            <p class="section-subtitle reveal reveal-delay-2" style="margin: 0 auto;">
-                Wir bieten polysportives, ganzheitliches Training – professionell begleitet
-                und für jedes Leistungsniveau zugänglich.
-            </p>
+            <h2 class="section-title reveal reveal-delay-1"><?= $seite && $seite['untertitel'] ? e($seite['untertitel']) : 'Training, das wirklich weiterbringt' ?></h2>
+            <?php if ($seite && $seite['inhalt']): ?>
+                <div class="section-subtitle reveal reveal-delay-2" style="margin: 0 auto; text-align: left;"><?= nl2br(e($seite['inhalt'])) ?></div>
+            <?php else: ?>
+                <p class="section-subtitle reveal reveal-delay-2" style="margin: 0 auto;">
+                    Wir bieten polysportives, ganzheitliches Training – professionell begleitet
+                    und für jedes Leistungsniveau zugänglich.
+                </p>
+            <?php endif; ?>
         </div>
 
         <div class="grid-3">
@@ -64,14 +75,16 @@ require_once ROOT_PATH . '/includes/header.php';
     </div>
 </section>
 
+<?php if (!$seite): ?>
 <div class="container" style="padding-block: 2rem;">
     <div class="card" style="border-style: dashed; text-align: center;">
         <div class="card-body">
             <p style="margin: 0; color: var(--text-muted); font-size: 0.9rem;">
-                Entwurfstext – bitte durch euren offiziellen Mission-Text ersetzen.
+                Entwurfstext – im Admin-Dashboard unter „Seiteninhalte" bearbeitbar.
             </p>
         </div>
     </div>
 </div>
+<?php endif; ?>
 
 <?php require_once ROOT_PATH . '/includes/footer.php'; ?>
