@@ -44,7 +44,7 @@ try {
             <h2 class="section-title reveal reveal-delay-1">Präsidium</h2>
         </div>
 
-        <div class="grid-2" style="max-width: 520px; margin-inline: auto;">
+        <div class="grid-2" style="max-width: 640px; margin-inline: auto;">
             <?php
             $praesidium = [
                 ['name' => 'Jacob Kysela',  'funktion' => 'Präsident / Geschäftsführer', 'foto' => 'jacob-kysela.jpg'],
@@ -52,14 +52,14 @@ try {
             ];
             foreach ($praesidium as $i => $p): ?>
                 <div class="card reveal reveal-delay-<?= $i + 1 ?>" style="text-align: center;">
+                    <img
+                        src="<?= APP_URL ?>/assets/images/team/<?= e($p['foto']) ?>"
+                        alt="<?= e($p['name']) ?>"
+                        style="width: 100%; aspect-ratio: 4/5; object-fit: cover; object-position: center 30%; display: block;"
+                    >
                     <div class="card-body">
-                        <img
-                            src="<?= APP_URL ?>/assets/images/team/<?= e($p['foto']) ?>"
-                            alt="<?= e($p['name']) ?>"
-                            style="width: 96px; height: 96px; border-radius: 50%; object-fit: cover; object-position: center 40%; margin: 0 auto 1.25rem; display: block; border: 3px solid var(--gold-dim);"
-                        >
-                        <h3 style="font-family: 'Montserrat', sans-serif; font-size: 1rem; font-weight: 700; margin-bottom: 0.35rem;"><?= e($p['name']) ?></h3>
-                        <p style="font-size: 0.8rem; color: var(--gold-accent); font-weight: 600; margin: 0;"><?= e($p['funktion']) ?></p>
+                        <h3 style="font-family: 'Montserrat', sans-serif; font-size: 1.05rem; font-weight: 700; margin-bottom: 0.35rem;"><?= e($p['name']) ?></h3>
+                        <p style="font-size: 0.85rem; color: var(--gold-accent); font-weight: 600; margin: 0;"><?= e($p['funktion']) ?></p>
                     </div>
                 </div>
             <?php endforeach; ?>
