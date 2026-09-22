@@ -47,14 +47,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'eintr
 }
 
 // ----------------------------------------------------------------
-// Daten laden
+// Daten laden (nur noch nicht abgerechneter Umsatz)
 // ----------------------------------------------------------------
 $stmt = $db->prepare(
     "SELECT k.id, k.titel, k.start_datum, k.preis,
             COUNT(ka.id) AS bezahlte_teilnehmer,
             (COUNT(ka.id) * k.preis) AS summe
      FROM kurse k
-     JOIN kurs_anmeldungen ka ON ka.kurs_id = k.id AND ka.bezahlt = 1
+     JOIN kurs_anmeldungen ka ON ka.kurs_id = k.id AND ka.bezahlt = 1 AND ka.abgerechnet_id IS NULL
      WHERE k.trainer_id = ?
      GROUP BY k.id
      ORDER BY k.start_datum DESC"
@@ -62,13 +62,22 @@ $stmt = $db->prepare(
 $stmt->execute([$user['id']]);
 $kurs_umsatz = $stmt->fetchAll();
 
-$stmt = $db->prepare('SELECT * FROM umsatz_eintraege WHERE trainer_id = ? ORDER BY leistungsdatum DESC');
+$stmt = $db->prepare('SELECT * FROM umsatz_eintraege WHERE trainer_id = ? AND abgerechnet_id IS NULL ORDER BY leistungsdatum DESC');
 $stmt->execute([$user['id']]);
 $manuelle_eintraege = $stmt->fetchAll();
 
 $kursumsatz_summe = array_sum(array_column($kurs_umsatz, 'summe'));
 $manuell_summe    = array_sum(array_column($manuelle_eintraege, 'betrag'));
 $gesamt_summe     = $kursumsatz_summe + $manuell_summe;
+
+$stmt = $db->prepare('SELECT provisionssatz FROM trainer_profile WHERE user_id = ?');
+$stmt->execute([$user['id']]);
+$provisionssatz = (float)($stmt->fetchColumn() ?: 80.00);
+$provision_offen = $gesamt_summe * $provisionssatz / 100;
+
+$stmt = $db->prepare('SELECT * FROM abrechnungen WHERE trainer_id = ? ORDER BY created_at DESC');
+$stmt->execute([$user['id']]);
+$abrechnungen = $stmt->fetchAll();
 
 $page_title = 'Mein Umsatz';
 $breadcrumb = 'Mein Umsatz';
@@ -77,7 +86,7 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
 
 <div class="dashboard-header">
     <h1 class="dashboard-title">Mein Umsatz</h1>
-    <p class="dashboard-subtitle">Übersicht deiner Kurseinnahmen und manuellen Einträge</p>
+    <p class="dashboard-subtitle">Noch nicht abgerechneter Umsatz – deine Provision: <?= number_format($provisionssatz, 0) ?>%</p>
 </div>
 
 <!-- KPI Cards -->
@@ -85,19 +94,23 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
     <div class="kpi-card" style="--kpi-color: #1F3556;">
         <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
         <div class="kpi-value"><?= number_format($gesamt_summe, 2, ',', '.') ?> €</div>
-        <div class="kpi-label">Gesamtumsatz</div>
+        <div class="kpi-label">Offener Umsatz</div>
     </div>
     <div class="kpi-card" style="--kpi-color: #C6A135;">
         <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
-        <div class="kpi-value"><?= number_format($kursumsatz_summe, 2, ',', '.') ?> €</div>
-        <div class="kpi-label">Aus Kursen (bezahlt)</div>
+        <div class="kpi-value"><?= number_format($provision_offen, 2, ',', '.') ?> €</div>
+        <div class="kpi-label">Deine Provision (offen, <?= number_format($provisionssatz, 0) ?>%)</div>
     </div>
     <div class="kpi-card" style="--kpi-color: #4EBA6F;">
         <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
         <div class="kpi-value"><?= number_format($manuell_summe, 2, ',', '.') ?> €</div>
-        <div class="kpi-label">Manuelle Einträge</div>
+        <div class="kpi-label">Davon manuelle Einträge</div>
     </div>
 </div>
+
+<p style="font-size: 0.8rem; color: var(--text-muted); margin: -0.5rem 0 1.5rem;">
+    Diese Werte sind noch nicht in einer Abrechnung erfasst. Admin erstellt daraus regelmäßig deine Abrechnung.
+</p>
 
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: start; margin-top: 0.5rem;">
 
@@ -183,6 +196,41 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
             <?php endif; ?>
         </div>
     </div>
+</div>
+
+<!-- Meine Abrechnungen -->
+<div class="table-card" style="margin-top: 1.5rem;">
+    <div class="table-card-header">
+        <h2 class="table-card-title">Meine Abrechnungen</h2>
+    </div>
+    <?php if (empty($abrechnungen)): ?>
+        <div class="empty-state"><h3>Noch keine Abrechnung erstellt</h3></div>
+    <?php else: ?>
+        <div style="overflow-x: auto;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Zeitraum</th>
+                        <th>Umsatz</th>
+                        <th>Provision</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($abrechnungen as $a): ?>
+                    <tr>
+                        <td><?= date('d.m.Y', strtotime($a['zeitraum_von'])) ?> – <?= date('d.m.Y', strtotime($a['zeitraum_bis'])) ?></td>
+                        <td><?= number_format((float)$a['umsatz_gesamt'], 2, ',', '.') ?> €</td>
+                        <td style="font-weight: 700;"><?= number_format((float)$a['provisionsbetrag'], 2, ',', '.') ?> € <span style="color: var(--text-muted); font-weight: 400;">(<?= number_format((float)$a['provisionssatz'], 0) ?>%)</span></td>
+                        <td><span class="badge <?= $a['status'] === 'ausgezahlt' ? 'badge-success' : 'badge-info' ?>"><?= $a['status'] === 'ausgezahlt' ? 'Ausgezahlt' : 'Erstellt' ?></span></td>
+                        <td><a href="<?= APP_URL ?>/dashboard/abrechnung-detail.php?id=<?= $a['id'] ?>" class="btn btn-ghost-light btn-sm">Ansehen</a></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    <?php endif; ?>
 </div>
 
 <?php require_once ROOT_PATH . '/includes/dashboard-footer.php'; ?>

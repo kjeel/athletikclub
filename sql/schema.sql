@@ -63,6 +63,7 @@ CREATE TABLE IF NOT EXISTS `trainer_profile` (
   `sportarten`       VARCHAR(500)  NULL COMMENT 'Komma-getrennte Liste',
   `foto_path`        VARCHAR(255)  NULL,
   `lizenz_nr`        VARCHAR(80)   NULL,
+  `provisionssatz`   DECIMAL(5,2)  NOT NULL DEFAULT 80.00 COMMENT 'Prozentsatz vom Umsatz, den der Trainer als Provision erhält',
   `erstellt_von`     INT UNSIGNED  NULL COMMENT 'Admin der den Trainer ernannt hat',
   `created_at`       DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`       DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -108,10 +109,12 @@ CREATE TABLE IF NOT EXISTS `kurs_anmeldungen` (
   `status`         ENUM('angemeldet','warteliste','storniert','teilgenommen') NOT NULL DEFAULT 'angemeldet',
   `bezahlt`        TINYINT(1)    NOT NULL DEFAULT 0,
   `bezahlt_am`     DATETIME      NULL,
+  `abgerechnet_id` INT UNSIGNED  NULL COMMENT 'Verweist auf abrechnungen.id, sobald ausgezahlt',
   `angemeldet_am`  DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `notiz`          VARCHAR(500)  NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_kurs_user` (`kurs_id`, `user_id`),
+  INDEX `idx_abgerechnet_id` (`abgerechnet_id`),
   CONSTRAINT `fk_anmeldung_kurs` FOREIGN KEY (`kurs_id`) REFERENCES `kurse`(`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_anmeldung_user` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -125,10 +128,45 @@ CREATE TABLE IF NOT EXISTS `umsatz_eintraege` (
   `beschreibung`    VARCHAR(255)  NOT NULL,
   `betrag`          DECIMAL(10,2) NOT NULL,
   `leistungsdatum`  DATE          NOT NULL,
+  `abgerechnet_id`  INT UNSIGNED  NULL COMMENT 'Verweist auf abrechnungen.id, sobald ausgezahlt',
   `created_at`      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   INDEX `idx_trainer_id` (`trainer_id`),
+  INDEX `idx_abgerechnet_id` (`abgerechnet_id`),
   CONSTRAINT `fk_umsatz_trainer` FOREIGN KEY (`trainer_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================
+-- Provisionsabrechnungen
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `abrechnungen` (
+  `id`                 INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+  `trainer_id`         INT UNSIGNED  NOT NULL,
+  `zeitraum_von`       DATE          NOT NULL,
+  `zeitraum_bis`       DATE          NOT NULL,
+  `umsatz_gesamt`      DECIMAL(10,2) NOT NULL,
+  `provisionssatz`     DECIMAL(5,2)  NOT NULL COMMENT 'Prozentsatz zum Zeitpunkt der Abrechnung',
+  `provisionsbetrag`   DECIMAL(10,2) NOT NULL COMMENT 'Auszahlungsbetrag an Trainer',
+  `status`             ENUM('erstellt','ausgezahlt') NOT NULL DEFAULT 'erstellt',
+  `ausgezahlt_am`      DATETIME      NULL,
+  `erstellt_von`       INT UNSIGNED  NOT NULL,
+  `created_at`         DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  INDEX `idx_trainer_id` (`trainer_id`),
+  CONSTRAINT `fk_abrechnung_trainer` FOREIGN KEY (`trainer_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_abrechnung_ersteller` FOREIGN KEY (`erstellt_von`) REFERENCES `users`(`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `abrechnung_positionen` (
+  `id`             INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+  `abrechnung_id`  INT UNSIGNED  NOT NULL,
+  `typ`            ENUM('kurs','manuell') NOT NULL,
+  `beschreibung`   VARCHAR(255)  NOT NULL,
+  `datum`          DATE          NOT NULL,
+  `betrag`         DECIMAL(10,2) NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `idx_abrechnung_id` (`abrechnung_id`),
+  CONSTRAINT `fk_position_abrechnung` FOREIGN KEY (`abrechnung_id`) REFERENCES `abrechnungen`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================
