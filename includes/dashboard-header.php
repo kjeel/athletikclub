@@ -163,6 +163,10 @@ if (isTrainer()) {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 Kurs erstellen
             </a>
+            <a href="<?= APP_URL ?>/dashboard/umsatz.php" class="sidebar-link <?= strpos($current_path, '/dashboard/umsatz') !== false ? 'active' : '' ?>">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                Mein Umsatz
+            </a>
             <?php endif; ?>
 
             <?php if (isAdmin()): ?>
@@ -178,6 +182,10 @@ if (isTrainer()) {
                 <?php if ($unread_kontakt > 0): ?>
                     <span class="sidebar-link-badge"><?= $unread_kontakt ?></span>
                 <?php endif; ?>
+            </a>
+            <a href="<?= APP_URL ?>/dashboard/admin/umsatz.php" class="sidebar-link <?= strpos($current_path, '/admin/umsatz') !== false ? 'active' : '' ?>">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                Umsatzübersicht
             </a>
             <?php endif; ?>
         </nav>

@@ -84,6 +84,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         redirect(APP_URL . '/dashboard/kurs-detail.php?id=' . $kurs_id);
     }
+
+    if ($action === 'bezahlt_umschalten') {
+        $anmeldung_id = (int)($_POST['anmeldung_id'] ?? 0);
+        $db->prepare(
+            "UPDATE kurs_anmeldungen
+             SET bezahlt = NOT bezahlt, bezahlt_am = IF(bezahlt = 1, NOW(), NULL)
+             WHERE id = ? AND kurs_id = ?"
+        )->execute([$anmeldung_id, $kurs_id]);
+        logActivity('teilnehmer_bezahlt_umgeschaltet', "Anmeldung-ID: {$anmeldung_id}");
+        redirect(APP_URL . '/dashboard/kurs-detail.php?id=' . $kurs_id);
+    }
 }
 
 // ----------------------------------------------------------------
@@ -217,6 +228,7 @@ $status_map = [
                         <th>E-Mail</th>
                         <th>Angemeldet am</th>
                         <th>Status</th>
+                        <th>Bezahlt</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -236,6 +248,16 @@ $status_map = [
                         <td><?= e($a['email']) ?></td>
                         <td><?= date('d.m.Y H:i', strtotime($a['angemeldet_am'])) ?></td>
                         <td><span class="badge <?= $ts['class'] ?>"><?= e($ts['label']) ?></span></td>
+                        <td>
+                            <form method="POST">
+                                <?= csrfField() ?>
+                                <input type="hidden" name="action" value="bezahlt_umschalten">
+                                <input type="hidden" name="anmeldung_id" value="<?= $a['id'] ?>">
+                                <button type="submit" class="badge <?= $a['bezahlt'] ? 'badge-success' : 'badge-gray' ?>" style="border: none; cursor: pointer;">
+                                    <?= $a['bezahlt'] ? '✓ Bezahlt' : 'Offen' ?>
+                                </button>
+                            </form>
+                        </td>
                         <td>
                             <form method="POST" style="display: flex; gap: 0.4rem;">
                                 <?= csrfField() ?>

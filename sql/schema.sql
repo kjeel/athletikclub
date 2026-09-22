@@ -106,12 +106,29 @@ CREATE TABLE IF NOT EXISTS `kurs_anmeldungen` (
   `kurs_id`        INT UNSIGNED  NOT NULL,
   `user_id`        INT UNSIGNED  NOT NULL,
   `status`         ENUM('angemeldet','warteliste','storniert','teilgenommen') NOT NULL DEFAULT 'angemeldet',
+  `bezahlt`        TINYINT(1)    NOT NULL DEFAULT 0,
+  `bezahlt_am`     DATETIME      NULL,
   `angemeldet_am`  DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `notiz`          VARCHAR(500)  NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_kurs_user` (`kurs_id`, `user_id`),
   CONSTRAINT `fk_anmeldung_kurs` FOREIGN KEY (`kurs_id`) REFERENCES `kurse`(`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_anmeldung_user` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================
+-- Umsatz (manuelle Einträge, z.B. Einzeltraining außerhalb des Kurssystems)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `umsatz_eintraege` (
+  `id`              INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+  `trainer_id`      INT UNSIGNED  NOT NULL,
+  `beschreibung`    VARCHAR(255)  NOT NULL,
+  `betrag`          DECIMAL(10,2) NOT NULL,
+  `leistungsdatum`  DATE          NOT NULL,
+  `created_at`      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  INDEX `idx_trainer_id` (`trainer_id`),
+  CONSTRAINT `fk_umsatz_trainer` FOREIGN KEY (`trainer_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================
