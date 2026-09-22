@@ -7,14 +7,23 @@
 // ----------------------------------------------------------------
 // Umgebung: 'development' | 'production'
 // ----------------------------------------------------------------
-define('APP_ENV', 'development');
+define('APP_ENV', 'production');
 
 // ----------------------------------------------------------------
 // App-Grundeinstellungen
 // ----------------------------------------------------------------
 define('APP_NAME',    'Athletikclub Steiermark');
 define('APP_SHORT',   'ACI');
-define('APP_URL',     'http://localhost'); // In Produktion: https://www.athletikclub-steiermark.at
+
+// APP_URL automatisch aus dem aktuellen Request ableiten, damit Assets
+// (CSS/JS) immer über das Protokoll geladen werden, mit dem die Seite
+// aufgerufen wurde (verhindert "Mixed Content"-Blockierungen, solange
+// http und https parallel möglich sind).
+$_scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+    || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
+    ? 'https'
+    : 'http';
+define('APP_URL', $_scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'aci-stmk.at'));
 define('APP_VERSION', '1.0.0');
 
 // ----------------------------------------------------------------
@@ -46,7 +55,7 @@ define('MAIL_ADMIN',     'office@athletikclub-steiermark.at');
 if (session_status() === PHP_SESSION_NONE) {
     ini_set('session.cookie_httponly', 1);
     ini_set('session.use_strict_mode', 1);
-    if (APP_ENV === 'production') {
+    if (APP_ENV === 'production' && str_starts_with(APP_URL, 'https://')) {
         ini_set('session.cookie_secure', 1);
     }
     session_start();
