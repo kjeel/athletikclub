@@ -68,19 +68,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $password_hash = hashPassword($password);
 
             $stmt = $db->prepare(
-                'INSERT INTO users (vorname, nachname, email, passwort_hash, rolle, email_verified, verify_token)
-                 VALUES (?, ?, ?, ?, ?, 0, ?)'
+                'INSERT INTO users (organization_id, vorname, nachname, email, passwort_hash, rolle, email_verified, verify_token)
+                 VALUES (1, ?, ?, ?, ?, ?, 0, ?)'
             );
             $stmt->execute([$vorname, $nachname, $email, $password_hash, 'mitglied', $verify_token]);
             $user_id = (int)$db->lastInsertId();
 
             // Mitglieder-Profil automatisch anlegen
-            $db->prepare('INSERT INTO mitglieder_profile (user_id, mitglied_seit) VALUES (?, NOW())')
+            $db->prepare('INSERT INTO mitglieder_profile (organization_id, user_id, mitglied_seit) VALUES (1, ?, NOW())')
                ->execute([$user_id]);
+
+            // RBAC-Rolle zuordnen (CUSTOMER)
+            $db->prepare(
+                "INSERT INTO user_roles (user_id, role_id, organization_id)
+                 SELECT ?, id, 1 FROM roles WHERE code = 'CUSTOMER'"
+            )->execute([$user_id]);
 
             // Verifizierungs-E-Mail senden
             $verify_url = APP_URL . '/auth/verify.php?token=' . $verify_token;
-            $subject    = 'E-Mail-Adresse bestätigen – ' . APP_NAME;
+            $subject    = 'E-Mail-Adresse bestätigen bei ' . APP_NAME;
             $message    = "Hallo {$vorname},\n\n"
                         . "vielen Dank für deine Registrierung beim Athletikclub Steiermark!\n\n"
                         . "Bitte bestätige deine E-Mail-Adresse durch Klick auf folgenden Link:\n"
@@ -101,7 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $page_title = 'Registrierung | ' . APP_NAME;
-$meta_description = 'Werde Mitglied beim Athletikclub Steiermark – jetzt registrieren.';
+$meta_description = 'Werde Mitglied beim Athletikclub Steiermark, jetzt registrieren.';
 ?>
 <!DOCTYPE html>
 <html lang="de">

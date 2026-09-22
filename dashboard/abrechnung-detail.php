@@ -17,9 +17,9 @@ $abrechnung_id = (int)($_GET['id'] ?? 0);
 $stmt = $db->prepare(
     "SELECT a.*, u.vorname, u.nachname, u.email
      FROM abrechnungen a JOIN users u ON a.trainer_id = u.id
-     WHERE a.id = ? LIMIT 1"
+     WHERE a.id = ? AND a.organization_id = ? LIMIT 1"
 );
-$stmt->execute([$abrechnung_id]);
+$stmt->execute([$abrechnung_id, currentOrgId()]);
 $abrechnung = $stmt->fetch();
 
 if (!$abrechnung || (!isAdmin() && (int)$abrechnung['trainer_id'] !== (int)$user['id'])) {
@@ -72,7 +72,7 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
         </div>
 
         <div style="margin-bottom: 1.5rem; font-size: 0.85rem; color: var(--text-muted);">
-            Abrechnungszeitraum: <?= date('d.m.Y', strtotime($abrechnung['zeitraum_von'])) ?> – <?= date('d.m.Y', strtotime($abrechnung['zeitraum_bis'])) ?>
+            Abrechnungszeitraum: <?= date('d.m.Y', strtotime($abrechnung['zeitraum_von'])) ?> bis <?= date('d.m.Y', strtotime($abrechnung['zeitraum_bis'])) ?>
         </div>
 
         <table class="data-table" style="margin-bottom: 1.5rem;">

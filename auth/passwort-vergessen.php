@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                    ->execute([$token, $exp, $user['id']]);
 
                 $reset_url = APP_URL . '/auth/passwort-reset.php?token=' . $token;
-                $subject   = 'Passwort zurücksetzen – ' . APP_NAME;
+                $subject   = 'Passwort zurücksetzen bei ' . APP_NAME;
                 $message   = "Hallo,\n\ndu hast eine Passwortzurücksetzung angefordert.\n\n"
                            . "Klicke auf folgenden Link (gültig für 2 Stunden):\n"
                            . $reset_url . "\n\n"

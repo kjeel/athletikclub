@@ -40,16 +40,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
             $token = generateToken(32);
             $exp   = date('Y-m-d H:i:s', strtotime('+7 days'));
             $placeholder_hash = hashPassword(bin2hex(random_bytes(16)));
+            $org_id = currentOrgId();
 
             $stmt = $db->prepare(
-                'INSERT INTO users (vorname, nachname, email, passwort_hash, rolle, email_verified, reset_token, reset_token_exp)
-                 VALUES (?, ?, ?, ?, \'mitglied\', 0, ?, ?)'
+                'INSERT INTO users (organization_id, vorname, nachname, email, passwort_hash, rolle, email_verified, reset_token, reset_token_exp)
+                 VALUES (?, ?, ?, ?, ?, \'mitglied\', 0, ?, ?)'
             );
-            $stmt->execute([$vorname, $nachname, $email, $placeholder_hash, $token, $exp]);
+            $stmt->execute([$org_id, $vorname, $nachname, $email, $placeholder_hash, $token, $exp]);
             $new_user_id = (int)$db->lastInsertId();
 
-            $db->prepare('INSERT INTO mitglieder_profile (user_id, mitglied_seit, mitgliedsstatus) VALUES (?, NOW(), \'aktiv\')')
-               ->execute([$new_user_id]);
+            $db->prepare('INSERT INTO mitglieder_profile (organization_id, user_id, mitglied_seit, mitgliedsstatus) VALUES (?, ?, NOW(), \'aktiv\')')
+               ->execute([$org_id, $new_user_id]);
+
+            $db->prepare(
+                "INSERT INTO user_roles (user_id, role_id, organization_id)
+                 SELECT ?, id, ? FROM roles WHERE code = 'CUSTOMER'"
+            )->execute([$new_user_id, $org_id]);
 
             $invite_link = APP_URL . '/auth/passwort-reset.php?token=' . $token;
 
@@ -80,10 +86,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'updat
 
     if ($mitglied_user_id && in_array($status, ['aktiv', 'inaktiv', 'ausstehend'], true)) {
         $db->prepare(
-            'INSERT INTO mitglieder_profile (user_id, mitgliedsstatus, notizen, mitglied_seit)
-             VALUES (?, ?, ?, NOW())
+            'INSERT INTO mitglieder_profile (organization_id, user_id, mitgliedsstatus, notizen, mitglied_seit)
+             VALUES (?, ?, ?, ?, NOW())
              ON DUPLICATE KEY UPDATE mitgliedsstatus = VALUES(mitgliedsstatus), notizen = VALUES(notizen)'
-        )->execute([$mitglied_user_id, $status, $notizen ?: null]);
+        )->execute([currentOrgId(), $mitglied_user_id, $status, $notizen ?: null]);
         logActivity('mitglied_aktualisiert', "User-ID: {$mitglied_user_id}");
         flashMessage('success', 'Mitgliedsdaten aktualisiert.');
     }
@@ -96,8 +102,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'updat
 $filter_suche  = trim($_GET['suche'] ?? '');
 $filter_status = $_GET['status'] ?? '';
 
-$where  = "u.rolle = 'mitglied'";
-$params = [];
+$where  = "u.rolle = 'mitglied' AND u.organization_id = ?";
+$params = [currentOrgId()];
 
 if ($filter_suche) {
     $where .= ' AND (u.vorname LIKE ? OR u.nachname LIKE ? OR u.email LIKE ?)';
@@ -248,7 +254,7 @@ $status_labels = [
                             <?= e($m['email']) ?>
                             <?php if ($m['telefon']): ?><br><span style="color: var(--text-muted); font-size: 0.8rem;"><?= e($m['telefon']) ?></span><?php endif; ?>
                         </td>
-                        <td><?= $m['sportarten'] ? e($m['sportarten']) : '–' ?></td>
+                        <td><?= $m['sportarten'] ? e($m['sportarten']) : 'k. A.' ?></td>
                         <td><?= (int)$m['aktive_kurse'] ?></td>
                         <td><span class="badge <?= $sl['class'] ?>"><?= e($sl['label']) ?></span></td>
                         <td style="white-space: nowrap;">

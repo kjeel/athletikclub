@@ -17,9 +17,9 @@ $mitglied_id = (int)($_GET['id'] ?? 0);
 $stmt = $db->prepare(
     "SELECT u.*, mp.telefon, mp.ort, mp.sportarten, mp.mitgliedsstatus, mp.mitglied_seit, mp.notizen
      FROM users u LEFT JOIN mitglieder_profile mp ON mp.user_id = u.id
-     WHERE u.id = ? AND u.rolle = 'mitglied' LIMIT 1"
+     WHERE u.id = ? AND u.rolle = 'mitglied' AND u.organization_id = ? LIMIT 1"
 );
-$stmt->execute([$mitglied_id]);
+$stmt->execute([$mitglied_id, currentOrgId()]);
 $mitglied = $stmt->fetch();
 
 if (!$mitglied) {
@@ -43,8 +43,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'forts
     if (mb_strlen($eintrag) < 3) {
         $errors['eintrag'] = 'Bitte einen aussagekräftigen Eintrag verfassen.';
     } else {
-        $db->prepare('INSERT INTO fortschritt_eintraege (user_id, trainer_id, eintrag) VALUES (?, ?, ?)')
-           ->execute([$mitglied_id, $user['id'], $eintrag]);
+        $db->prepare('INSERT INTO fortschritt_eintraege (organization_id, user_id, trainer_id, eintrag) VALUES (?, ?, ?, ?)')
+           ->execute([currentOrgId(), $mitglied_id, $user['id'], $eintrag]);
         logActivity('fortschritt_eintrag', "Mitglied-ID: {$mitglied_id}");
         flashMessage('success', 'Eintrag gespeichert.');
         redirect(APP_URL . '/dashboard/mitglied-detail.php?id=' . $mitglied_id);
@@ -94,10 +94,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'dokum
 
         if (move_uploaded_file($_FILES['pdf_file']['tmp_name'], $dest)) {
             $db->prepare(
-                'INSERT INTO dokumente (titel, beschreibung, datei_name, datei_pfad, datei_groesse, mime_type, kategorie, sichtbar_fuer, hochgeladen_von, mitglied_id)
-                 VALUES (?, NULL, ?, ?, ?, ?, \'sonstiges\', \'mitglieder\', ?, ?)'
+                'INSERT INTO dokumente (organization_id, titel, beschreibung, datei_name, datei_pfad, datei_groesse, mime_type, kategorie, sichtbar_fuer, hochgeladen_von, mitglied_id)
+                 VALUES (?, ?, NULL, ?, ?, ?, ?, \'sonstiges\', \'mitglieder\', ?, ?)'
             )->execute([
-                $titel, $original_name, 'pdfs/' . $unique_name,
+                currentOrgId(), $titel, $original_name, 'pdfs/' . $unique_name,
                 $_FILES['pdf_file']['size'], 'application/pdf',
                 $user['id'], $mitglied_id,
             ]);
@@ -152,7 +152,7 @@ $status_labels = [
     'inaktiv'    => ['label' => 'Inaktiv',    'class' => 'badge-danger'],
     'ausstehend' => ['label' => 'Ausstehend', 'class' => 'badge-info'],
 ];
-$s = $status_labels[$mitglied['mitgliedsstatus'] ?? 'ausstehend'] ?? ['label' => '–', 'class' => 'badge-gray'];
+$s = $status_labels[$mitglied['mitgliedsstatus'] ?? 'ausstehend'] ?? ['label' => 'k. A.', 'class' => 'badge-gray'];
 ?>
 
 <div class="dashboard-header" style="display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
@@ -189,7 +189,7 @@ $s = $status_labels[$mitglied['mitgliedsstatus'] ?? 'ausstehend'] ?? ['label' =>
                 <?= csrfField() ?>
                 <input type="hidden" name="action" value="fortschritt_hinzufuegen">
                 <div class="form-group">
-                    <textarea class="form-control" name="eintrag" rows="3" placeholder="Neuer Fortschrittseintrag – z.B. Beobachtungen, Ziele, Testergebnisse…" required></textarea>
+                    <textarea class="form-control" name="eintrag" rows="3" placeholder="Neuer Fortschrittseintrag, z.B. Beobachtungen, Ziele, Testergebnisse…" required></textarea>
                 </div>
                 <button type="submit" class="btn btn-primary btn-sm">Eintrag speichern</button>
             </form>

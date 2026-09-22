@@ -32,6 +32,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
 
     if (empty($errors)) {
         try {
+            // E-Mail ist aktuell global eindeutig (siehe users.email UNIQUE) –
+            // Org-Scoping hier vorbereitet für den Tag, an dem das aufgeweicht wird.
             $stmt = $db->prepare('SELECT id FROM users WHERE email = ? LIMIT 1');
             $stmt->execute([$email]);
             if ($stmt->fetch()) {
@@ -48,21 +50,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
             $exp   = date('Y-m-d H:i:s', strtotime('+7 days'));
             // Platzhalter-Hash: Konto ist erst nach Passwort-Setzen per Link nutzbar.
             $placeholder_hash = hashPassword(bin2hex(random_bytes(16)));
+            $org_id = currentOrgId();
 
             $stmt = $db->prepare(
-                'INSERT INTO users (vorname, nachname, email, passwort_hash, rolle, email_verified, reset_token, reset_token_exp)
-                 VALUES (?, ?, ?, ?, ?, 0, ?, ?)'
+                'INSERT INTO users (organization_id, vorname, nachname, email, passwort_hash, rolle, email_verified, reset_token, reset_token_exp)
+                 VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)'
             );
-            $stmt->execute([$vorname, $nachname, $email, $placeholder_hash, $rolle, $token, $exp]);
+            $stmt->execute([$org_id, $vorname, $nachname, $email, $placeholder_hash, $rolle, $token, $exp]);
             $new_user_id = (int)$db->lastInsertId();
 
             if ($rolle === 'mitglied') {
-                $db->prepare('INSERT INTO mitglieder_profile (user_id, mitglied_seit) VALUES (?, NOW())')
-                   ->execute([$new_user_id]);
+                $db->prepare('INSERT INTO mitglieder_profile (organization_id, user_id, mitglied_seit) VALUES (?, ?, NOW())')
+                   ->execute([$org_id, $new_user_id]);
             } else {
-                $db->prepare('INSERT INTO trainer_profile (user_id, erstellt_von) VALUES (?, ?)')
-                   ->execute([$new_user_id, getCurrentUserId()]);
+                $db->prepare('INSERT INTO trainer_profile (organization_id, user_id, erstellt_von) VALUES (?, ?, ?)')
+                   ->execute([$org_id, $new_user_id, getCurrentUserId()]);
             }
+
+            $rbac_code = ['admin' => 'ORGANIZATION_ADMIN', 'trainer' => 'TRAINER', 'mitglied' => 'CUSTOMER'][$rolle];
+            $db->prepare(
+                'INSERT INTO user_roles (user_id, role_id, organization_id)
+                 SELECT ?, id, ? FROM roles WHERE code = ?'
+            )->execute([$new_user_id, $org_id, $rbac_code]);
 
             $invite_link = APP_URL . '/auth/passwort-reset.php?token=' . $token;
 
@@ -88,7 +97,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'toggl
     requireCsrf();
     $toggle_id = (int)($_POST['user_id'] ?? 0);
     if ($toggle_id && $toggle_id !== getCurrentUserId()) {
-        $db->prepare('UPDATE users SET aktiv = NOT aktiv WHERE id = ?')->execute([$toggle_id]);
+        $db->prepare('UPDATE users SET aktiv = NOT aktiv WHERE id = ? AND organization_id = ?')
+           ->execute([$toggle_id, currentOrgId()]);
         logActivity('nutzer_status_geaendert', "User-ID: {$toggle_id}");
     }
     redirect(APP_URL . '/dashboard/admin/nutzerverwaltung.php');
@@ -97,9 +107,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'toggl
 // ----------------------------------------------------------------
 // Liste laden
 // ----------------------------------------------------------------
-$users = $db->query(
-    'SELECT id, vorname, nachname, email, rolle, email_verified, aktiv, created_at FROM users ORDER BY created_at DESC'
-)->fetchAll();
+$stmt = $db->prepare(
+    'SELECT id, vorname, nachname, email, rolle, email_verified, aktiv, created_at
+     FROM users WHERE organization_id = ? ORDER BY created_at DESC'
+);
+$stmt->execute([currentOrgId()]);
+$users = $stmt->fetchAll();
 
 $page_title = 'Nutzerverwaltung';
 $breadcrumb = 'Nutzerverwaltung';

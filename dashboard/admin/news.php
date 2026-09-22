@@ -28,10 +28,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'anleg
     if (!in_array($zielgruppe, ['trainer', 'alle'], true)) $zielgruppe = 'trainer';
 
     if (empty($errors)) {
-        $db->prepare('INSERT INTO news (titel, inhalt, zielgruppe, erstellt_von) VALUES (?, ?, ?, ?)')
-           ->execute([$titel, $inhalt, $zielgruppe, $user['id']]);
+        $db->prepare('INSERT INTO news (organization_id, titel, inhalt, zielgruppe, erstellt_von) VALUES (?, ?, ?, ?, ?)')
+           ->execute([currentOrgId(), $titel, $inhalt, $zielgruppe, $user['id']]);
         logActivity('news_erstellt', "Titel: {$titel}");
-        flashMessage('success', 'News veröffentlicht – erscheint beim nächsten Login als Popup.');
+        flashMessage('success', 'News veröffentlicht. Erscheint beim nächsten Login als Popup.');
         redirect(APP_URL . '/dashboard/admin/news.php');
     }
 }
@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'anleg
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'loeschen') {
     requireCsrf();
     $news_id = (int)($_POST['news_id'] ?? 0);
-    $db->prepare('DELETE FROM news WHERE id = ?')->execute([$news_id]);
+    $db->prepare('DELETE FROM news WHERE id = ? AND organization_id = ?')->execute([$news_id, currentOrgId()]);
     logActivity('news_geloescht', "News-ID: {$news_id}");
     redirect(APP_URL . '/dashboard/admin/news.php');
 }
@@ -48,12 +48,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'loesc
 // ----------------------------------------------------------------
 // Liste laden
 // ----------------------------------------------------------------
-$news_liste = $db->query(
+$stmt = $db->prepare(
     "SELECT n.*, u.vorname, u.nachname,
             (SELECT COUNT(*) FROM news_gelesen ng WHERE ng.news_id = n.id) AS gelesen_anzahl
      FROM news n LEFT JOIN users u ON n.erstellt_von = u.id
+     WHERE n.organization_id = ?
      ORDER BY n.created_at DESC"
-)->fetchAll();
+);
+$stmt->execute([currentOrgId()]);
+$news_liste = $stmt->fetchAll();
 
 $page_title = 'News';
 $breadcrumb = 'News';

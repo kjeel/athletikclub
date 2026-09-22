@@ -23,14 +23,14 @@ $editierbare_seiten = [
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'kontakt_gelesen') {
     requireCsrf();
     $anfrage_id = (int)($_POST['anfrage_id'] ?? 0);
-    $db->prepare('UPDATE kontakt_anfragen SET gelesen = 1 WHERE id = ?')->execute([$anfrage_id]);
+    $db->prepare('UPDATE kontakt_anfragen SET gelesen = 1 WHERE id = ? AND organization_id = ?')->execute([$anfrage_id, currentOrgId()]);
     redirect(APP_URL . '/dashboard/admin/inhalte.php');
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'kontakt_loeschen') {
     requireCsrf();
     $anfrage_id = (int)($_POST['anfrage_id'] ?? 0);
-    $db->prepare('DELETE FROM kontakt_anfragen WHERE id = ?')->execute([$anfrage_id]);
+    $db->prepare('DELETE FROM kontakt_anfragen WHERE id = ? AND organization_id = ?')->execute([$anfrage_id, currentOrgId()]);
     logActivity('kontaktanfrage_geloescht', "ID: {$anfrage_id}");
     redirect(APP_URL . '/dashboard/admin/inhalte.php');
 }
@@ -47,11 +47,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'seite
         $untertitel = trim($_POST['untertitel'] ?? '');
         $inhalt     = trim($_POST['inhalt'] ?? '');
 
+        // Hinweis: seiten_inhalte.seiten_slug ist aktuell global eindeutig (nicht pro
+        // Organisation) – unkritisch solange nur eine Organisation existiert. Sobald
+        // Multi-Org aktiv wird, muss uk_slug auf (organization_id, seiten_slug) geändert werden.
         $db->prepare(
-            'INSERT INTO seiten_inhalte (seiten_slug, titel, untertitel, inhalt, aktualisiert_von)
-             VALUES (?, ?, ?, ?, ?)
+            'INSERT INTO seiten_inhalte (organization_id, seiten_slug, titel, untertitel, inhalt, aktualisiert_von)
+             VALUES (?, ?, ?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE titel = VALUES(titel), untertitel = VALUES(untertitel), inhalt = VALUES(inhalt), aktualisiert_von = VALUES(aktualisiert_von)'
-        )->execute([$slug, $titel, $untertitel ?: null, $inhalt, getCurrentUserId()]);
+        )->execute([currentOrgId(), $slug, $titel, $untertitel ?: null, $inhalt, getCurrentUserId()]);
 
         logActivity('seiteninhalt_aktualisiert', "Slug: {$slug}");
         flashMessage('success', 'Seiteninhalt gespeichert.');
@@ -62,10 +65,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'seite
 // ----------------------------------------------------------------
 // Daten laden
 // ----------------------------------------------------------------
-$kontakt_anfragen = $db->query('SELECT * FROM kontakt_anfragen ORDER BY created_at DESC LIMIT 50')->fetchAll();
+$stmt = $db->prepare('SELECT * FROM kontakt_anfragen WHERE organization_id = ? ORDER BY created_at DESC LIMIT 50');
+$stmt->execute([currentOrgId()]);
+$kontakt_anfragen = $stmt->fetchAll();
 
 $seiten_daten = [];
-$stmt = $db->query('SELECT * FROM seiten_inhalte');
+$stmt = $db->prepare('SELECT * FROM seiten_inhalte WHERE organization_id = ?');
+$stmt->execute([currentOrgId()]);
 foreach ($stmt->fetchAll() as $row) {
     $seiten_daten[$row['seiten_slug']] = $row;
 }
@@ -108,7 +114,7 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
                             <span class="text-primary"><?= e($a['name']) ?></span><br>
                             <a href="mailto:<?= e($a['email']) ?>" style="font-size: 0.8rem; color: var(--text-muted);"><?= e($a['email']) ?></a>
                         </td>
-                        <td><?= $a['betreff'] ? e($a['betreff']) : '–' ?></td>
+                        <td><?= $a['betreff'] ? e($a['betreff']) : 'k. A.' ?></td>
                         <td style="max-width: 320px;">
                             <span style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 0.85rem;">
                                 <?= e($a['nachricht']) ?>

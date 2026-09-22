@@ -21,8 +21,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action  = $_POST['action'] ?? '';
 
     if ($kurs_id && $action === 'anmelden') {
-        $stmt = $db->prepare('SELECT max_teilnehmer FROM kurse WHERE id = ?');
-        $stmt->execute([$kurs_id]);
+        $stmt = $db->prepare('SELECT max_teilnehmer FROM kurse WHERE id = ? AND organization_id = ?');
+        $stmt->execute([$kurs_id, currentOrgId()]);
         $kurs = $stmt->fetch();
 
         if ($kurs) {
@@ -33,9 +33,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $status = ($kurs['max_teilnehmer'] && $belegt >= $kurs['max_teilnehmer']) ? 'warteliste' : 'angemeldet';
 
             $db->prepare(
-                'INSERT INTO kurs_anmeldungen (kurs_id, user_id, status) VALUES (?, ?, ?)
+                'INSERT INTO kurs_anmeldungen (organization_id, kurs_id, user_id, status) VALUES (?, ?, ?, ?)
                  ON DUPLICATE KEY UPDATE status = VALUES(status)'
-            )->execute([$kurs_id, $user['id'], $status]);
+            )->execute([currentOrgId(), $kurs_id, $user['id'], $status]);
 
             logActivity('kurs_anmeldung', "Kurs-ID: {$kurs_id}");
             flashMessage('success', $status === 'warteliste' ? 'Du stehst auf der Warteliste.' : 'Anmeldung erfolgreich!');
@@ -57,8 +57,8 @@ $filter_sportart = trim($_GET['sportart'] ?? '');
 $filter_suche    = trim($_GET['suche'] ?? '');
 $nur_meine        = isset($_GET['meine']) && isTrainer();
 
-$where  = "k.status != 'abgesagt'";
-$params = [];
+$where  = "k.status != 'abgesagt' AND k.organization_id = ?";
+$params = [currentOrgId()];
 
 if (!isAdmin()) {
     // Trainer sehen alle aktiven Kurse (zur Übersicht), aber Filter "meine" grenzt ein
@@ -176,7 +176,7 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
                             <?php endif; ?>
                         </td>
                         <td><?= date('d.m.Y H:i', strtotime($kurs['start_datum'])) ?></td>
-                        <td><?= $kurs['vorname'] ? e($kurs['vorname'] . ' ' . $kurs['nachname']) : '–' ?></td>
+                        <td><?= $kurs['vorname'] ? e($kurs['vorname'] . ' ' . $kurs['nachname']) : 'k. A.' ?></td>
                         <td><?= (int)$kurs['belegt'] ?><?= $kurs['max_teilnehmer'] ? ' / ' . (int)$kurs['max_teilnehmer'] : '' ?></td>
                         <td>
                             <?php

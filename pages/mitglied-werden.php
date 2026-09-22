@@ -4,16 +4,16 @@
  */
 define('ROOT_PATH', dirname(__DIR__));
 $page_title       = 'Mitglied werden';
-$meta_description = 'Werde Mitglied beim Athletikclub Steiermark – Zugang zu unserem Outdoor-Athletikpark und einer aktiven Sportgemeinschaft, ab 26 € pro Jahr.';
+$meta_description = 'Werde Mitglied beim Athletikclub Steiermark. Zugang zu unserem Outdoor-Athletikpark und einer aktiven Sportgemeinschaft, schon ab 26 € pro Jahr.';
 require_once ROOT_PATH . '/includes/header.php';
 
 $success = false;
 $errors  = [];
 
 $mitgliedschaftsarten = [
-    'regulaer'   => 'Regulär — 75 € / Jahr',
-    'ermaessigt' => 'Ermäßigt (bis 27J / Pension) — 48 € / Jahr',
-    'sonder'     => 'Kinder & Menschen mit Behinderung — 26 € / Jahr',
+    'regulaer'   => 'Regulär: 75 € pro Jahr',
+    'ermaessigt' => 'Ermäßigt (bis 27J / Pension): 48 € pro Jahr',
+    'sonder'     => 'Kinder & Menschen mit Behinderung: 26 € pro Jahr',
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -37,11 +37,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($errors)) {
         try {
-            $betreff = 'Mitgliedschaftsantrag – ' . ($mitgliedschaftsarten[$mitgliedschaft] ?? '');
+            $betreff = 'Mitgliedschaftsantrag: ' . ($mitgliedschaftsarten[$mitgliedschaft] ?? '');
             $nachricht = "Geburtsjahr: {$geburtsjahr}\n"
-                       . "Telefon: " . ($telefon ?: '–') . "\n"
+                       . "Telefon: " . ($telefon ?: 'keine Angabe') . "\n"
                        . "Mitgliedschaftsart: {$mitgliedschaftsarten[$mitgliedschaft]}\n"
-                       . "Sportinteressen: " . ($sportinteressen ?: '–');
+                       . "Sportinteressen: " . ($sportinteressen ?: 'keine Angabe');
 
             $db = getDB();
             $db->prepare('INSERT INTO kontakt_anfragen (organization_id, name, email, betreff, nachricht) VALUES (?, ?, ?, ?, ?)')
@@ -80,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </h1>
             <p class="hero-subtitle reveal reveal-delay-2">
                 Zugang zu unserem Outdoor-Athletikpark, vielseitigem Trainingsangebot und einer
-                aktiven Sportgemeinschaft — offen für alle Levels.
+                aktiven Sportgemeinschaft. Offen für alle Levels.
             </p>
             <div class="hero-actions reveal reveal-delay-3">
                 <a href="#antrag" class="btn btn-primary btn-xl">Mitglied werden</a>
@@ -121,12 +121,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="grid-3">
             <?php
             $merkmale = [
-                ['nr' => '01', 'icon' => '🏋️', 'title' => 'Krafttraining', 'desc' => 'Funktionelles Krafttraining im Freien — vielseitig, effektiv und für alle Levels.'],
+                ['nr' => '01', 'icon' => '🏋️', 'title' => 'Krafttraining', 'desc' => 'Funktionelles Krafttraining im Freien, vielseitig und effektiv für alle Levels.'],
                 ['nr' => '02', 'icon' => '🤸', 'title' => 'Calisthenics',  'desc' => 'Stangen, Barren und Kletterstrukturen für Training mit dem eigenen Körpergewicht.'],
                 ['nr' => '03', 'icon' => '⚡', 'title' => 'Athletik',      'desc' => 'Sprung-, Schnelligkeits- und Koordinationsübungen für umfassende Entwicklung.'],
-                ['nr' => '04', 'icon' => '🌳', 'title' => 'Outdoor',      'desc' => 'Trainieren in frischer Luft — offen, einladend, für alle zugänglich.'],
+                ['nr' => '04', 'icon' => '🌳', 'title' => 'Outdoor',      'desc' => 'Trainieren in frischer Luft, offen und einladend für alle.'],
                 ['nr' => '05', 'icon' => '🤝', 'title' => 'Unverbindlich','desc' => 'Interessierte können den Verein jederzeit unverbindlich kennenlernen.'],
-                ['nr' => '06', 'icon' => '🛡️', 'title' => 'Betreut',      'desc' => 'Persönlich betreut vom Vereinspräsidenten — sicher und gepflegt.'],
+                ['nr' => '06', 'icon' => '🛡️', 'title' => 'Betreut',      'desc' => 'Persönlich betreut vom Vereinspräsidenten, sicher und gepflegt.'],
             ];
             foreach ($merkmale as $i => $m): ?>
                 <div class="card reveal reveal-delay-<?= ($i % 4) + 1 ?>">
@@ -153,7 +153,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <span class="section-label reveal">Mitgliedschaftsbeiträge</span>
             <h2 class="section-title reveal reveal-delay-1">Fair und transparent</h2>
             <p class="section-subtitle reveal reveal-delay-2" style="margin: 0 auto;">
-                Jährliche Beiträge — erschwinglich für jeden, unabhängig von Alter und
+                Jährliche Beiträge, erschwinglich für jeden, unabhängig von Alter und
                 Lebenssituation. Alle Beiträge berechtigen zur Nutzung des Athletikparks sowie
                 zur Teilnahme am gesamten Vereinsleben.
             </p>
@@ -196,7 +196,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     Werde Teil einer aktiven Gemeinschaft
                 </h2>
                 <p class="section-subtitle section-subtitle--white" style="margin: 0 0 2rem;">
-                    Erlebe, was polysportive Bewegungskultur wirklich bedeutet — gemeinsam, offen
+                    Erlebe, was polysportive Bewegungskultur wirklich bedeutet: gemeinsam, offen
                     und aktiv.
                 </p>
                 <a href="#antrag" class="btn btn-primary btn-xl">Mitglied werden</a>
@@ -207,7 +207,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'Sofortiger Zugang zum Outdoor-Athletikpark und allen Vereinsangeboten',
                     'Individuelle Kursangebote für alle Altersgruppen und Fitnesslevel',
                     'Aktive Community aus Menschen, die Bewegung, Vielfalt und Respekt teilen',
-                    'Netzwerktreffen jeden 2. Samstag im Monat — ab Mai 2026',
+                    'Netzwerktreffen jeden 2. Samstag im Monat, ab Mai 2026',
                 ];
                 foreach ($vorteile as $v): ?>
                     <div style="display: flex; gap: 0.75rem; align-items: flex-start; margin-bottom: 1.25rem;">
@@ -230,7 +230,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <span class="section-label reveal">Jetzt dabei sein</span>
                 <h2 class="section-title reveal reveal-delay-1">Mitgliedschaft beantragen</h2>
                 <p class="section-subtitle reveal reveal-delay-2" style="margin: 0 auto;">
-                    Füll das Formular aus — wir melden uns so bald wie möglich bei dir und
+                    Füll das Formular aus. Wir melden uns so bald wie möglich bei dir und
                     begrüßen dich in unserer Community.
                 </p>
             </div>

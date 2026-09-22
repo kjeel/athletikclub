@@ -12,27 +12,29 @@ requireAdmin();
 $db = getDB();
 
 // Kursumsatz pro Trainer
-$stmt = $db->query(
+$stmt = $db->prepare(
     "SELECT u.id, u.vorname, u.nachname,
             COALESCE(SUM(k.preis), 0) AS kursumsatz,
             COUNT(ka.id) AS bezahlte_anmeldungen
      FROM users u
-     LEFT JOIN kurse k ON k.trainer_id = u.id
+     LEFT JOIN kurse k ON k.trainer_id = u.id AND k.organization_id = u.organization_id
      LEFT JOIN kurs_anmeldungen ka ON ka.kurs_id = k.id AND ka.bezahlt = 1
-     WHERE u.rolle IN ('trainer','admin') AND u.aktiv = 1
+     WHERE u.rolle IN ('trainer','admin') AND u.aktiv = 1 AND u.organization_id = ?
      GROUP BY u.id
      ORDER BY kursumsatz DESC"
 );
+$stmt->execute([currentOrgId()]);
 $kursumsatz_pro_trainer = [];
 foreach ($stmt->fetchAll() as $row) {
     $kursumsatz_pro_trainer[$row['id']] = $row;
 }
 
 // Manueller Umsatz pro Trainer
-$stmt = $db->query(
+$stmt = $db->prepare(
     "SELECT trainer_id, COALESCE(SUM(betrag), 0) AS manuell
-     FROM umsatz_eintraege GROUP BY trainer_id"
+     FROM umsatz_eintraege WHERE organization_id = ? GROUP BY trainer_id"
 );
+$stmt->execute([currentOrgId()]);
 $manuell_pro_trainer = [];
 foreach ($stmt->fetchAll() as $row) {
     $manuell_pro_trainer[$row['trainer_id']] = (float)$row['manuell'];

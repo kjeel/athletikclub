@@ -5,6 +5,9 @@
 
 require_once dirname(__DIR__) . '/config/config.php';
 require_once dirname(__DIR__) . '/config/database.php';
+require_once __DIR__ . '/tenancy.php';
+require_once __DIR__ . '/rbac.php';
+require_once __DIR__ . '/money.php';
 
 // ----------------------------------------------------------------
 // Session-Zugriff
@@ -97,12 +100,13 @@ function requireAdmin(): void
 function loginUser(array $user): void
 {
     session_regenerate_id(true);
-    $_SESSION['user_id']       = $user['id'];
-    $_SESSION['user_vorname']  = $user['vorname'];
-    $_SESSION['user_nachname'] = $user['nachname'];
-    $_SESSION['user_email']    = $user['email'];
-    $_SESSION['user_role']     = $user['rolle'];
-    $_SESSION['login_time']    = time();
+    $_SESSION['user_id']         = $user['id'];
+    $_SESSION['user_vorname']    = $user['vorname'];
+    $_SESSION['user_nachname']   = $user['nachname'];
+    $_SESSION['user_email']      = $user['email'];
+    $_SESSION['user_role']       = $user['rolle'];
+    $_SESSION['organization_id'] = (int)($user['organization_id'] ?? 1);
+    $_SESSION['login_time']      = time();
 }
 
 /**

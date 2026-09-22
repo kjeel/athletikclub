@@ -18,7 +18,7 @@ require_once ROOT_PATH . '/includes/header.php';
             <span class="breadcrumb-current">Leitbild</span>
         </nav>
         <h1>Werte, die uns leiten &amp; verbinden</h1>
-        <p>Sechs Grundwerte, die unser Handeln prägen – als Verein, als Gemeinschaft und als Vorbilder.</p>
+        <p>Sechs Grundwerte, die unser Handeln prägen, als Verein, als Gemeinschaft und als Vorbilder.</p>
     </div>
 </section>
 
@@ -53,7 +53,7 @@ require_once ROOT_PATH . '/includes/header.php';
             <div style="font-family: 'Montserrat', sans-serif; font-size: 3rem; font-weight: 900; color: var(--gold-accent); opacity: 0.5; line-height: 1;">01</div>
             <p style="font-size: 1.4rem; line-height: 1.7; color: white; font-weight: 300; margin-top: 1rem;">
                 Unser Leitbild beschreibt, wer wir sind und wie wir handeln. Es ist Grundlage für
-                Entscheidungen im Verein – und ein Versprechen an unsere Mitglieder.
+                Entscheidungen im Verein und ein Versprechen an unsere Mitglieder.
             </p>
         </div>
     </div>
@@ -68,7 +68,7 @@ require_once ROOT_PATH . '/includes/header.php';
             <span class="section-label reveal">Sechs Grundwerte</span>
             <h2 class="section-title reveal reveal-delay-1">Was uns ausmacht</h2>
             <p class="section-subtitle reveal reveal-delay-2" style="margin: 0 auto;">
-                Diese Werte sind kein Anspruch von außen – sie wachsen von innen und werden von
+                Diese Werte sind kein Anspruch von außen, sie wachsen von innen und werden von
                 allen gelebt.
             </p>
         </div>
@@ -130,7 +130,7 @@ require_once ROOT_PATH . '/includes/header.php';
 
             <p style="font-size: 1.05rem; line-height: 1.9; margin-bottom: 1.25rem;">
                 Wir schaffen einen Raum, in dem Bewegung, Begegnung und Entwicklung
-                zusammenwachsen – für jede*n, der oder die Teil davon sein möchte.
+                zusammenwachsen, für jede*n, der oder die Teil davon sein möchte.
             </p>
             <p style="line-height: 1.9; margin-bottom: 1.25rem;">
                 Unser Leitbild ist kein starres Regelwerk, sondern ein lebendiges Versprechen, das

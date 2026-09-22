@@ -19,7 +19,7 @@ if (empty($token) || mb_strlen($token) !== 64) {
 } else {
     try {
         $db   = getDB();
-        $stmt = $db->prepare('SELECT id, vorname, nachname, email, rolle FROM users WHERE reset_token = ? AND reset_token_exp > NOW() LIMIT 1');
+        $stmt = $db->prepare('SELECT id, vorname, nachname, email, rolle, organization_id FROM users WHERE reset_token = ? AND reset_token_exp > NOW() LIMIT 1');
         $stmt->execute([$token]);
         $user = $stmt->fetch();
 

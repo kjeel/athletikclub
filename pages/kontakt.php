@@ -4,7 +4,7 @@
  */
 define('ROOT_PATH', dirname(__DIR__));
 $page_title       = 'Kontakt';
-$meta_description = 'Kontaktiere den Athletikclub Steiermark – wir sind für dich da.';
+$meta_description = 'Kontaktiere den Athletikclub Steiermark, wir sind für dich da.';
 require_once ROOT_PATH . '/includes/header.php';
 
 $success = false;
@@ -25,8 +25,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($errors)) {
         try {
             $db = getDB();
-            $db->prepare('INSERT INTO kontakt_anfragen (name, email, betreff, nachricht) VALUES (?, ?, ?, ?)')
-               ->execute([$name, $email, $betreff, $nachricht]);
+            $db->prepare('INSERT INTO kontakt_anfragen (organization_id, name, email, betreff, nachricht) VALUES (?, ?, ?, ?, ?)')
+               ->execute([currentOrgId(), $name, $email, $betreff, $nachricht]);
 
             $mail_body  = "Neue Kontaktanfrage über die Website:\n\n";
             $mail_body .= "Name: {$name}\nE-Mail: {$email}\nBetreff: {$betreff}\n\nNachricht:\n{$nachricht}";

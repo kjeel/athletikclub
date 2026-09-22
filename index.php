@@ -3,7 +3,7 @@
  * Athletikclub Steiermark – Startseite
  */
 define('ROOT_PATH', __DIR__);
-$page_title       = 'Athletikclub Steiermark – Ganzheitliches Training & Sport';
+$page_title       = 'Athletikclub Steiermark: Ganzheitliches Training & Sport';
 $meta_description = 'Willkommen beim Athletikclub Steiermark. Ganzheitliches Athletik- und polysportives Training in St. Georgen an der Stiefing, Steiermark.';
 
 require_once ROOT_PATH . '/includes/header.php';
@@ -234,7 +234,7 @@ try {
             <span class="section-label reveal">Unsere Disziplinen</span>
             <h2 class="section-title reveal reveal-delay-1">Trainiere, was dich bewegt</h2>
             <p class="section-subtitle reveal reveal-delay-2" style="margin: 0 auto;">
-                Polysportives Training für Kraft, Ausdauer, Koordination und Beweglichkeit –
+                Polysportives Training für Kraft, Ausdauer, Koordination und Beweglichkeit,
                 in einer starken Gemeinschaft.
             </p>
         </div>
@@ -259,14 +259,14 @@ try {
                 [
                     'icon'        => '🏓',
                     'name'        => 'Tischtennis',
-                    'desc'        => 'Reaktionsstärke und taktisches Gespür – Training für alle Altersgruppen.',
+                    'desc'        => 'Reaktionsstärke und taktisches Gespür, Training für alle Altersgruppen.',
                     'color'       => '#00A896',
                     'color_pale'  => 'rgba(0,168,150,0.08)',
                 ],
                 [
                     'icon'        => '🎾',
                     'name'        => 'Padel Tennis',
-                    'desc'        => 'Der Trendsport schlechthin – strategisch, dynamisch, ideal für Team-Spirit.',
+                    'desc'        => 'Der Trendsport schlechthin: strategisch, dynamisch, ideal für Team-Spirit.',
                     'color'       => '#4EBA6F',
                     'color_pale'  => 'rgba(78,186,111,0.08)',
                 ],
@@ -381,11 +381,11 @@ try {
                 <p style="margin-bottom: 1.25rem; font-size: 1.05rem; line-height: 1.85;">
                     Der <strong>Athletikclub Steiermark</strong> ist dein Zuhause für
                     polysportives Training in der Steiermark. Wir fördern Kraft, Ausdauer,
-                    Beweglichkeit und Koordination – für alle Leistungsniveaus.
+                    Beweglichkeit und Koordination für alle Leistungsniveaus.
                 </p>
                 <p style="margin-bottom: 2rem; line-height: 1.85;">
                     Geführt von Jacob Kysela und Christof Oster begleitet dich unser Team auf
-                    deinem persönlichen Weg – egal ob du gerade erst anfängst oder als
+                    deinem persönlichen Weg, egal ob du gerade erst anfängst oder als
                     ambitionierter Sportler deine Leistung optimieren möchtest.
                 </p>
 

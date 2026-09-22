@@ -16,9 +16,9 @@ $kurs_id = (int)($_GET['id'] ?? 0);
 $stmt = $db->prepare(
     "SELECT k.*, u.vorname AS trainer_vorname, u.nachname AS trainer_nachname
      FROM kurse k LEFT JOIN users u ON k.trainer_id = u.id
-     WHERE k.id = ? LIMIT 1"
+     WHERE k.id = ? AND k.organization_id = ? LIMIT 1"
 );
-$stmt->execute([$kurs_id]);
+$stmt->execute([$kurs_id, currentOrgId()]);
 $kurs = $stmt->fetch();
 
 if (!$kurs) {
@@ -42,9 +42,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $status = ($kurs['max_teilnehmer'] && $belegt >= $kurs['max_teilnehmer']) ? 'warteliste' : 'angemeldet';
 
         $db->prepare(
-            'INSERT INTO kurs_anmeldungen (kurs_id, user_id, status) VALUES (?, ?, ?)
+            'INSERT INTO kurs_anmeldungen (organization_id, kurs_id, user_id, status) VALUES (?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE status = VALUES(status)'
-        )->execute([$kurs_id, $user['id'], $status]);
+        )->execute([currentOrgId(), $kurs_id, $user['id'], $status]);
         logActivity('kurs_anmeldung', "Kurs-ID: {$kurs_id}");
         flashMessage('success', $status === 'warteliste' ? 'Du stehst auf der Warteliste.' : 'Anmeldung erfolgreich!');
         redirect(APP_URL . '/dashboard/kurs-detail.php?id=' . $kurs_id);
@@ -139,7 +139,7 @@ $status_map = [
         </a>
         <h1 class="dashboard-title"><?= e($kurs['titel']) ?></h1>
         <p class="dashboard-subtitle">
-            <?= date('d.m.Y H:i', strtotime($kurs['start_datum'])) ?> – <?= date('d.m.Y H:i', strtotime($kurs['end_datum'])) ?>
+            <?= date('d.m.Y H:i', strtotime($kurs['start_datum'])) ?> bis <?= date('d.m.Y H:i', strtotime($kurs['end_datum'])) ?>
             <?php if ($kurs['ort']): ?> · <?= e($kurs['ort']) ?><?php endif; ?>
         </p>
     </div>
@@ -163,7 +163,7 @@ $status_map = [
                 <?php if ($kurs['sportart']): ?>
                 <div><strong>Sportart</strong><br><span class="badge badge-gold" style="margin-top: 4px;"><?= e($kurs['sportart']) ?></span></div>
                 <?php endif; ?>
-                <div><strong>Trainer*in</strong><br><?= $kurs['trainer_vorname'] ? e($kurs['trainer_vorname'] . ' ' . $kurs['trainer_nachname']) : '–' ?></div>
+                <div><strong>Trainer*in</strong><br><?= $kurs['trainer_vorname'] ? e($kurs['trainer_vorname'] . ' ' . $kurs['trainer_nachname']) : 'k. A.' ?></div>
                 <div><strong>Teilnehmer</strong><br><?= $belegt ?><?= $kurs['max_teilnehmer'] ? ' / ' . (int)$kurs['max_teilnehmer'] : ' (unlimitiert)' ?></div>
                 <div><strong>Preis</strong><br><?= $kurs['preis'] > 0 ? number_format((float)$kurs['preis'], 2, ',', '.') . ' €' : 'Kostenlos' ?></div>
             </div>

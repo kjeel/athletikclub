@@ -4,7 +4,7 @@
  */
 define('ROOT_PATH', dirname(__DIR__));
 $page_title       = 'Trainer*in werden';
-$meta_description = 'Trainiere selbstständig beim Athletikclub Steiermark – Infrastruktur, Kundenbasis und rechtlicher Rahmen inklusive. Du bringst deine Expertise mit.';
+$meta_description = 'Trainiere selbstständig beim Athletikclub Steiermark. Infrastruktur, Kundenbasis und rechtlicher Rahmen sind inklusive, du bringst deine Expertise mit.';
 require_once ROOT_PATH . '/includes/header.php';
 
 $success = false;
@@ -26,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($errors)) {
         try {
-            $betreff = 'Trainer-Anbindung' . ($qualifikation !== '' ? ' – ' . $qualifikation : '');
+            $betreff = 'Trainer-Anbindung' . ($qualifikation !== '' ? ': ' . $qualifikation : '');
             $name    = $vorname . ' ' . $nachname;
             $db = getDB();
             $db->prepare('INSERT INTO kontakt_anfragen (organization_id, name, email, betreff, nachricht) VALUES (?, ?, ?, ?, ?)')
@@ -53,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <span class="breadcrumb-current">Trainer*in werden</span>
         </nav>
         <h1>Trainiere selbstständig. Mit unserem Rücken.</h1>
-        <p>Du willst als Trainer*in durchstarten — ohne Vereinsgründung, ohne Bürokratie, ohne das Risiko allein zu tragen?</p>
+        <p>Du willst als Trainer*in durchstarten, ohne Vereinsgründung, ohne Bürokratie und ohne das Risiko allein zu tragen?</p>
     </div>
 </section>
 
@@ -79,10 +79,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="grid-4">
             <?php
             $intro_cards = [
-                ['icon' => '🚀', 'title' => 'Sofort loslegen',          'desc' => 'Kein Gründungsaufwand, keine Bürokratie — direkt starten.'],
+                ['icon' => '🚀', 'title' => 'Sofort loslegen',          'desc' => 'Kein Gründungsaufwand, keine Bürokratie, direkt starten.'],
                 ['icon' => '📋', 'title' => 'Rechtlicher Rahmen',       'desc' => 'Versicherung, Verträge und Abrechnung über uns geregelt.'],
                 ['icon' => '👥', 'title' => 'Bestehende Kundenbasis',   'desc' => 'Zugang zu unserem Mitglieder- und Interessentennetzwerk.'],
-                ['icon' => '💶', 'title' => 'Faire Vergütung',          'desc' => 'Transparentes Provisionsmodell — du verdienst, was du leistest.'],
+                ['icon' => '💶', 'title' => 'Faire Vergütung',          'desc' => 'Ein transparentes Provisionsmodell: du verdienst, was du leistest.'],
             ];
             foreach ($intro_cards as $i => $c): ?>
                 <div class="card reveal reveal-delay-<?= ($i % 4) + 1 ?>">
@@ -104,7 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="container">
         <div class="text-center" style="margin-bottom: 3.5rem; max-width: 680px; margin-inline: auto;">
             <span class="section-label reveal">So funktioniert es</span>
-            <h2 class="section-title reveal reveal-delay-1">Von der Idee zum ersten Training — in vier Schritten</h2>
+            <h2 class="section-title reveal reveal-delay-1">Von der Idee zum ersten Training in vier Schritten</h2>
             <p class="section-subtitle reveal reveal-delay-2" style="margin: 0 auto;">
                 Der Einstieg ist unkompliziert. Wir begleiten dich durch den gesamten Prozess,
                 damit du dich auf das Wesentliche konzentrieren kannst: dein Training.
@@ -114,10 +114,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="grid-4">
             <?php
             $schritte = [
-                ['nr' => '01', 'title' => 'Erstes Gespräch',    'desc' => 'Du meldest dich bei uns — wir lernen uns kennen, besprechen deine Qualifikationen, Schwerpunkte und Vorstellungen. Völlig unverbindlich.'],
+                ['nr' => '01', 'title' => 'Erstes Gespräch',    'desc' => 'Du meldest dich bei uns, wir lernen uns kennen und besprechen deine Qualifikationen, Schwerpunkte und Vorstellungen. Völlig unverbindlich.'],
                 ['nr' => '02', 'title' => 'Anbindungsvertrag',  'desc' => 'Wir schließen einen klaren Kooperationsvertrag. Darin sind Vergütung, Rahmenbedingungen und gegenseitige Rechte und Pflichten transparent geregelt.'],
-                ['nr' => '03', 'title' => 'Onboarding',         'desc' => 'Du wirst in unsere Strukturen eingeführt — Buchungssystem, Kommunikation mit Kunden, Nutzung unserer Räumlichkeiten und Materialien.'],
-                ['nr' => '04', 'title' => 'Loslegen',           'desc' => 'Du trainierst — unter deinem Namen, mit deiner Methode, zu deinen Zeiten. Wir kümmern uns um Abrechnung, Verwaltung und Support im Hintergrund.'],
+                ['nr' => '03', 'title' => 'Onboarding',         'desc' => 'Du wirst in unsere Strukturen eingeführt: Buchungssystem, Kommunikation mit Kunden, Nutzung unserer Räumlichkeiten und Materialien.'],
+                ['nr' => '04', 'title' => 'Loslegen',           'desc' => 'Du trainierst unter deinem Namen, mit deiner Methode und zu deinen Zeiten. Wir kümmern uns im Hintergrund um Abrechnung, Verwaltung und Support.'],
             ];
             foreach ($schritte as $i => $s): ?>
                 <div class="reveal reveal-delay-<?= ($i % 4) + 1 ?>">
@@ -137,7 +137,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="container">
         <div class="text-center" style="margin-bottom: 3.5rem; max-width: 680px; margin-inline: auto;">
             <span class="section-label reveal">Deine Vorteile</span>
-            <h2 class="section-title reveal reveal-delay-1">Alles, was du brauchst — ohne den Aufwand dahinter</h2>
+            <h2 class="section-title reveal reveal-delay-1">Alles, was du brauchst, ohne den Aufwand dahinter</h2>
             <p class="section-subtitle reveal reveal-delay-2" style="margin: 0 auto;">
                 Selbstständig arbeiten bedeutet nicht, alles alleine stemmen zu müssen. Mit uns im
                 Rücken konzentrierst du dich auf Leistung, wir übernehmen den Rest.
@@ -147,11 +147,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="grid-3">
             <?php
             $vorteile = [
-                ['icon' => '🏛️', 'title' => 'Kein Gründungsaufwand',     'desc' => 'Du arbeitest unter dem rechtlichen Dach unserer Organisation — sofort und unkompliziert, ohne eigenen Gründungsaufwand.'],
+                ['icon' => '🏛️', 'title' => 'Kein Gründungsaufwand',     'desc' => 'Du arbeitest unter dem rechtlichen Dach unserer Organisation: sofort und unkompliziert, ohne eigenen Gründungsaufwand.'],
                 ['icon' => '🔒', 'title' => 'Versicherungsschutz',       'desc' => 'Unsere Haftpflicht- und Unfallversicherung deckt deine Trainingstätigkeit ab. Du bist von Anfang an auf der sicheren Seite.'],
                 ['icon' => '📊', 'title' => 'Buchhaltung & Abrechnung',  'desc' => 'Rechnungen, Honorarabrechnungen und die steuerliche Abwicklung laufen über uns. Du erhältst monatlich eine transparente Abrechnung.'],
-                ['icon' => '📍', 'title' => 'Infrastruktur & Räume',     'desc' => 'Zugang zu unseren Trainingsräumen, Equipment und Buchungssystemen — ohne eigene Investitionen in Ausstattung oder Mietverträge.'],
-                ['icon' => '📣', 'title' => 'Marketing & Sichtbarkeit',  'desc' => 'Du wirst auf unserer Website, in Social Media und in unserem Newsletter als Trainer*in vorgestellt. Wir bringen dir Kunden — du musst nicht selbst akquirieren.'],
+                ['icon' => '📍', 'title' => 'Infrastruktur & Räume',     'desc' => 'Zugang zu unseren Trainingsräumen, Equipment und Buchungssystemen, ohne eigene Investitionen in Ausstattung oder Mietverträge.'],
+                ['icon' => '📣', 'title' => 'Marketing & Sichtbarkeit',  'desc' => 'Du wirst auf unserer Website, in Social Media und in unserem Newsletter als Trainer*in vorgestellt. Wir bringen dir Kunden, du musst nicht selbst akquirieren.'],
                 ['icon' => '🤝', 'title' => 'Kollegiales Netzwerk',      'desc' => 'Du bist Teil eines Teams aus gleichgesinnten Trainer*innen. Austausch, gegenseitige Unterstützung und gemeinsame Weiterentwicklung inklusive.'],
             ];
             foreach ($vorteile as $i => $v): ?>
@@ -187,11 +187,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div style="max-width: 680px; margin: 0 auto;">
             <?php
             $anforderungen = [
-                'Abgeschlossene Trainer*innenausbildung — anerkannte Lizenz im Bereich Sport, Fitness, Gesundheit oder verwandten Feldern',
-                'Verlässlichkeit & Professionalität — pünktlich, vorbereitet und im Umgang mit Kunden stets freundlich und kompetent',
-                'Eigenverantwortung — du organisierst deinen Alltag selbst und bringst den Antrieb mit, als Selbstständige*r zu arbeiten',
-                'Identifikation mit unseren Werten — Ehrlichkeit, Qualität im Training und Wohl der Kund*innen stehen bei uns an erster Stelle',
-                'Bereitschaft zur Zusammenarbeit — wir sind kein anonymes Netzwerk, sondern ein echtes Team mit regelmäßigem Austausch',
+                'Abgeschlossene Trainer*innenausbildung: eine anerkannte Lizenz im Bereich Sport, Fitness, Gesundheit oder verwandten Feldern',
+                'Verlässlichkeit und Professionalität: pünktlich, vorbereitet und im Umgang mit Kunden stets freundlich und kompetent',
+                'Eigenverantwortung: du organisierst deinen Alltag selbst und bringst den Antrieb mit, als Selbstständige*r zu arbeiten',
+                'Identifikation mit unseren Werten: Ehrlichkeit, Qualität im Training und das Wohl der Kund*innen stehen bei uns an erster Stelle',
+                'Bereitschaft zur Zusammenarbeit: wir sind kein anonymes Netzwerk, sondern ein echtes Team mit regelmäßigem Austausch',
             ];
             foreach ($anforderungen as $i => $a): ?>
                 <div class="reveal reveal-delay-<?= ($i % 4) + 1 ?>" style="display: flex; gap: 0.85rem; align-items: flex-start; margin-bottom: 1.25rem;">
@@ -211,12 +211,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="reveal" style="max-width: 680px; margin: 0 auto; text-align: center;">
             <svg width="36" height="36" viewBox="0 0 24 24" fill="#C6A135" style="margin: 0 auto 1.5rem;"><path d="M9.983 3v7.391c0 5.704-3.731 9.57-8.983 10.609l-.995-2.151c2.432-.917 3.995-3.638 3.995-5.849h-4v-10h9.983zm14.017 0v7.391c0 5.704-3.748 9.571-9 10.609l-.996-2.151c2.433-.917 3.996-3.638 3.996-5.849h-4v-10h10z"/></svg>
             <p style="font-size: 1.15rem; line-height: 1.8; font-style: italic; color: var(--text-secondary); margin-bottom: 1.5rem;">
-                Ich wollte schon lange selbstständig trainieren — aber der Aufwand mit Versicherung,
+                Ich wollte schon lange selbstständig trainieren, aber der Aufwand mit Versicherung,
                 Verträgen und Buchhaltung hat mich zurückgehalten. Die Anbindung war der perfekte
                 Einstieg.
             </p>
             <span style="font-family: 'Montserrat', sans-serif; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">
-                — Trainer*in im Athletikclub Steiermark
+                Trainer*in im Athletikclub Steiermark
             </span>
         </div>
     </div>
@@ -248,7 +248,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <span class="section-label reveal">Bereit für den nächsten Schritt?</span>
                 <h2 class="section-title reveal reveal-delay-1">Wir freuen uns auf dich.</h2>
                 <p class="section-subtitle reveal reveal-delay-2" style="margin: 0 auto;">
-                    Füll das Formular aus — wir melden uns innerhalb von 48 Stunden bei dir.
+                    Füll das Formular aus. Wir melden uns innerhalb von 48 Stunden bei dir.
                     Kein Druck, keine Verpflichtung, nur ein ehrlicher Austausch.
                 </p>
             </div>

@@ -220,7 +220,7 @@ try {
                             </td>
                             <td><?= date('d.m.Y H:i', strtotime($kurs['start_datum'])) ?></td>
                             <?php if (isTrainer()): ?>
-                                <td><?= $kurs['anmeldungen_count'] ?? '–' ?><?= $kurs['max_teilnehmer'] ? ' / ' . $kurs['max_teilnehmer'] : '' ?></td>
+                                <td><?= $kurs['anmeldungen_count'] ?? 'k. A.' ?><?= $kurs['max_teilnehmer'] ? ' / ' . $kurs['max_teilnehmer'] : '' ?></td>
                             <?php endif; ?>
                             <td>
                                 <?php

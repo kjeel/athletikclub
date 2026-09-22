@@ -4,7 +4,7 @@
  */
 define('ROOT_PATH', dirname(__DIR__));
 $page_title       = 'Vision';
-$meta_description = 'Unsere Vision: eine polysportive Bewegungskultur – Vielfalt, Gesundheit und langfristige Entwicklung statt früher Spezialisierung.';
+$meta_description = 'Unsere Vision: eine polysportive Bewegungskultur mit Vielfalt, Gesundheit und langfristiger Entwicklung statt früher Spezialisierung.';
 require_once ROOT_PATH . '/includes/header.php';
 ?>
 
@@ -18,7 +18,7 @@ require_once ROOT_PATH . '/includes/header.php';
             <span class="breadcrumb-current">Vision</span>
         </nav>
         <h1>Polysportive Bewegungskultur</h1>
-        <p>Vielfalt, Gesundheit und langfristige Entwicklung – als Grundlage für alles, was wir tun.</p>
+        <p>Vielfalt, Gesundheit und langfristige Entwicklung als Grundlage für alles, was wir tun.</p>
     </div>
 </section>
 
@@ -31,7 +31,7 @@ require_once ROOT_PATH . '/includes/header.php';
             <span class="section-label reveal">Unsere Vision</span>
             <p class="section-subtitle reveal reveal-delay-1" style="margin: 0 auto; font-size: 1.1rem;">
                 Ein vielseitig bewegter Mensch ist gesünder, anpassungsfähiger und
-                leistungsfähiger – davon sind wir überzeugt.
+                leistungsfähiger. Davon sind wir überzeugt.
             </p>
         </div>
 
@@ -54,7 +54,7 @@ require_once ROOT_PATH . '/includes/header.php';
             <div style="font-family: 'Montserrat', sans-serif; font-size: 3rem; font-weight: 900; color: var(--gold-accent); opacity: 0.5; line-height: 1;">01</div>
             <p style="font-size: 1.4rem; line-height: 1.7; color: white; font-weight: 300; margin-top: 1rem;">
                 Wir fördern eine polysportive Bewegungskultur, die Vielfalt, Gesundheit und
-                langfristige Entwicklung ermöglicht – damit Menschen mehrere Sportarten erleben,
+                langfristige Entwicklung ermöglicht, damit Menschen mehrere Sportarten erleben,
                 erlernen und miteinander verbinden können.
             </p>
         </div>
@@ -80,8 +80,8 @@ require_once ROOT_PATH . '/includes/header.php';
             $pfeiler = [
                 ['icon' => '🫀', 'title' => 'Körperliche Gesundheit', 'desc' => 'Vielseitige Bewegung schützt den Körper, senkt das Verletzungsrisiko und fördert eine ausgeglichene muskuläre Entwicklung.'],
                 ['icon' => '🧠', 'title' => 'Mentale Stärke',         'desc' => 'Neue Bewegungsformen fordern den Kopf, schärfen die Konzentration und stärken die Widerstandsfähigkeit durch ständiges Lernen.'],
-                ['icon' => '🌍', 'title' => 'Soziale Vielfalt',       'desc' => 'Sport verbindet. Polysportivität schafft Begegnungen über Grenzen hinweg – zwischen Menschen, Kulturen und Generationen.'],
-                ['icon' => '⚡', 'title' => 'Nachhaltige Leistung',   'desc' => 'Wer vielseitig trainiert, bleibt länger leistungsfähig – ohne Überlastung oder frühzeitigen Verschleiß.'],
+                ['icon' => '🌍', 'title' => 'Soziale Vielfalt',       'desc' => 'Sport verbindet. Polysportivität schafft Begegnungen über Grenzen hinweg, zwischen Menschen, Kulturen und Generationen.'],
+                ['icon' => '⚡', 'title' => 'Nachhaltige Leistung',   'desc' => 'Wer vielseitig trainiert, bleibt länger leistungsfähig, ganz ohne Überlastung oder frühzeitigen Verschleiß.'],
             ];
             foreach ($pfeiler as $i => $p): ?>
                 <div class="card reveal reveal-delay-<?= ($i % 4) + 1 ?>">
@@ -112,7 +112,7 @@ require_once ROOT_PATH . '/includes/header.php';
             </p>
             <p style="line-height: 1.9; margin: 0;">
                 Deshalb steht der Athletikclub Steiermark für polysportive Entwicklung statt
-                früher Spezialisierung – als Grundlage für körperliche Gesundheit, mentale Stärke,
+                früher Spezialisierung, als Grundlage für körperliche Gesundheit, mentale Stärke,
                 soziale Vielfalt und Leistungsfähigkeit, die trägt, auch im Nachwuchssport.
             </p>
         </div>

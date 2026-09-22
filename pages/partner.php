@@ -4,7 +4,7 @@
  */
 define('ROOT_PATH', dirname(__DIR__));
 $page_title       = 'Partner*innen';
-$meta_description = 'Unsere Partner*innen – Unternehmen und Institutionen, die den Athletikclub Steiermark unterstützen.';
+$meta_description = 'Unsere Partner*innen: Unternehmen und Institutionen, die den Athletikclub Steiermark unterstützen.';
 require_once ROOT_PATH . '/includes/header.php';
 
 $partner = [

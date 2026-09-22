@@ -12,8 +12,8 @@ requireAdmin();
 $db          = getDB();
 $trainer_id  = (int)($_GET['id'] ?? 0);
 
-$stmt = $db->prepare("SELECT id, vorname, nachname FROM users WHERE id = ? AND rolle IN ('trainer','admin') LIMIT 1");
-$stmt->execute([$trainer_id]);
+$stmt = $db->prepare("SELECT id, vorname, nachname FROM users WHERE id = ? AND rolle IN ('trainer','admin') AND organization_id = ? LIMIT 1");
+$stmt->execute([$trainer_id, currentOrgId()]);
 $trainer = $stmt->fetch();
 
 if (!$trainer) {
@@ -27,15 +27,15 @@ $stmt = $db->prepare(
             (COUNT(ka.id) * k.preis) AS summe
      FROM kurse k
      JOIN kurs_anmeldungen ka ON ka.kurs_id = k.id AND ka.bezahlt = 1
-     WHERE k.trainer_id = ?
+     WHERE k.trainer_id = ? AND k.organization_id = ?
      GROUP BY k.id
      ORDER BY k.start_datum DESC"
 );
-$stmt->execute([$trainer_id]);
+$stmt->execute([$trainer_id, currentOrgId()]);
 $kurs_umsatz = $stmt->fetchAll();
 
-$stmt = $db->prepare('SELECT * FROM umsatz_eintraege WHERE trainer_id = ? ORDER BY leistungsdatum DESC');
-$stmt->execute([$trainer_id]);
+$stmt = $db->prepare('SELECT * FROM umsatz_eintraege WHERE trainer_id = ? AND organization_id = ? ORDER BY leistungsdatum DESC');
+$stmt->execute([$trainer_id, currentOrgId()]);
 $manuelle_eintraege = $stmt->fetchAll();
 
 $kursumsatz_summe = array_sum(array_column($kurs_umsatz, 'summe'));

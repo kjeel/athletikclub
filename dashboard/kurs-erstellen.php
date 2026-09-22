@@ -15,9 +15,11 @@ $errors = [];
 
 $trainer_liste = [];
 if (isAdmin()) {
-    $trainer_liste = $db->query(
-        "SELECT id, vorname, nachname FROM users WHERE rolle IN ('trainer','admin') AND aktiv = 1 ORDER BY vorname"
-    )->fetchAll();
+    $stmt = $db->prepare(
+        "SELECT id, vorname, nachname FROM users WHERE rolle IN ('trainer','admin') AND aktiv = 1 AND organization_id = ? ORDER BY vorname"
+    );
+    $stmt->execute([currentOrgId()]);
+    $trainer_liste = $stmt->fetchAll();
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -49,10 +51,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($errors)) {
         try {
             $stmt = $db->prepare(
-                'INSERT INTO kurse (titel, beschreibung, trainer_id, sportart, ort, start_datum, end_datum, max_teilnehmer, preis, status, erstellt_von)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                'INSERT INTO kurse (organization_id, titel, beschreibung, trainer_id, sportart, ort, start_datum, end_datum, max_teilnehmer, preis, status, erstellt_von)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
             );
             $stmt->execute([
+                currentOrgId(),
                 $titel,
                 $beschreibung ?: null,
                 $trainer_id ?: null,

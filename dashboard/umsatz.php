@@ -29,8 +29,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'eintr
 
     if (empty($errors)) {
         $db->prepare(
-            'INSERT INTO umsatz_eintraege (trainer_id, beschreibung, betrag, leistungsdatum) VALUES (?, ?, ?, ?)'
-        )->execute([$user['id'], $beschreibung, (float)$betrag, date('Y-m-d', strtotime($leistungsdatum))]);
+            'INSERT INTO umsatz_eintraege (organization_id, trainer_id, beschreibung, betrag, leistungsdatum) VALUES (?, ?, ?, ?, ?)'
+        )->execute([currentOrgId(), $user['id'], $beschreibung, moneyRound($betrag), date('Y-m-d', strtotime($leistungsdatum))]);
         logActivity('umsatz_eintrag_angelegt');
         flashMessage('success', 'Eintrag gespeichert.');
         redirect(APP_URL . '/dashboard/umsatz.php');
@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'eintr
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'eintrag_loeschen') {
     requireCsrf();
     $eintrag_id = (int)($_POST['eintrag_id'] ?? 0);
-    $db->prepare('DELETE FROM umsatz_eintraege WHERE id = ? AND trainer_id = ?')->execute([$eintrag_id, $user['id']]);
+    $db->prepare('DELETE FROM umsatz_eintraege WHERE id = ? AND trainer_id = ? AND organization_id = ?')->execute([$eintrag_id, $user['id'], currentOrgId()]);
     logActivity('umsatz_eintrag_geloescht', "ID: {$eintrag_id}");
     redirect(APP_URL . '/dashboard/umsatz.php');
 }
@@ -55,28 +55,28 @@ $stmt = $db->prepare(
             (COUNT(ka.id) * k.preis) AS summe
      FROM kurse k
      JOIN kurs_anmeldungen ka ON ka.kurs_id = k.id AND ka.bezahlt = 1 AND ka.abgerechnet_id IS NULL
-     WHERE k.trainer_id = ?
+     WHERE k.trainer_id = ? AND k.organization_id = ?
      GROUP BY k.id
      ORDER BY k.start_datum DESC"
 );
-$stmt->execute([$user['id']]);
+$stmt->execute([$user['id'], currentOrgId()]);
 $kurs_umsatz = $stmt->fetchAll();
 
-$stmt = $db->prepare('SELECT * FROM umsatz_eintraege WHERE trainer_id = ? AND abgerechnet_id IS NULL ORDER BY leistungsdatum DESC');
-$stmt->execute([$user['id']]);
+$stmt = $db->prepare('SELECT * FROM umsatz_eintraege WHERE trainer_id = ? AND organization_id = ? AND abgerechnet_id IS NULL ORDER BY leistungsdatum DESC');
+$stmt->execute([$user['id'], currentOrgId()]);
 $manuelle_eintraege = $stmt->fetchAll();
 
-$kursumsatz_summe = array_sum(array_column($kurs_umsatz, 'summe'));
-$manuell_summe    = array_sum(array_column($manuelle_eintraege, 'betrag'));
-$gesamt_summe     = $kursumsatz_summe + $manuell_summe;
+$kursumsatz_summe = moneySum(array_column($kurs_umsatz, 'summe'));
+$manuell_summe    = moneySum(array_column($manuelle_eintraege, 'betrag'));
+$gesamt_summe     = bcadd($kursumsatz_summe, $manuell_summe, 2);
 
 $stmt = $db->prepare('SELECT provisionssatz FROM trainer_profile WHERE user_id = ?');
 $stmt->execute([$user['id']]);
-$provisionssatz = (float)($stmt->fetchColumn() ?: 80.00);
-$provision_offen = $gesamt_summe * $provisionssatz / 100;
+$provisionssatz = (string)($stmt->fetchColumn() ?: '80.00');
+$provision_offen = moneyPercent($gesamt_summe, $provisionssatz);
 
-$stmt = $db->prepare('SELECT * FROM abrechnungen WHERE trainer_id = ? ORDER BY created_at DESC');
-$stmt->execute([$user['id']]);
+$stmt = $db->prepare('SELECT * FROM abrechnungen WHERE trainer_id = ? AND organization_id = ? ORDER BY created_at DESC');
+$stmt->execute([$user['id'], currentOrgId()]);
 $abrechnungen = $stmt->fetchAll();
 
 $page_title = 'Mein Umsatz';
@@ -86,7 +86,7 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
 
 <div class="dashboard-header">
     <h1 class="dashboard-title">Mein Umsatz</h1>
-    <p class="dashboard-subtitle">Noch nicht abgerechneter Umsatz – deine Provision: <?= number_format($provisionssatz, 0) ?>%</p>
+    <p class="dashboard-subtitle">Noch nicht abgerechneter Umsatz. Deine Provision: <?= number_format($provisionssatz, 0) ?>%</p>
 </div>
 
 <!-- KPI Cards -->
@@ -220,7 +220,7 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
                 <tbody>
                     <?php foreach ($abrechnungen as $a): ?>
                     <tr>
-                        <td><?= date('d.m.Y', strtotime($a['zeitraum_von'])) ?> – <?= date('d.m.Y', strtotime($a['zeitraum_bis'])) ?></td>
+                        <td><?= date('d.m.Y', strtotime($a['zeitraum_von'])) ?> bis <?= date('d.m.Y', strtotime($a['zeitraum_bis'])) ?></td>
                         <td><?= number_format((float)$a['umsatz_gesamt'], 2, ',', '.') ?> €</td>
                         <td style="font-weight: 700;"><?= number_format((float)$a['provisionsbetrag'], 2, ',', '.') ?> € <span style="color: var(--text-muted); font-weight: 400;">(<?= number_format((float)$a['provisionssatz'], 0) ?>%)</span></td>
                         <td><span class="badge <?= $a['status'] === 'ausgezahlt' ? 'badge-success' : 'badge-info' ?>"><?= $a['status'] === 'ausgezahlt' ? 'Ausgezahlt' : 'Erstellt' ?></span></td>

@@ -18,8 +18,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $zielgruppen = isTrainer() ? ['trainer', 'alle'] : ['alle'];
     $platzhalter = implode(',', array_fill(0, count($zielgruppen), '?'));
 
-    $stmt = $db->prepare("SELECT id FROM news WHERE zielgruppe IN ({$platzhalter})");
-    $stmt->execute($zielgruppen);
+    $stmt = $db->prepare("SELECT id FROM news WHERE organization_id = ? AND zielgruppe IN ({$platzhalter})");
+    $stmt->execute([currentOrgId(), ...$zielgruppen]);
     $news_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
     if ($news_ids) {
