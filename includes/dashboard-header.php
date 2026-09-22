@@ -78,8 +78,8 @@ try {
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="<?= APP_URL ?>/assets/css/style.css">
-    <link rel="stylesheet" href="<?= APP_URL ?>/assets/css/dashboard.css">
+    <link rel="stylesheet" href="<?= asset_url('/assets/css/style.css') ?>">
+    <link rel="stylesheet" href="<?= asset_url('/assets/css/dashboard.css') ?>">
     <?php if (isset($extra_css)) echo $extra_css; ?>
 </head>
 <body class="is-logged-in">

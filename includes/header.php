@@ -54,7 +54,7 @@ $meta_desc  = isset($meta_description) ? e($meta_description) : 'Athletikclub St
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.css">
 
     <!-- Haupt-CSS -->
-    <link rel="stylesheet" href="<?= APP_URL ?>/assets/css/style.css">
+    <link rel="stylesheet" href="<?= asset_url('/assets/css/style.css') ?>">
 
     <?php if (isset($extra_css)) echo $extra_css; ?>
 </head>

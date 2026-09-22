@@ -26,6 +26,19 @@ $_scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
 define('APP_URL', $_scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'aci-stmk.at'));
 define('APP_VERSION', '1.0.0');
 
+/**
+ * Liefert eine Asset-URL mit Cache-Busting (?v=Dateiänderungszeit),
+ * damit Browser nach einem Deploy nie eine veraltete CSS-/JS-Datei
+ * aus dem Cache anzeigen. $path relativ zum Projekt-Root, z.B.
+ * '/assets/css/style.css'.
+ */
+function asset_url(string $path): string
+{
+    $file = ROOT_PATH . $path;
+    $version = is_file($file) ? filemtime($file) : time();
+    return APP_URL . $path . '?v=' . $version;
+}
+
 // ----------------------------------------------------------------
 // Verzeichnisse (absolute Serverpfade)
 // ----------------------------------------------------------------

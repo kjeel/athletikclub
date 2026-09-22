@@ -77,7 +77,7 @@ $verified   = isset($_GET['verified']);
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="<?= APP_URL ?>/assets/css/style.css">
+    <link rel="stylesheet" href="<?= asset_url('/assets/css/style.css') ?>">
 </head>
 <body>
 
@@ -173,6 +173,6 @@ $verified   = isset($_GET['verified']);
     </div>
 </main>
 
-<script src="<?= APP_URL ?>/assets/js/main.js"></script>
+<script src="<?= asset_url('/assets/js/main.js') ?>"></script>
 </body>
 </html>
