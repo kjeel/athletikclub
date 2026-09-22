@@ -218,6 +218,29 @@ CREATE TABLE IF NOT EXISTS `seiten_inhalte` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================
+-- News (Popup für Trainer/alle)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `news` (
+  `id`            INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+  `titel`         VARCHAR(200)  NOT NULL,
+  `inhalt`        TEXT          NOT NULL,
+  `zielgruppe`    ENUM('trainer','alle') NOT NULL DEFAULT 'trainer',
+  `erstellt_von`  INT UNSIGNED  NOT NULL,
+  `created_at`    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  CONSTRAINT `fk_news_user` FOREIGN KEY (`erstellt_von`) REFERENCES `users`(`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `news_gelesen` (
+  `news_id`     INT UNSIGNED  NOT NULL,
+  `user_id`     INT UNSIGNED  NOT NULL,
+  `gelesen_am`  DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`news_id`, `user_id`),
+  CONSTRAINT `fk_newsgelesen_news` FOREIGN KEY (`news_id`) REFERENCES `news`(`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_newsgelesen_user` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================
 -- Aktivitätslog (Admin-Audit-Trail)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS `aktivitaets_log` (

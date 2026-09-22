@@ -41,6 +41,22 @@ if (isTrainer()) {
         $pending_anmeldungen = (int)$stmt->fetchColumn();
     } catch (Exception $e) {}
 }
+
+// Ungelesene News (Popup)
+$ungelesene_news = [];
+try {
+    $db = getDB();
+    $zielgruppen = isTrainer() ? ['trainer', 'alle'] : ['alle'];
+    $platzhalter = implode(',', array_fill(0, count($zielgruppen), '?'));
+    $stmt = $db->prepare(
+        "SELECT n.* FROM news n
+         WHERE n.zielgruppe IN ({$platzhalter})
+           AND NOT EXISTS (SELECT 1 FROM news_gelesen ng WHERE ng.news_id = n.id AND ng.user_id = ?)
+         ORDER BY n.created_at ASC"
+    );
+    $stmt->execute([...$zielgruppen, $user['id']]);
+    $ungelesene_news = $stmt->fetchAll();
+} catch (Exception $e) {}
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -56,6 +72,47 @@ if (isTrainer()) {
     <?php if (isset($extra_css)) echo $extra_css; ?>
 </head>
 <body class="is-logged-in">
+
+<!-- News-Popup -->
+<?php if (!empty($ungelesene_news)): ?>
+<div style="
+    position: fixed; inset: 0; z-index: 3000;
+    display: flex; align-items: center; justify-content: center;
+    padding: 1rem;
+    background: rgba(13,31,53,0.6); backdrop-filter: blur(4px);
+">
+    <div style="
+        background: white; border-radius: 1.25rem; width: 100%; max-width: 520px;
+        max-height: 85vh; overflow-y: auto;
+        box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+    ">
+        <div style="padding: 1.5rem 1.75rem; border-bottom: 1px solid var(--border-light); display: flex; align-items: center; gap: 0.75rem;">
+            <div style="width: 40px; height: 40px; border-radius: 0.75rem; background: var(--gold-dim); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C6A135" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            </div>
+            <h2 style="font-family: 'Montserrat', sans-serif; font-size: 1.1rem; font-weight: 800; text-transform: uppercase; margin: 0;">
+                <?= count($ungelesene_news) > 1 ? count($ungelesene_news) . ' neue Neuigkeiten' : 'Neuigkeit' ?>
+            </h2>
+        </div>
+        <div style="padding: 1.5rem 1.75rem; display: flex; flex-direction: column; gap: 1.5rem;">
+            <?php foreach ($ungelesene_news as $n): ?>
+                <div>
+                    <h3 style="font-family: 'Montserrat', sans-serif; font-size: 1rem; font-weight: 700; margin-bottom: 0.4rem;"><?= e($n['titel']) ?></h3>
+                    <p style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.6rem;"><?= date('d.m.Y', strtotime($n['created_at'])) ?></p>
+                    <div style="font-size: 0.9rem; line-height: 1.7;"><?= nl2br(e($n['inhalt'])) ?></div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+        <div style="padding: 1.25rem 1.75rem; border-top: 1px solid var(--border-light);">
+            <form method="POST" action="<?= APP_URL ?>/dashboard/news-gelesen.php">
+                <?= csrfField() ?>
+                <input type="hidden" name="redirect" value="<?= e($_SERVER['REQUEST_URI']) ?>">
+                <button type="submit" class="btn btn-primary w-full">Verstanden</button>
+            </form>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 
 <!-- Flash Message -->
 <?php if ($flash): ?>
@@ -186,6 +243,10 @@ if (isTrainer()) {
             <a href="<?= APP_URL ?>/dashboard/admin/umsatz.php" class="sidebar-link <?= strpos($current_path, '/admin/umsatz') !== false ? 'active' : '' ?>">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                 Umsatzübersicht
+            </a>
+            <a href="<?= APP_URL ?>/dashboard/admin/news.php" class="sidebar-link <?= strpos($current_path, '/admin/news') !== false ? 'active' : '' ?>">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                News
             </a>
             <?php endif; ?>
         </nav>
