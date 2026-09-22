@@ -44,13 +44,25 @@ try {
             <h2 class="section-title reveal reveal-delay-1">Präsidium</h2>
         </div>
 
-        <div class="card" style="border-style: dashed; text-align: center; max-width: 640px; margin-inline: auto;">
-            <div class="card-body">
-                <p style="margin: 0; color: var(--text-muted); font-size: 0.9rem;">
-                    Präsidium wird in Kürze ergänzt – Namen und Funktionen (z. B. Präsident*in,
-                    Kassier*in, Schriftführer*in) bitte nachreichen.
-                </p>
-            </div>
+        <div class="grid-2" style="max-width: 520px; margin-inline: auto;">
+            <?php
+            $praesidium = [
+                ['name' => 'Jacob Kysela',  'funktion' => 'Präsident / Geschäftsführer', 'foto' => 'jacob-kysela.jpg'],
+                ['name' => 'Christof Oster', 'funktion' => 'Präsident / Geschäftsführer', 'foto' => 'christof-oster.jpeg'],
+            ];
+            foreach ($praesidium as $i => $p): ?>
+                <div class="card reveal reveal-delay-<?= $i + 1 ?>" style="text-align: center;">
+                    <div class="card-body">
+                        <img
+                            src="<?= APP_URL ?>/assets/images/team/<?= e($p['foto']) ?>"
+                            alt="<?= e($p['name']) ?>"
+                            style="width: 96px; height: 96px; border-radius: 50%; object-fit: cover; object-position: center 40%; margin: 0 auto 1.25rem; display: block; border: 3px solid var(--gold-dim);"
+                        >
+                        <h3 style="font-family: 'Montserrat', sans-serif; font-size: 1rem; font-weight: 700; margin-bottom: 0.35rem;"><?= e($p['name']) ?></h3>
+                        <p style="font-size: 0.8rem; color: var(--gold-accent); font-weight: 600; margin: 0;"><?= e($p['funktion']) ?></p>
+                    </div>
+                </div>
+            <?php endforeach; ?>
         </div>
     </div>
 </section>
