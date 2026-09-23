@@ -189,7 +189,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ============================================================ -->
 <section class="cta-section">
     <div class="container" style="position: relative; z-index: 1;">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center; text-align: left;">
+        <div class="grid-2" style="gap: 3rem; align-items: center; text-align: left;">
             <div class="reveal">
                 <span class="section-label" style="color: var(--gold-accent);">Jetzt dabei sein</span>
                 <h2 class="section-title section-title--white" style="margin-bottom: 1.25rem;">

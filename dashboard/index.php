@@ -173,7 +173,7 @@ try {
 </div>
 
 <!-- Nächste Kurse + (Admin: Letzte User) -->
-<div style="display: grid; grid-template-columns: <?= isAdmin() ? '1fr 1fr' : '1fr' ?>; gap: 1.5rem;">
+<div class="<?= isAdmin() ? 'grid-2' : '' ?>" style="display: grid; gap: 1.5rem;">
 
     <!-- Nächste Kurse -->
     <div class="table-card">

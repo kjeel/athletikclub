@@ -147,7 +147,7 @@ $status_map = [
     <span class="badge <?= $s['class'] ?>" style="font-size: 0.8rem;"><?= e($s['label']) ?></span>
 </div>
 
-<div style="display: grid; grid-template-columns: <?= $ist_eigentuemer ? '1fr 1fr' : '1fr' ?>; gap: 1.5rem; align-items: start;">
+<div class="<?= $ist_eigentuemer ? 'grid-2' : '' ?>" style="display: grid; gap: 1.5rem; align-items: start;">
 
     <!-- Kursinfo -->
     <div class="table-card">

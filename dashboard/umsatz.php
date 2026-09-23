@@ -112,7 +112,7 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
     Diese Werte sind noch nicht in einer Abrechnung erfasst. Admin erstellt daraus regelmäßig deine Abrechnung.
 </p>
 
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: start; margin-top: 0.5rem;">
+<div class="grid-2" style="align-items: start; margin-top: 0.5rem;">
 
     <!-- Kursumsatz -->
     <div class="table-card">

@@ -177,7 +177,7 @@ $s = $status_labels[$mitglied['mitgliedsstatus'] ?? 'ausstehend'] ?? ['label' =>
 </div>
 <?php endif; ?>
 
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: start;">
+<div class="grid-2" style="align-items: start;">
 
     <!-- Fortschritt -->
     <div class="table-card">

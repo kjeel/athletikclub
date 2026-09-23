@@ -543,11 +543,7 @@ try {
 ============================================================ -->
 <section class="section bg-light">
     <div class="container">
-        <div style="
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 2rem;
-        ">
+        <div class="grid-3">
             <?php
             $kontakt_items = [
                 [

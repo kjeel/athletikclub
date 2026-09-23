@@ -71,7 +71,7 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
     </div>
 </div>
 
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: start; margin-top: 0.5rem;">
+<div class="grid-2" style="align-items: start; margin-top: 0.5rem;">
     <div class="table-card">
         <div class="table-card-header"><h2 class="table-card-title">Kursumsatz</h2></div>
         <?php if (empty($kurs_umsatz)): ?>
