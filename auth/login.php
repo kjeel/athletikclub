@@ -96,7 +96,7 @@ $verified   = isset($_GET['verified']);
                     </svg>
                 </div>
                 <div class="logo-text">
-                    <span class="logo-name" style="color: var(--navy-primary);">ATHLETIKCLUB</span>
+                    <span class="logo-name" style="color: var(--text-primary);">ATHLETIKCLUB</span>
                     <span class="logo-sub">STEIERMARK</span>
                 </div>
             </a>
@@ -138,7 +138,7 @@ $verified   = isset($_GET['verified']);
             <div class="form-group">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                     <label class="form-label" for="password" style="margin-bottom: 0;">Passwort</label>
-                    <a href="<?= APP_URL ?>/auth/passwort-vergessen.php" style="font-size: 0.8rem; color: var(--navy-primary);">Vergessen?</a>
+                    <a href="<?= APP_URL ?>/auth/passwort-vergessen.php" style="font-size: 0.8rem; color: var(--text-primary);">Vergessen?</a>
                 </div>
                 <div class="input-group">
                     <input class="form-control <?= isset($errors['password']) ? 'error' : '' ?>"

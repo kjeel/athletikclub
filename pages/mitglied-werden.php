@@ -174,7 +174,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <?php endif; ?>
                         <h3 style="font-family: 'Montserrat', sans-serif; font-size: 1rem; font-weight: 700; margin-bottom: 0.25rem;"><?= e($b['label']) ?></h3>
                         <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.25rem;"><?= e($b['sub']) ?></p>
-                        <div style="font-family: 'Montserrat', sans-serif; font-size: 2.25rem; font-weight: 900; color: var(--navy-primary);"><?= $b['preis'] ?></div>
+                        <div style="font-family: 'Montserrat', sans-serif; font-size: 2.25rem; font-weight: 900; color: var(--text-primary);"><?= $b['preis'] ?></div>
                         <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.5rem;">pro Jahr</div>
                         <a href="#antrag" class="btn <?= $b['highlight'] ? 'btn-primary' : 'btn-navy' ?> w-full">Jetzt Mitglied werden</a>
                     </div>

@@ -376,6 +376,9 @@
 .role-trainer { background: rgba(31,53,86,0.1);    color: var(--navy-primary); }
 .role-mitglied{ background: var(--bg-muted);        color: var(--text-muted); }
 
+:root[data-theme="dark"] .role-admin   { background: rgba(198,161,53,0.22); color: #E8CE7A; }
+:root[data-theme="dark"] .role-trainer { background: rgba(120,150,200,0.18); color: #A9C2E8; }
+
 /* ============================================================
    Dokument Upload Card
 ============================================================ */

@@ -51,7 +51,7 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
     <div style="padding: 2rem;">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
             <div>
-                <div style="font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 1.1rem; color: var(--navy-primary);">ATHLETIKCLUB STEIERMARK</div>
+                <div style="font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 1.1rem; color: var(--text-primary);">ATHLETIKCLUB STEIERMARK</div>
                 <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.6;">
                     St. Georgen an der Stiefing 14<br>
                     8413 Sankt Georgen an der Stiefing<br>

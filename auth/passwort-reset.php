@@ -78,7 +78,7 @@ if ($user && $_SERVER['REQUEST_METHOD'] === 'POST') {
                     <svg viewBox="0 0 50 50" fill="none"><circle cx="25" cy="25" r="23" stroke="#1F3556" stroke-width="2.5"/><path d="M14 34L25 14L36 34" stroke="#1F3556" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 28H32" stroke="#1F3556" stroke-width="2" stroke-linecap="round"/><circle cx="25" cy="14" r="2.5" fill="#1F3556"/></svg>
                 </div>
                 <div class="logo-text">
-                    <span class="logo-name" style="color: var(--navy-primary);">ATHLETIKCLUB</span>
+                    <span class="logo-name" style="color: var(--text-primary);">ATHLETIKCLUB</span>
                     <span class="logo-sub">STEIERMARK</span>
                 </div>
             </a>

@@ -583,7 +583,7 @@ try {
                             <?= htmlspecialchars($item['title']) ?>
                         </h3>
                         <?php if ($item['link']): ?>
-                            <a href="<?= $item['link'] ?>" style="color: var(--navy-primary); font-size: 0.9rem; font-weight: 500;">
+                            <a href="<?= $item['link'] ?>" style="color: var(--text-primary); font-size: 0.9rem; font-weight: 500;">
                                 <?= $item['content'] ?>
                             </a>
                         <?php else: ?>

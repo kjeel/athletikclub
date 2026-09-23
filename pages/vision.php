@@ -159,7 +159,7 @@ require_once ROOT_PATH . '/includes/header.php';
             <!-- Polysportive Entwicklung -->
             <div class="card" style="border: 2px solid var(--gold-accent); flex: 1 1 320px; min-width: 280px;">
                 <div class="card-body">
-                    <h3 style="font-family: 'Montserrat', sans-serif; font-size: 0.9rem; font-weight: 700; text-transform: uppercase; color: var(--navy-primary); margin-bottom: 1.25rem;">Polysportive Entwicklung</h3>
+                    <h3 style="font-family: 'Montserrat', sans-serif; font-size: 0.9rem; font-weight: 700; text-transform: uppercase; color: var(--text-primary); margin-bottom: 1.25rem;">Polysportive Entwicklung</h3>
                     <?php
                     $vorteile = [
                         'Ganzheitliche Körperentwicklung',

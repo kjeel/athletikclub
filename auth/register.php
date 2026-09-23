@@ -138,7 +138,7 @@ $meta_description = 'Werde Mitglied beim Athletikclub Steiermark, jetzt registri
                     </svg>
                 </div>
                 <div class="logo-text">
-                    <span class="logo-name" style="color: var(--navy-primary);">ATHLETIKCLUB</span>
+                    <span class="logo-name" style="color: var(--text-primary);">ATHLETIKCLUB</span>
                     <span class="logo-sub">STEIERMARK</span>
                 </div>
             </a>

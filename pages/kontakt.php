@@ -81,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div>
                                 <div style="font-family: 'Montserrat', sans-serif; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.2rem;"><?= $info['label'] ?></div>
                                 <?php if ($info['href']): ?>
-                                    <a href="<?= $info['href'] ?>" style="font-weight: 500; color: var(--navy-primary);"><?= e($info['value']) ?></a>
+                                    <a href="<?= $info['href'] ?>" style="font-weight: 500; color: var(--text-primary);"><?= e($info['value']) ?></a>
                                 <?php else: ?>
                                     <span style="font-size: 0.9rem; color: var(--text-secondary);"><?= e($info['value']) ?></span>
                                 <?php endif; ?>
