@@ -58,6 +58,16 @@ usort($trainer_gesamt, fn($a, $b) => $b['gesamt'] <=> $a['gesamt']);
 
 $gesamtumsatz_verein = array_sum(array_column($trainer_gesamt, 'gesamt'));
 
+// Fördermittel (eigene Kategorie, ausbezahlte Förderungen)
+$stmt = $db->prepare(
+    "SELECT * FROM foerderungen
+     WHERE organization_id = ? AND status IN ('ausbezahlt', 'abgeschlossen')
+     ORDER BY ausbezahlt_am DESC"
+);
+$stmt->execute([currentOrgId()]);
+$foerderungen_ausbezahlt = $stmt->fetchAll();
+$summe_foerdermittel = array_sum(array_column($foerderungen_ausbezahlt, 'betrag_bewilligt'));
+
 $page_title = 'Umsatzübersicht';
 $breadcrumb = 'Umsatzübersicht';
 require_once ROOT_PATH . '/includes/dashboard-header.php';
@@ -78,6 +88,11 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
         <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
         <div class="kpi-value"><?= count($trainer_gesamt) ?></div>
         <div class="kpi-label">Trainer mit Umsatz</div>
+    </div>
+    <div class="kpi-card" style="--kpi-color: #3B82F6;">
+        <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"/></svg></div>
+        <div class="kpi-value"><?= number_format((float)$summe_foerdermittel, 2, ',', '.') ?> €</div>
+        <div class="kpi-label">Fördermittel (ausbezahlt)</div>
     </div>
 </div>
 
@@ -107,6 +122,41 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
                         <td><?= number_format($t['manuell'], 2, ',', '.') ?> €</td>
                         <td style="font-weight: 700;"><?= number_format($t['gesamt'], 2, ',', '.') ?> €</td>
                         <td><a href="<?= APP_URL ?>/dashboard/admin/umsatz-trainer.php?id=<?= $t['id'] ?>" class="btn btn-ghost-light btn-sm">Details</a></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    <?php endif; ?>
+</div>
+
+<div class="table-card" style="margin-top: 1.5rem;">
+    <div class="table-card-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <h2 class="table-card-title">Fördermittel</h2>
+        <a href="<?= APP_URL ?>/dashboard/admin/foerderungen.php" class="btn btn-ghost-light btn-sm">Zum Fördermanagement</a>
+    </div>
+    <?php if (empty($foerderungen_ausbezahlt)): ?>
+        <div class="empty-state"><h3>Noch keine ausbezahlten Förderungen</h3></div>
+    <?php else: ?>
+        <div style="overflow-x: auto;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Titel</th>
+                        <th>Förderstelle</th>
+                        <th>Betrag</th>
+                        <th>Ausbezahlt am</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($foerderungen_ausbezahlt as $f): ?>
+                    <tr>
+                        <td class="text-primary"><?= e($f['titel']) ?></td>
+                        <td><?= e($f['foerderstelle']) ?></td>
+                        <td style="font-weight: 700;"><?= number_format((float)$f['betrag_bewilligt'], 2, ',', '.') ?> €</td>
+                        <td><?= $f['ausbezahlt_am'] ? date('d.m.Y', strtotime($f['ausbezahlt_am'])) : '–' ?></td>
+                        <td><a href="<?= APP_URL ?>/dashboard/admin/foerderung-detail.php?id=<?= $f['id'] ?>" class="btn btn-ghost-light btn-sm">Details</a></td>
                     </tr>
                     <?php endforeach; ?>
                 </tbody>
