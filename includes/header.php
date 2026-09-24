@@ -18,7 +18,19 @@ $current_path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $flash        = getFlashMessage();
 
 $page_title = isset($page_title) ? e($page_title) . ' | ' . APP_NAME : APP_NAME;
-$meta_desc  = isset($meta_description) ? e($meta_description) : 'Athletikclub Steiermark: ganzheitliches Athletik- und polysportives Training in St. Georgen an der Stiefing.';
+$meta_desc_raw = $meta_description ?? 'Athletikclub Steiermark: ganzheitliches Athletik- und polysportives Training in St. Georgen an der Stiefing.';
+$meta_desc     = e($meta_desc_raw);
+
+// Canonical: jede Seite hat genau eine Adresse für Google, egal ob sie mit
+// www, ohne .php, mit /index.php oder mit ?parametern aufgerufen wurde.
+$canonical_path = $current_path;
+if (str_ends_with($canonical_path, '/index.php')) {
+    $canonical_path = substr($canonical_path, 0, -strlen('index.php'));
+} elseif (!str_ends_with($canonical_path, '/') && !str_ends_with($canonical_path, '.php')
+          && is_file(ROOT_PATH . $canonical_path . '.php')) {
+    $canonical_path .= '.php';
+}
+$canonical_url = SITE_URL . $canonical_path;
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -35,15 +47,71 @@ $meta_desc  = isset($meta_description) ? e($meta_description) : 'Athletikclub St
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="<?= $meta_desc ?>">
+    <meta name="robots" content="<?= !empty($noindex) ? 'noindex, follow' : 'index, follow, max-image-preview:large' ?>">
     <meta name="theme-color" content="#1F3556">
+    <link rel="canonical" href="<?= e($canonical_url) ?>">
+    <?php if (GOOGLE_SITE_VERIFICATION !== ''): ?>
+    <meta name="google-site-verification" content="<?= e(GOOGLE_SITE_VERIFICATION) ?>">
+    <?php endif; ?>
 
-    <!-- Open Graph -->
+    <!-- Open Graph / Social-Media-Vorschau -->
+    <meta property="og:site_name"   content="<?= e(APP_NAME) ?>">
+    <meta property="og:locale"      content="de_AT">
     <meta property="og:title"       content="<?= $page_title ?>">
     <meta property="og:description" content="<?= $meta_desc ?>">
     <meta property="og:type"        content="website">
-    <meta property="og:url"         content="<?= APP_URL . $current_path ?>">
+    <meta property="og:url"         content="<?= e($canonical_url) ?>">
+    <meta property="og:image"       content="<?= SITE_URL ?>/assets/images/og-image.png">
+    <meta property="og:image:width"  content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt"   content="<?= e(APP_NAME) ?>">
+    <meta name="twitter:card"       content="summary_large_image">
 
     <title><?= $page_title ?></title>
+
+    <?php if ($canonical_path === '/'): ?>
+    <!-- Strukturierte Daten für Google (Name, Adresse, Kontakt, Logo) -->
+    <script type="application/ld+json">
+    <?= json_encode([
+        '@context' => 'https://schema.org',
+        '@graph'   => [
+            [
+                '@type'       => 'SportsActivityLocation',
+                '@id'         => SITE_URL . '/#organisation',
+                'name'        => APP_NAME,
+                'url'         => SITE_URL . '/',
+                'logo'        => SITE_URL . '/assets/images/favicon/icon-512.png',
+                'image'       => SITE_URL . '/assets/images/og-image.png',
+                'description' => $meta_desc_raw,
+                'email'       => MAIL_ADMIN,
+                'telephone'   => '+43 664 882 895 00',
+                'address'     => [
+                    '@type'           => 'PostalAddress',
+                    'streetAddress'   => 'Sankt Georgen an der Stiefing 14',
+                    'postalCode'      => '8413',
+                    'addressLocality' => 'Sankt Georgen an der Stiefing',
+                    'addressRegion'   => 'Steiermark',
+                    'addressCountry'  => 'AT',
+                ],
+                'sameAs'      => [
+                    'https://www.instagram.com/athletikclub_steiermark/',
+                    'https://www.facebook.com/profile.php?id=61588650530166',
+                ],
+                'areaServed'  => 'Steiermark',
+                'sport'       => ['Calisthenics', 'Skateboarding', 'Tischtennis', 'Padel Tennis'],
+            ],
+            [
+                '@type'      => 'WebSite',
+                '@id'        => SITE_URL . '/#website',
+                'url'        => SITE_URL . '/',
+                'name'       => APP_NAME,
+                'inLanguage' => 'de-AT',
+                'publisher'  => ['@id' => SITE_URL . '/#organisation'],
+            ],
+        ],
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_PRETTY_PRINT) ?>
+    </script>
+    <?php endif; ?>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -55,6 +123,7 @@ $meta_desc  = isset($meta_description) ? e($meta_description) : 'Athletikclub St
 
     <!-- Haupt-CSS -->
     <link rel="stylesheet" href="<?= asset_url('/assets/css/style.css') ?>">
+    <?php require ROOT_PATH . '/includes/favicon.php'; ?>
 
     <?php if (isset($extra_css)) echo $extra_css; ?>
 </head>

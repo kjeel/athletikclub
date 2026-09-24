@@ -1,15 +1,16 @@
 # Athletikclub Steiermark – Webhosting
 
 # HTTPS erzwingen (Hetzner Webhosting L)
-# Deaktiviert: SSL-Zertifikat für aci-stmk.at ist laut Server noch nicht
-# installiert ("HTTPS Not Available"-Seite von Hetzner)
 RewriteEngine On
-# RewriteCond %{HTTPS} off
-# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-# www erzwingen (optional)
-# RewriteCond %{HTTP_HOST} !^www\. [NC]
-# RewriteRule ^(.*)$ https://www.%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+# www → ohne www (eine Hauptadresse für Google, siehe SITE_URL in config.php)
+RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+RewriteRule ^(.*)$ https://%1%{REQUEST_URI} [L,R=301]
+
+# Sitemap für Suchmaschinen (wird von sitemap.php dynamisch erzeugt)
+RewriteRule ^sitemap\.xml$ sitemap.php [L]
 
 # ============================================================
 # URL-Rewriting (saubere URLs ohne .php-Endung)

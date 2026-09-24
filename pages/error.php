@@ -20,9 +20,11 @@ $app_url = defined('APP_URL') ? APP_URL : '';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
     <title><?= $code ?>: <?= $msg['title'] ?> | Athletikclub Steiermark</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Inter:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= $app_url ?>/assets/css/style.css">
+    <?php require __DIR__ . '/../includes/favicon.php'; ?>
 </head>
 <body>
 <div style="

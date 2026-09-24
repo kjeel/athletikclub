@@ -28,6 +28,12 @@ $_scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
 define('APP_URL', $_scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'aci-stmk.at'));
 define('APP_VERSION', '1.0.0');
 
+// Suchmaschinen: EINE Hauptadresse, auf die sich alle canonical-Links,
+// die Sitemap und Social-Media-Vorschauen beziehen (ohne / am Ende).
+define('SITE_URL', 'https://aci-stmk.at');
+// Google Search Console → "HTML-Tag"-Bestätigung: nur den content-Wert eintragen
+define('GOOGLE_SITE_VERIFICATION', '');
+
 /**
  * Liefert eine Asset-URL mit Cache-Busting (?v=Dateiänderungszeit),
  * damit Browser nach einem Deploy nie eine veraltete CSS-/JS-Datei

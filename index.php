@@ -3,7 +3,7 @@
  * Athletikclub Steiermark – Startseite
  */
 define('ROOT_PATH', __DIR__);
-$page_title       = 'Athletikclub Steiermark: Ganzheitliches Training & Sport';
+$page_title       = 'Sport & Training in St. Georgen an der Stiefing';
 $meta_description = 'Willkommen beim Athletikclub Steiermark. Ganzheitliches Athletik- und polysportives Training in St. Georgen an der Stiefing, Steiermark.';
 
 require_once ROOT_PATH . '/includes/header.php';
@@ -64,7 +64,7 @@ try {
 
                 <p class="hero-subtitle reveal reveal-delay-2" style="max-width: 520px;">
                     Ganzheitliches Athletik- und polysportives Training in St. Georgen an der Stiefing.
-                    Sechs Disziplinen, ein Verein, unendlich viele Wege, dich zu bewegen.
+                    Vier Disziplinen, ein Verein, unendlich viele Wege, dich zu bewegen.
                 </p>
 
                 <div class="hero-actions reveal reveal-delay-3">
@@ -87,8 +87,6 @@ try {
                     ['icon' => '🛹', 'name' => 'Skateboarding',   'color' => '#FF7B37'],
                     ['icon' => '🏓', 'name' => 'Tischtennis',     'color' => '#00A896'],
                     ['icon' => '🎾', 'name' => 'Padel Tennis',    'color' => '#4EBA6F'],
-                    ['icon' => '💪', 'name' => 'Athletik',        'color' => '#C6A135'],
-                    ['icon' => '🏃', 'name' => 'Ausdauer',        'color' => '#7C3AED'],
                 ];
                 foreach ($art_cards as $i => $c): ?>
                     <div class="hero-art-card hero-art-card-<?= $i + 1 ?>">
@@ -113,8 +111,9 @@ try {
 <div class="marquee-strip">
     <div class="marquee-track">
         <?php
-        $marquee_items = ['Calisthenics', 'Skateboarding', 'Tischtennis', 'Padel Tennis', 'Athletiktraining', 'Ausdauer'];
-        for ($r = 0; $r < 2; $r++):
+        $marquee_items = ['Calisthenics', 'Skateboarding', 'Tischtennis', 'Padel Tennis'];
+        // Gerade Anzahl Wiederholungen, damit die -50%-Animation nahtlos loopt
+        for ($r = 0; $r < 6; $r++):
             foreach ($marquee_items as $mi): ?>
                 <span class="marquee-item"><?= htmlspecialchars($mi) ?></span>
                 <span class="marquee-dot">✦</span>
@@ -176,12 +175,10 @@ try {
     font-size: 1.05rem;
     flex-shrink: 0;
 }
-.hero-art-card-1 { top: 2%;  left: 6%;  transform: perspective(1400px) rotateY(-12deg) rotateX(6deg) rotateZ(-4deg); animation-delay: 0s; }
-.hero-art-card-2 { top: 20%; right: 0%; transform: perspective(1400px) rotateY(14deg) rotateX(-4deg) rotateZ(3deg); animation-delay: -1.2s; }
-.hero-art-card-3 { top: 44%; left: 0%;  transform: perspective(1400px) rotateY(-10deg) rotateX(-6deg) rotateZ(2deg); animation-delay: -2.4s; }
-.hero-art-card-4 { top: 62%; right: 8%; transform: perspective(1400px) rotateY(10deg) rotateX(6deg) rotateZ(-3deg); animation-delay: -3.6s; }
-.hero-art-card-5 { top: 82%; left: 16%; transform: perspective(1400px) rotateY(-8deg) rotateX(4deg) rotateZ(3deg); animation-delay: -4.8s; }
-.hero-art-card-6 { top: 34%; left: 30%; transform: perspective(1400px) rotateY(6deg) rotateX(-8deg) rotateZ(-2deg); animation-delay: -6s; }
+.hero-art-card-1 { top: 6%;  left: 6%;  transform: perspective(1400px) rotateY(-12deg) rotateX(6deg) rotateZ(-4deg); animation-delay: 0s; }
+.hero-art-card-2 { top: 28%; right: 0%; transform: perspective(1400px) rotateY(14deg) rotateX(-4deg) rotateZ(3deg); animation-delay: -1.75s; }
+.hero-art-card-3 { top: 52%; left: 0%;  transform: perspective(1400px) rotateY(-10deg) rotateX(-6deg) rotateZ(2deg); animation-delay: -3.5s; }
+.hero-art-card-4 { top: 76%; right: 8%; transform: perspective(1400px) rotateY(10deg) rotateX(6deg) rotateZ(-3deg); animation-delay: -5.25s; }
 @keyframes cardFloat {
     0%, 100% { margin-top: 0; }
     50%      { margin-top: -14px; }
@@ -200,7 +197,7 @@ try {
 .marquee-track {
     display: inline-flex;
     align-items: center;
-    animation: marqueeScroll 32s linear infinite;
+    animation: marqueeScroll 72s linear infinite;
 }
 .marquee-item {
     font-family: 'Montserrat', sans-serif;
@@ -222,6 +219,42 @@ try {
 @media (prefers-reduced-motion: reduce) {
     .marquee-track { animation: none; }
     .aurora-blob, .hero-art-card { animation: none !important; }
+}
+/* ---------- Sportarten: "Mehr erfahren" → Coming-soon-Hinweis ---------- */
+.sport-more-btn {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    margin-top: 1.25rem; padding: 0;
+    background: none; border: 0; cursor: pointer;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.75rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    transition: gap 0.2s;
+}
+.sport-more-btn:hover { gap: 0.6rem; }
+.sport-more-btn svg { transition: transform 0.2s; }
+.sport-more-btn[aria-expanded="true"] svg { transform: rotate(90deg); }
+.sport-soon {
+    margin: 0.85rem 0 0;
+    padding: 0.7rem 0.9rem;
+    border-left: 3px solid;
+    border-radius: 0.5rem;
+    background: var(--bg-muted);
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    line-height: 1.5;
+    animation: sportSoonIn 0.25s ease-out;
+}
+.sport-soon strong {
+    display: block;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.15rem;
+}
+@keyframes sportSoonIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: none; }
 }
 </style>
 
@@ -270,20 +303,6 @@ try {
                     'color'       => '#4EBA6F',
                     'color_pale'  => 'rgba(78,186,111,0.08)',
                 ],
-                [
-                    'icon'        => '💪',
-                    'name'        => 'Athletiktraining',
-                    'desc'        => 'Funktionelles Training für Kraft, Explosivität und ganzheitliche Athletik.',
-                    'color'       => '#C6A135',
-                    'color_pale'  => 'rgba(198,161,53,0.08)',
-                ],
-                [
-                    'icon'        => '🏃',
-                    'name'        => 'Ausdauer',
-                    'desc'        => 'Lauf- und Cardio-Programme für nachhaltige Fitness und Gesundheit.',
-                    'color'       => '#7C3AED',
-                    'color_pale'  => 'rgba(124,58,237,0.08)',
-                ],
             ];
             foreach ($disziplinen as $i => $d): ?>
                 <div class="sport-card reveal reveal-delay-<?= ($i % 4) + 1 ?>"
@@ -294,18 +313,18 @@ try {
                         <?= htmlspecialchars($d['name']) ?>
                     </h3>
                     <p class="sport-card-desc"><?= htmlspecialchars($d['desc']) ?></p>
-                    <a href="/pages/leistung.php" style="
-                        display: inline-flex; align-items: center; gap: 0.35rem;
-                        margin-top: 1.25rem;
-                        font-family: 'Montserrat', sans-serif;
-                        font-size: 0.75rem; font-weight: 700;
-                        text-transform: uppercase; letter-spacing: 0.08em;
-                        color: <?= $d['color'] ?>;
-                        transition: gap 0.2s;
-                    " onmouseover="this.style.gap='0.6rem'" onmouseout="this.style.gap='0.35rem'">
+                    <!-- Detailseiten sind in Konzeption: Klick zeigt "Coming soon"-Hinweis -->
+                    <button type="button" class="sport-more-btn" style="color: <?= $d['color'] ?>;"
+                            aria-expanded="false" aria-controls="sport-soon-<?= $i ?>"
+                            onclick="var n=document.getElementById('sport-soon-<?= $i ?>'), open=n.hidden; n.hidden=!open; this.setAttribute('aria-expanded', open);">
                         Mehr erfahren
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-                    </a>
+                    </button>
+                    <p class="sport-soon" id="sport-soon-<?= $i ?>" role="status" hidden
+                       style="border-color: <?= $d['color'] ?>;">
+                        <strong style="color: <?= $d['color'] ?>;">Coming soon</strong>
+                        Unser <?= htmlspecialchars($d['name']) ?>-Angebot ist gerade in Konzeption. Details folgen in Kürze!
+                    </p>
                 </div>
             <?php endforeach; ?>
         </div>
@@ -394,7 +413,7 @@ try {
                     $features = [
                         ['icon' => 'users',      'title' => 'Starke Gemeinschaft',      'desc' => 'Ein Verein, der Bewegung, Begegnung und Entwicklung zusammenbringt.'],
                         ['icon' => 'award',      'title' => 'Qualifizierte Trainer',    'desc' => 'Zertifizierte Übungsleiter mit Leidenschaft für ihren Sport.'],
-                        ['icon' => 'activity',   'title' => 'Ganzheitliches Training',  'desc' => 'Sechs Disziplinen für ein breites, ausgewogenes Sportprogramm.'],
+                        ['icon' => 'activity',   'title' => 'Ganzheitliches Training',  'desc' => 'Vier Disziplinen für ein breites, ausgewogenes Sportprogramm.'],
                     ];
                     foreach ($features as $f): ?>
                         <div class="feature-item">

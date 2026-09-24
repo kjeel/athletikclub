@@ -1,0 +1,9 @@
+# Athletikclub Steiermark – Hinweise für Suchmaschinen
+User-agent: *
+Disallow: /dashboard/
+Disallow: /api/
+Disallow: /uploads/
+Disallow: /config/
+Disallow: /includes/
+
+Sitemap: https://aci-stmk.at/sitemap.xml
