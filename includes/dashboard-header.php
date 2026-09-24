@@ -225,6 +225,13 @@ try {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                 Dokumente
             </a>
+            <?php $plaene_aktiv = preg_match('#/dashboard/(plaene|trainingsplan|ernaehrungsplan)#', $current_path); ?>
+            <?php if (!isTrainer()): ?>
+            <a href="<?= APP_URL ?>/dashboard/plaene.php" class="sidebar-link <?= $plaene_aktiv ? 'active' : '' ?>">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6.5 6.5h11v11h-11z"/><path d="M2 12h4.5M17.5 12H22M4 8v8M20 8v8"/></svg>
+                Meine Pläne
+            </a>
+            <?php endif; ?>
 
             <?php if (isTrainer()): ?>
             <!-- Trainer-Bereich -->
@@ -236,6 +243,14 @@ try {
             <a href="<?= APP_URL ?>/dashboard/kurs-erstellen.php" class="sidebar-link <?= strpos($current_path, '/dashboard/kurs-erstellen') !== false ? 'active' : '' ?>">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 Kurs erstellen
+            </a>
+            <a href="<?= APP_URL ?>/dashboard/plaene.php" class="sidebar-link <?= $plaene_aktiv ? 'active' : '' ?>">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6.5 6.5h11v11h-11z"/><path d="M2 12h4.5M17.5 12H22M4 8v8M20 8v8"/></svg>
+                Trainings- &amp; Ernährungspläne
+            </a>
+            <a href="<?= APP_URL ?>/dashboard/uebungen.php" class="sidebar-link <?= strpos($current_path, '/dashboard/uebungen') !== false ? 'active' : '' ?>">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                Übungsbibliothek
             </a>
             <a href="<?= APP_URL ?>/dashboard/umsatz.php" class="sidebar-link <?= strpos($current_path, '/dashboard/umsatz') !== false ? 'active' : '' ?>">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>

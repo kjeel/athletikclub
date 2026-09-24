@@ -7,6 +7,7 @@ define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/config/database.php';
 require_once ROOT_PATH . '/includes/auth.php';
+require_once ROOT_PATH . '/includes/plaene.php';
 
 requireTrainer();
 
@@ -143,6 +144,15 @@ $stmt = $db->prepare('SELECT * FROM dokumente WHERE mitglied_id = ? ORDER BY cre
 $stmt->execute([$mitglied_id]);
 $dokumente = $stmt->fetchAll();
 
+$stmt = $db->prepare(
+    "SELECT 'training' AS typ, id, titel, status, updated_at FROM trainingsplaene WHERE mitglied_id = ? AND organization_id = ?
+     UNION ALL
+     SELECT 'ernaehrung' AS typ, id, titel, status, updated_at FROM ernaehrungsplaene WHERE mitglied_id = ? AND organization_id = ?
+     ORDER BY updated_at DESC"
+);
+$stmt->execute([$mitglied_id, currentOrgId(), $mitglied_id, currentOrgId()]);
+$plaene = $stmt->fetchAll();
+
 $page_title = $mitglied['vorname'] . ' ' . $mitglied['nachname'];
 $breadcrumb = 'Mitglieder';
 require_once ROOT_PATH . '/includes/dashboard-header.php';
@@ -176,6 +186,36 @@ $s = $status_labels[$mitglied['mitgliedsstatus'] ?? 'ausstehend'] ?? ['label' =>
     <span><?= implode(' | ', array_map('e', array_values($errors))) ?></span>
 </div>
 <?php endif; ?>
+
+<!-- Trainings- & Ernährungspläne -->
+<div class="table-card" style="margin-bottom: 1.5rem;">
+    <div class="table-card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+        <h2 class="table-card-title">Trainings- &amp; Ernährungspläne</h2>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <a href="<?= APP_URL ?>/dashboard/plaene.php?mitglied=<?= $mitglied_id ?>&amp;typ=training#neu" class="btn btn-navy btn-sm">+ Trainingsplan</a>
+            <a href="<?= APP_URL ?>/dashboard/plaene.php?mitglied=<?= $mitglied_id ?>&amp;typ=ernaehrung#neu" class="btn btn-ghost-light btn-sm">+ Ernährungsplan</a>
+        </div>
+    </div>
+    <?php if (empty($plaene)): ?>
+    <div style="padding: 1.25rem; color: var(--text-muted); font-size: 0.875rem;">Noch keine Pläne für dieses Mitglied.</div>
+    <?php else: ?>
+    <div style="overflow-x: auto;">
+        <table class="data-table">
+            <thead><tr><th>Plan</th><th>Art</th><th>Status</th><th>Aktualisiert</th></tr></thead>
+            <tbody>
+                <?php foreach ($plaene as $p): ?>
+                <tr>
+                    <td><a class="text-primary" href="<?= APP_URL ?>/dashboard/<?= $p['typ'] === 'training' ? 'trainingsplan' : 'ernaehrungsplan' ?>.php?id=<?= $p['id'] ?>"><?= e($p['titel']) ?></a></td>
+                    <td><?= $p['typ'] === 'training' ? 'Trainingsplan' : 'Ernährungsplan' ?></td>
+                    <td><span class="badge <?= PLAN_STATUS[$p['status']]['class'] ?? 'badge-gray' ?>"><?= e(PLAN_STATUS[$p['status']]['label'] ?? $p['status']) ?></span></td>
+                    <td><?= date('d.m.Y', strtotime($p['updated_at'])) ?></td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+    <?php endif; ?>
+</div>
 
 <div class="grid-2" style="align-items: start;">
 
