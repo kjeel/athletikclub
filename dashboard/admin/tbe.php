@@ -49,17 +49,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'konze
     }
 }
 
-$stmt = $db->prepare(
-    "SELECT k.*,
-        (SELECT COUNT(*) FROM tbe_projekte p WHERE p.konzept_id = k.id) AS anzahl_projekte,
-        (SELECT COALESCE(SUM(p.anzahl_gruppen * p.einheiten_pro_woche * p.anzahl_wochen * p.dauer_minuten), 0) / 60
-           FROM tbe_projekte p WHERE p.konzept_id = k.id) AS stunden_gesamt
-     FROM tbe_konzepte k
-     WHERE k.organization_id = ?
-     ORDER BY k.zeitraum_von DESC"
-);
+$stmt = $db->prepare('SELECT * FROM tbe_konzepte WHERE organization_id = ? ORDER BY zeitraum_von DESC');
 $stmt->execute([currentOrgId()]);
 $konzepte = $stmt->fetchAll();
+
+// Summen je Konzept nach den Fix/Flex-Regeln berechnen
+$stmt = $db->prepare('SELECT p.* FROM tbe_projekte p JOIN tbe_konzepte k ON k.id = p.konzept_id WHERE k.organization_id = ?');
+$stmt->execute([currentOrgId()]);
+$summen = [];
+foreach ($stmt->fetchAll() as $p) {
+    $sm = &$summen[$p['konzept_id']];
+    $sm['anzahl']       = ($sm['anzahl'] ?? 0) + 1;
+    $sm['stunden']      = ($sm['stunden'] ?? 0) + tbeStunden($p);
+    $sm['foerderung'][] = tbeFoerderung($p);
+    unset($sm);
+}
 
 // Vorschlag für ein neues Konzept: nächstes Schuljahr (September bis Juni)
 $jahr = (int)date('Y') + ((int)date('n') >= 9 ? 1 : 0);
@@ -77,7 +81,7 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
 
 <div class="dashboard-header">
     <h1 class="dashboard-title">TBE-Gesamtkonzept</h1>
-    <p class="dashboard-subtitle">Tägliche Bewegungseinheit – alle Projekte an Schulen und Kindergärten pro Förderjahr sammeln, als Bericht einreichen und den bewilligten Budgetrahmen verteilen.</p>
+    <p class="dashboard-subtitle">Tägliche Bewegungseinheit – Bewegungscoach-Stunden (TBE Fix) und flexible Einheiten (TBE Flex) an Schulen und Kindergärten pro Schuljahr planen, als Bericht einreichen und den bewilligten Budgetrahmen verteilen.</p>
 </div>
 
 <?php if (!empty($errors)): ?>
@@ -103,11 +107,12 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th>Förderjahr</th>
+                        <th>Schuljahr</th>
                         <th>Zeitraum</th>
                         <th>Projekte</th>
                         <th>Stunden</th>
-                        <th>Budgetrahmen</th>
+                        <th>Förderrahmen</th>
+                        <th>Bewilligt</th>
                         <th>Status</th>
                         <th></th>
                     </tr>
@@ -117,8 +122,9 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
                     <tr>
                         <td class="text-primary"><?= e($k['bezeichnung']) ?></td>
                         <td><?= date('d.m.Y', strtotime($k['zeitraum_von'])) ?> – <?= date('d.m.Y', strtotime($k['zeitraum_bis'])) ?></td>
-                        <td><?= (int)$k['anzahl_projekte'] ?></td>
-                        <td><?= tbeZahl((float)$k['stunden_gesamt']) ?></td>
+                        <td><?= (int)($summen[$k['id']]['anzahl'] ?? 0) ?></td>
+                        <td><?= tbeZahl((float)($summen[$k['id']]['stunden'] ?? 0)) ?></td>
+                        <td><?= moneyFormat(moneySum($summen[$k['id']]['foerderung'] ?? [])) ?></td>
                         <td><?= $k['budget_rahmen'] !== null ? moneyFormat($k['budget_rahmen']) : '–' ?></td>
                         <td><span class="badge <?= $s['class'] ?>"><?= e($s['label']) ?></span></td>
                         <td><a href="<?= APP_URL ?>/dashboard/admin/tbe-konzept.php?id=<?= $k['id'] ?>" class="btn btn-ghost-light btn-sm">Öffnen</a></td>
@@ -140,11 +146,11 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
             <input type="hidden" name="action" value="konzept_erstellen">
             <div class="form-row">
                 <div class="form-group">
-                    <label class="form-label">Förderjahr <span class="required">*</span></label>
+                    <label class="form-label">Schuljahr <span class="required">*</span></label>
                     <input class="form-control <?= isset($errors['bezeichnung']) ? 'error' : '' ?>" type="text" name="bezeichnung" maxlength="20" value="<?= e($form['bezeichnung']) ?>" placeholder="z.B. 2026/27">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Stundensatz Trainer:in (€)</label>
+                    <label class="form-label">Stundensatz Coach (€)</label>
                     <input class="form-control" type="number" min="0" step="0.01" name="stundensatz" value="<?= e($form['stundensatz']) ?>" placeholder="optional, für die Kostenschätzung">
                 </div>
             </div>

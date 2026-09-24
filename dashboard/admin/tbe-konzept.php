@@ -1,7 +1,8 @@
 <?php
 /**
  * Athletikclub Steiermark – Admin: TBE-Gesamtkonzept Detail
- * (Projekte erfassen, Bericht einreichen, Budgetrahmen verteilen)
+ * (Projekte nach TBE Fix/Flex erfassen, Voraussetzungen prüfen,
+ *  Bericht einreichen, Budgetrahmen verteilen)
  */
 define('ROOT_PATH', dirname(dirname(__DIR__)));
 require_once ROOT_PATH . '/config/config.php';
@@ -27,31 +28,57 @@ if (!$konzept) {
 $self_url = APP_URL . '/dashboard/admin/tbe-konzept.php?id=' . $konzept_id;
 $errors   = [];
 
+const TBE_PROJEKT_CHECKS = [
+    'chk_kooperation'   => 'Kooperationsvereinbarung unterschrieben',
+    'chk_schulforum'    => 'Schulforum-Beschluss (nur Volksschule, Bewegungscoach-Stunden)',
+    'chk_qualifikation' => 'Qualifikation Coach/Übungsleiter:in erfüllt',
+    'chk_haftpflicht'   => 'Haftpflichtversicherung aufrecht',
+];
+
 /** Liest die Projektfelder aus dem Formular und prüft sie. */
 function tbeProjektAusPost(array &$errors): array
 {
+    $zahl = fn(string $feld) => ($_POST[$feld] ?? '') !== '' ? max(0, (int)$_POST[$feld]) : null;
     $p = [
+        'modell'              => $_POST['modell'] ?? 'fix',
         'einrichtung'         => trim($_POST['einrichtung'] ?? ''),
         'einrichtungstyp'     => $_POST['einrichtungstyp'] ?? 'volksschule',
         'ort'                 => trim($_POST['ort'] ?? ''),
+        'kennzahl'            => trim($_POST['kennzahl'] ?? ''),
         'ansprechperson'      => trim($_POST['ansprechperson'] ?? ''),
         'bewegungsangebot'    => trim($_POST['bewegungsangebot'] ?? ''),
         'zielgruppe'          => trim($_POST['zielgruppe'] ?? ''),
+        'klassen_gesamt'      => $zahl('klassen_gesamt'),
+        'anzahl_kinder'       => $zahl('anzahl_kinder'),
         'anzahl_gruppen'      => (int)($_POST['anzahl_gruppen'] ?? 0),
         'einheiten_pro_woche' => (float)str_replace(',', '.', $_POST['einheiten_pro_woche'] ?? '0'),
         'dauer_minuten'       => (int)($_POST['dauer_minuten'] ?? 0),
         'anzahl_wochen'       => (int)($_POST['anzahl_wochen'] ?? 0),
+        'flex_einheiten'      => $zahl('flex_einheiten'),
         'trainer'             => trim($_POST['trainer'] ?? ''),
         'beschreibung'        => trim($_POST['beschreibung'] ?? ''),
     ];
+    foreach (array_keys(TBE_PROJEKT_CHECKS) as $chk) $p[$chk] = !empty($_POST[$chk]) ? 1 : 0;
+    if (!isset(TBE_MODELLE[$p['modell']])) $p['modell'] = 'fix';
     if (!isset(TBE_EINRICHTUNGSTYPEN[$p['einrichtungstyp']])) $p['einrichtungstyp'] = 'sonstige';
 
     if ($p['einrichtung'] === '')      $errors['einrichtung'] = 'Bitte die Schule bzw. den Kindergarten angeben.';
     if ($p['bewegungsangebot'] === '') $errors['bewegungsangebot'] = 'Bitte das Bewegungsangebot angeben.';
-    if ($p['anzahl_gruppen'] < 1)      $errors['anzahl_gruppen'] = 'Mindestens 1 Gruppe.';
-    if ($p['einheiten_pro_woche'] <= 0 || $p['einheiten_pro_woche'] > 99) $errors['einheiten_pro_woche'] = 'Einheiten pro Woche zwischen 0,5 und 99.';
+    if ($p['anzahl_gruppen'] < 1)      $errors['anzahl_gruppen'] = 'Mindestens 1 teilnehmende Klasse/Gruppe.';
     if ($p['dauer_minuten'] < 1)       $errors['dauer_minuten'] = 'Bitte die Dauer einer Einheit in Minuten angeben.';
-    if ($p['anzahl_wochen'] < 1)       $errors['anzahl_wochen'] = 'Mindestens 1 Woche.';
+
+    if (tbeIstFlex($p)) {
+        if ((int)$p['flex_einheiten'] < 1) $errors['flex_einheiten'] = 'Bitte die geplanten Flex-Einheiten angeben (mind. ' . TBE_FLEX_PAKET . ').';
+        // Für Flex spielt das Wochenraster keine Rolle
+        $p['einheiten_pro_woche'] = 1;
+        $p['anzahl_wochen']       = 1;
+        $p['chk_schulforum']      = 0;
+    } else {
+        if ($p['einheiten_pro_woche'] <= 0 || $p['einheiten_pro_woche'] > 10) $errors['einheiten_pro_woche'] = 'Bewegungscoach-Stunden pro Woche und Klasse zwischen 1 und 10.';
+        if ($p['anzahl_wochen'] < 1)   $errors['anzahl_wochen'] = 'Mindestens 1 Woche.';
+        $p['flex_einheiten'] = null;
+        if ($p['einrichtungstyp'] !== 'volksschule') $p['chk_schulforum'] = 0;
+    }
     return $p;
 }
 
@@ -67,25 +94,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $p = tbeProjektAusPost($errors);
 
         if (empty($errors)) {
-            $werte = [
-                $p['einrichtung'], $p['einrichtungstyp'], $p['ort'] ?: null, $p['ansprechperson'] ?: null,
-                $p['bewegungsangebot'], $p['zielgruppe'] ?: null, $p['anzahl_gruppen'], $p['einheiten_pro_woche'],
-                $p['dauer_minuten'], $p['anzahl_wochen'], $p['trainer'] ?: null, $p['beschreibung'] ?: null,
-            ];
+            $spalten = ['modell', 'einrichtung', 'einrichtungstyp', 'ort', 'kennzahl', 'ansprechperson', 'bewegungsangebot', 'zielgruppe',
+                        'klassen_gesamt', 'anzahl_kinder', 'anzahl_gruppen', 'einheiten_pro_woche', 'dauer_minuten', 'anzahl_wochen',
+                        'flex_einheiten', 'trainer', 'beschreibung', ...array_keys(TBE_PROJEKT_CHECKS)];
+            $werte = array_map(fn($s) => $p[$s] === '' ? null : $p[$s], $spalten);
+
             if ($projekt_id > 0) {
-                $db->prepare(
-                    'UPDATE tbe_projekte SET einrichtung = ?, einrichtungstyp = ?, ort = ?, ansprechperson = ?, bewegungsangebot = ?,
-                        zielgruppe = ?, anzahl_gruppen = ?, einheiten_pro_woche = ?, dauer_minuten = ?, anzahl_wochen = ?, trainer = ?, beschreibung = ?
-                     WHERE id = ? AND konzept_id = ?'
-                )->execute(array_merge($werte, [$projekt_id, $konzept_id]));
+                $db->prepare('UPDATE tbe_projekte SET ' . implode(' = ?, ', $spalten) . ' = ? WHERE id = ? AND konzept_id = ?')
+                   ->execute(array_merge($werte, [$projekt_id, $konzept_id]));
                 logActivity('tbe_projekt_bearbeitet', "Konzept-ID: {$konzept_id}, Projekt-ID: {$projekt_id}");
                 flashMessage('success', 'Projekt gespeichert.');
             } else {
-                $db->prepare(
-                    'INSERT INTO tbe_projekte (einrichtung, einrichtungstyp, ort, ansprechperson, bewegungsangebot, zielgruppe,
-                        anzahl_gruppen, einheiten_pro_woche, dauer_minuten, anzahl_wochen, trainer, beschreibung, konzept_id)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-                )->execute(array_merge($werte, [$konzept_id]));
+                $db->prepare('INSERT INTO tbe_projekte (' . implode(', ', $spalten) . ', konzept_id) VALUES (' . implode(', ', array_fill(0, count($spalten) + 1, '?')) . ')')
+                   ->execute(array_merge($werte, [$konzept_id]));
                 logActivity('tbe_projekt_hinzugefuegt', "Konzept-ID: {$konzept_id}, {$p['einrichtung']}");
                 flashMessage('success', 'Projekt hinzugefügt.');
             }
@@ -114,13 +135,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (empty($errors)) {
             $db->prepare(
-                'UPDATE tbe_konzepte SET bezeichnung = ?, zeitraum_von = ?, zeitraum_bis = ?, stundensatz = ?, konzeptbeschreibung = ?, notizen = ?
+                'UPDATE tbe_konzepte SET bezeichnung = ?, zeitraum_von = ?, zeitraum_bis = ?, stundensatz = ?, chk_kinderangebot = ?, chk_fit_siegel = ?,
+                    konzeptbeschreibung = ?, notizen = ?
                  WHERE id = ?'
             )->execute([
                 $bezeichnung,
                 date('Y-m-d', strtotime($zeitraum_von)),
                 date('Y-m-d', strtotime($zeitraum_bis)),
                 $stundensatz !== '' ? moneyRound($stundensatz) : null,
+                !empty($_POST['chk_kinderangebot']) ? 1 : 0,
+                !empty($_POST['chk_fit_siegel']) ? 1 : 0,
                 trim($_POST['konzeptbeschreibung'] ?? '') ?: null,
                 trim($_POST['notizen'] ?? '') ?: null,
                 $konzept_id,
@@ -176,7 +200,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // ----------------------------------------------------------------
-// Daten laden
+// Daten laden und auswerten
 // ----------------------------------------------------------------
 $stmt = $db->prepare('SELECT * FROM tbe_projekte WHERE konzept_id = ? ORDER BY sortierung ASC, einrichtung ASC, id ASC');
 $stmt->execute([$konzept_id]);
@@ -186,43 +210,69 @@ $projekte = $stmt->fetchAll();
 $stundensatz = $konzept['stundensatz'];
 $mit_kosten  = $stundensatz !== null;
 
-$summe_einheiten = 0.0;
-$summe_stunden   = 0.0;
-$summe_kosten    = [];
-$summe_budget    = [];
-foreach ($projekte as $p) {
-    $summe_einheiten += tbeEinheiten($p);
-    $summe_stunden   += tbeStunden($p);
-    $kosten = tbeKosten($p, $stundensatz);
-    if ($kosten !== null) $summe_kosten[] = $kosten;
-    if ($p['budget_zugeteilt'] !== null) $summe_budget[] = $p['budget_zugeteilt'];
+$summe = ['stunden' => 0.0, 'fix_woche' => 0.0, 'flex_pakete' => 0, 'foerderung' => [], 'foerderung_fix' => [], 'foerderung_flex' => [], 'kosten' => [], 'budget' => []];
+$pruefung = [];
+foreach ($projekte as &$p) {
+    $p['foerderung'] = tbeFoerderung($p);
+    $p['kosten']     = tbeKosten($p, $stundensatz);
+    $p['meldungen']  = tbePruefeProjekt($konzept, $p);
+    $summe['stunden']     += tbeStunden($p);
+    $summe['fix_woche']   += tbeFixStundenWoche($p);
+    $summe['flex_pakete'] += tbeFlexPakete($p);
+    $summe['foerderung'][] = $p['foerderung'];
+    $summe[tbeIstFlex($p) ? 'foerderung_flex' : 'foerderung_fix'][] = $p['foerderung'];
+    if ($p['kosten'] !== null) $summe['kosten'][] = $p['kosten'];
+    if ($p['budget_zugeteilt'] !== null) $summe['budget'][] = $p['budget_zugeteilt'];
+    foreach ($p['meldungen'] as $mld) $pruefung[] = $mld + ['bezug' => $p['einrichtung']];
 }
+unset($p);
+if (!empty($projekte) && empty($konzept['chk_kinderangebot'])) {
+    array_unshift($pruefung, ['typ' => 'fehler', 'text' => 'Teilnahmevoraussetzung: Der Verein braucht ein eigenes Kinderangebot (unten in den Konzeptdaten bestätigen).', 'bezug' => 'Verein']);
+}
+
+$foerderung_gesamt = moneySum($summe['foerderung']);
+$kosten_gesamt     = $mit_kosten ? moneySum($summe['kosten']) : null;
+$budget_verteilt   = moneySum($summe['budget']);
+$budget_frei       = $konzept['budget_rahmen'] !== null ? bcsub($konzept['budget_rahmen'], $budget_verteilt, 2) : null;
 $anzahl_einrichtungen = count(array_unique(array_map(fn($p) => mb_strtolower($p['einrichtung']), $projekte)));
-$kosten_gesamt  = $mit_kosten ? moneySum($summe_kosten) : null;
-$budget_verteilt = moneySum($summe_budget);
-$budget_frei     = $konzept['budget_rahmen'] !== null ? bcsub($konzept['budget_rahmen'], $budget_verteilt, 2) : null;
+$anzahl_fehler = count(array_filter($pruefung, fn($m) => $m['typ'] === 'fehler'));
 
 // Projekt zum Bearbeiten (oder leeres Formular / Formular mit Fehlern)
 $bearbeiten_id = (int)($_POST['projekt_id'] ?? $_GET['projekt'] ?? 0);
 $projekt_form  = [
-    'einrichtung' => '', 'einrichtungstyp' => 'volksschule', 'ort' => '', 'ansprechperson' => '', 'bewegungsangebot' => '',
-    'zielgruppe' => '', 'anzahl_gruppen' => 1, 'einheiten_pro_woche' => 1, 'dauer_minuten' => 50, 'anzahl_wochen' => 30,
-    'trainer' => '', 'beschreibung' => '',
+    'modell' => 'fix', 'einrichtung' => '', 'einrichtungstyp' => 'volksschule', 'ort' => '', 'kennzahl' => '', 'ansprechperson' => '',
+    'bewegungsangebot' => '', 'zielgruppe' => '', 'klassen_gesamt' => '', 'anzahl_kinder' => '', 'anzahl_gruppen' => 1,
+    'einheiten_pro_woche' => 1, 'dauer_minuten' => 50, 'anzahl_wochen' => 36, 'flex_einheiten' => 10, 'trainer' => '', 'beschreibung' => '',
+    'chk_kooperation' => 0, 'chk_schulforum' => 0, 'chk_qualifikation' => 0, 'chk_haftpflicht' => 0,
 ];
 if ($bearbeiten_id > 0) {
     foreach ($projekte as $p) {
-        if ((int)$p['id'] === $bearbeiten_id) $projekt_form = array_merge($projekt_form, array_map(fn($v) => $v ?? '', $p));
+        if ((int)$p['id'] !== $bearbeiten_id) continue;
+        $projekt_form = array_merge($projekt_form, array_map(fn($v) => is_array($v) ? $v : ($v ?? ''), $p));
+        // Bei Flex-Projekten sinnvolle Vorgaben für einen Wechsel auf Fix anbieten
+        if (tbeIstFlex($p)) $projekt_form['anzahl_wochen'] = 36;
+        if (!tbeIstFlex($p)) $projekt_form['flex_einheiten'] = 10;
     }
 }
 if (($_POST['action'] ?? '') === 'projekt_speichern') $projekt_form = array_merge($projekt_form, $_POST);
 if (($_POST['action'] ?? '') === 'konzept_speichern') $konzept = array_merge($konzept, $_POST);
 
 $s = TBE_STATUS[$konzept['status']] ?? ['label' => $konzept['status'], 'class' => 'badge-gray'];
+$v = fn($wert) => e((string)($wert ?? ''));
 
 $page_title = 'TBE-Gesamtkonzept ' . $konzept['bezeichnung'];
 $breadcrumb = 'TBE-Gesamtkonzept';
 require_once ROOT_PATH . '/includes/dashboard-header.php';
 ?>
+
+<style>
+.tbe-meldung { display: flex; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; margin-bottom: 0.4rem; font-size: 0.875rem; }
+.tbe-meldung-fehler  { background: rgba(239, 68, 68, 0.12); }
+.tbe-meldung-warnung { background: rgba(245, 158, 11, 0.14); }
+.tbe-meldung-info    { background: rgba(59, 130, 246, 0.10); }
+.tbe-hinweis { background: var(--gold-dim); border-radius: 0.5rem; padding: 0.75rem 1rem; margin-bottom: 1rem; font-size: 0.875rem; }
+.tbe-abschnitt { font-family: 'Montserrat', sans-serif; font-size: 0.8rem; font-weight: 800; text-transform: uppercase; margin: 1.25rem 0 0.75rem; }
+</style>
 
 <div class="dashboard-header" style="display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
     <div>
@@ -253,20 +303,43 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
     </div>
     <div class="kpi-card" style="--kpi-color: #C6A135;">
         <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
-        <div class="kpi-value"><?= tbeZahl($summe_stunden) ?></div>
-        <div class="kpi-label">Stunden (<?= tbeZahl($summe_einheiten) ?> Einheiten)</div>
+        <div class="kpi-value"><?= tbeZahl($summe['fix_woche']) ?> · <?= $summe['flex_pakete'] ?></div>
+        <div class="kpi-label">Fix-Wochenstunden · Flex-Pakete (<?= tbeZahl($summe['stunden']) ?> Std. gesamt)</div>
     </div>
     <div class="kpi-card" style="--kpi-color: #F59E0B;">
         <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
-        <div class="kpi-value"><?= $kosten_gesamt !== null ? moneyFormat($kosten_gesamt) : '–' ?></div>
-        <div class="kpi-label"><?= $kosten_gesamt !== null ? 'Geschätzte Kosten' : 'Kosten: Stundensatz fehlt' ?></div>
+        <div class="kpi-value"><?= moneyFormat($foerderung_gesamt) ?></div>
+        <div class="kpi-label">Förderrahmen (Fix <?= moneyFormat(moneySum($summe['foerderung_fix'])) ?> · Flex <?= moneyFormat(moneySum($summe['foerderung_flex'])) ?>)</div>
     </div>
     <div class="kpi-card" style="--kpi-color: #22C55E;">
         <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"/></svg></div>
         <div class="kpi-value"><?= $konzept['budget_rahmen'] !== null ? moneyFormat($konzept['budget_rahmen']) : '–' ?></div>
-        <div class="kpi-label"><?= $budget_frei !== null ? 'Budgetrahmen, davon ' . moneyFormat($budget_frei) . ' frei' : 'Budgetrahmen noch offen' ?></div>
+        <div class="kpi-label"><?= $budget_frei !== null ? 'Bewilligt, davon ' . moneyFormat($budget_frei) . ' frei' : 'Bewilligter Budgetrahmen offen' ?></div>
     </div>
 </div>
+
+<!-- Voraussetzungen-Check -->
+<?php if (!empty($projekte)): ?>
+<div class="table-card" style="margin-bottom: 1.5rem;">
+    <div class="table-card-header">
+        <h2 class="table-card-title">
+            Voraussetzungen-Check
+            <?php if (empty($pruefung)): ?><span class="badge badge-success">alles erfüllt</span>
+            <?php elseif ($anzahl_fehler): ?><span class="badge badge-danger"><?= $anzahl_fehler ?> offen</span><?php endif; ?>
+        </h2>
+    </div>
+    <div style="padding: 1.25rem;">
+        <?php if (empty($pruefung)): ?>
+            <p style="margin: 0;">Alle Teilnahmevoraussetzungen sind bestätigt.</p>
+        <?php else: foreach ($pruefung as $mld): ?>
+            <div class="tbe-meldung tbe-meldung-<?= $mld['typ'] ?>">
+                <strong style="white-space: nowrap;"><?= $mld['typ'] === 'fehler' ? 'Fehlt' : ($mld['typ'] === 'warnung' ? 'Achtung' : 'Info') ?> · <?= e($mld['bezug']) ?>:</strong>
+                <span><?= e($mld['text']) ?></span>
+            </div>
+        <?php endforeach; endif; ?>
+    </div>
+</div>
+<?php endif; ?>
 
 <!-- Projekte -->
 <div class="table-card" id="projekte" style="margin-bottom: 1.5rem;">
@@ -277,7 +350,7 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
     <?php if (empty($projekte)): ?>
         <div class="empty-state">
             <h3>Noch keine Projekte erfasst</h3>
-            <p>Trage unten für jede Schule bzw. jeden Kindergarten das geplante Bewegungsangebot ein.</p>
+            <p>Trage unten für jede Schule bzw. jeden Kindergarten ein, ob Bewegungscoach-Stunden (Fix) oder flexible Einheiten (Flex) geplant sind.</p>
         </div>
     <?php else: ?>
         <div style="overflow-x: auto;">
@@ -285,33 +358,41 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
                 <thead>
                     <tr>
                         <th>Einrichtung</th>
+                        <th>Modell</th>
                         <th>Angebot</th>
-                        <th>Gruppen</th>
-                        <th>Einh./Woche</th>
-                        <th>Dauer</th>
-                        <th>Wochen</th>
+                        <th>Umfang</th>
                         <th>Stunden</th>
+                        <th>Förderrahmen</th>
                         <?php if ($mit_kosten): ?><th>Kosten</th><?php endif; ?>
                         <th></th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($projekte as $p): $kosten = tbeKosten($p, $stundensatz); ?>
+                    <?php foreach ($projekte as $p): $mod = TBE_MODELLE[$p['modell']] ?? TBE_MODELLE['fix'];
+                        $fehler_p = count(array_filter($p['meldungen'], fn($m) => $m['typ'] === 'fehler')); ?>
                     <tr>
                         <td>
                             <div class="text-primary"><?= e($p['einrichtung']) ?></div>
                             <div style="font-size: 0.75rem; color: var(--text-muted);"><?= e(TBE_EINRICHTUNGSTYPEN[$p['einrichtungstyp']] ?? '') ?><?= $p['ort'] ? ' · ' . e($p['ort']) : '' ?></div>
+                            <?php if ($fehler_p): ?><span class="badge badge-danger"><?= $fehler_p ?> offen</span><?php endif; ?>
                         </td>
+                        <td><span class="badge <?= $mod['class'] ?>"><?= e($mod['kurz']) ?></span></td>
                         <td>
                             <div><?= e($p['bewegungsangebot']) ?></div>
                             <?php if ($p['zielgruppe']): ?><div style="font-size: 0.75rem; color: var(--text-muted);"><?= e($p['zielgruppe']) ?></div><?php endif; ?>
                         </td>
-                        <td><?= (int)$p['anzahl_gruppen'] ?></td>
-                        <td><?= tbeZahl((float)$p['einheiten_pro_woche']) ?></td>
-                        <td><?= (int)$p['dauer_minuten'] ?> Min.</td>
-                        <td><?= (int)$p['anzahl_wochen'] ?></td>
-                        <td style="font-weight: 700;"><?= tbeZahl(tbeStunden($p)) ?></td>
-                        <?php if ($mit_kosten): ?><td><?= moneyFormat($kosten) ?></td><?php endif; ?>
+                        <td style="font-size: 0.85rem;">
+                            <?php if (tbeIstFlex($p)): ?>
+                                <?= (int)$p['flex_einheiten'] ?> EH = <?= tbeFlexPakete($p) ?> Paket<?= tbeFlexPakete($p) === 1 ? '' : 'e' ?><br>
+                                <span style="color: var(--text-muted);"><?= (int)$p['anzahl_gruppen'] ?> Kl./Gr. · <?= (int)$p['dauer_minuten'] ?> Min.</span>
+                            <?php else: ?>
+                                <?= (int)$p['anzahl_gruppen'] ?> × <?= tbeZahl((float)$p['einheiten_pro_woche']) ?> Std./Woche<br>
+                                <span style="color: var(--text-muted);"><?= (int)$p['anzahl_wochen'] ?> Wochen · <?= (int)$p['dauer_minuten'] ?> Min.</span>
+                            <?php endif; ?>
+                        </td>
+                        <td><?= tbeZahl(tbeStunden($p)) ?></td>
+                        <td style="font-weight: 700;"><?= moneyFormat($p['foerderung']) ?></td>
+                        <?php if ($mit_kosten): ?><td><?= moneyFormat($p['kosten']) ?></td><?php endif; ?>
                         <td style="white-space: nowrap;">
                             <a href="<?= $self_url ?>&amp;projekt=<?= $p['id'] ?>#projekt-formular" class="btn btn-ghost-light btn-sm">Bearbeiten</a>
                             <form method="POST" style="display: inline;" onsubmit="return confirm('Projekt wirklich entfernen?')">
@@ -324,34 +405,49 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
                     </tr>
                     <?php endforeach; ?>
                     <tr style="font-weight: 700;">
-                        <td colspan="6">Gesamt</td>
-                        <td><?= tbeZahl($summe_stunden) ?></td>
+                        <td colspan="4">Gesamt</td>
+                        <td><?= tbeZahl($summe['stunden']) ?></td>
+                        <td><?= moneyFormat($foerderung_gesamt) ?></td>
                         <?php if ($mit_kosten): ?><td><?= moneyFormat($kosten_gesamt) ?></td><?php endif; ?>
                         <td></td>
                     </tr>
                 </tbody>
             </table>
         </div>
+        <?php if ($mit_kosten && bccomp($kosten_gesamt, $foerderung_gesamt, 2) > 0): ?>
+            <p class="form-hint" style="padding: 0 1.25rem 1rem;">Die geschätzten Kosten liegen <?= moneyFormat(bcsub($kosten_gesamt, $foerderung_gesamt, 2)) ?> über dem Förderrahmen – die Differenz trägt der Verein.</p>
+        <?php endif; ?>
     <?php endif; ?>
 
+    <!-- Projektformular -->
     <div id="projekt-formular" style="padding: 1.25rem; border-top: 1px solid var(--border-light);">
-        <h3 style="font-family: 'Montserrat', sans-serif; font-size: 0.8rem; font-weight: 800; text-transform: uppercase; margin-bottom: 0.75rem;">
-            <?= $bearbeiten_id > 0 ? 'Projekt bearbeiten' : 'Projekt hinzufügen' ?>
-        </h3>
-        <form method="POST" action="<?= $self_url ?>#projekt-formular">
+        <h3 class="tbe-abschnitt" style="margin-top: 0;"><?= $bearbeiten_id > 0 ? 'Projekt bearbeiten' : 'Projekt hinzufügen' ?></h3>
+        <form method="POST" action="<?= $self_url ?>#projekt-formular" id="tbe-projekt-form">
             <?= csrfField() ?>
             <input type="hidden" name="action" value="projekt_speichern">
             <input type="hidden" name="projekt_id" value="<?= $bearbeiten_id ?>">
+
+            <div class="form-group">
+                <label class="form-label">Modell <span class="required">*</span></label>
+                <select class="form-control" name="modell" id="tbe-modell">
+                    <?php foreach (TBE_MODELLE as $val => $mod): ?>
+                        <option value="<?= $val ?>" <?= $projekt_form['modell'] === $val ? 'selected' : '' ?>><?= e($mod['label']) ?> (<?= e($mod['saeule']) ?>)</option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="tbe-hinweis" id="tbe-modell-text"></div>
+
+            <h4 class="tbe-abschnitt">Einrichtung</h4>
             <div class="form-row">
                 <div class="form-group">
                     <label class="form-label">Schule / Kindergarten <span class="required">*</span></label>
-                    <input class="form-control <?= isset($errors['einrichtung']) ? 'error' : '' ?>" type="text" name="einrichtung" maxlength="150" value="<?= e((string)$projekt_form['einrichtung']) ?>" placeholder="z.B. VS St. Georgen an der Stiefing">
+                    <input class="form-control <?= isset($errors['einrichtung']) ? 'error' : '' ?>" type="text" name="einrichtung" maxlength="150" value="<?= $v($projekt_form['einrichtung']) ?>" placeholder="z.B. VS St. Georgen an der Stiefing">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Art der Einrichtung</label>
                     <select class="form-control" name="einrichtungstyp">
                         <?php foreach (TBE_EINRICHTUNGSTYPEN as $val => $label): ?>
-                            <option value="<?= $val ?>" <?= $projekt_form['einrichtungstyp'] === $val ? 'selected' : '' ?>><?= $label ?></option>
+                            <option value="<?= $val ?>" <?= $projekt_form['einrichtungstyp'] === $val ? 'selected' : '' ?>><?= e($label) ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
@@ -359,59 +455,94 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
             <div class="form-row">
                 <div class="form-group">
                     <label class="form-label">Ort</label>
-                    <input class="form-control" type="text" name="ort" maxlength="150" value="<?= e((string)$projekt_form['ort']) ?>">
+                    <input class="form-control" type="text" name="ort" maxlength="150" value="<?= $v($projekt_form['ort']) ?>">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Ansprechperson der Einrichtung</label>
-                    <input class="form-control" type="text" name="ansprechperson" maxlength="150" value="<?= e((string)$projekt_form['ansprechperson']) ?>" placeholder="z.B. Direktion, Leitung">
+                    <label class="form-label">Kennzahl der Einrichtung</label>
+                    <input class="form-control" type="text" name="kennzahl" maxlength="20" value="<?= $v($projekt_form['kennzahl']) ?>" placeholder="laut Kooperationsvereinbarung">
                 </div>
             </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Ansprechperson der Einrichtung</label>
+                    <input class="form-control" type="text" name="ansprechperson" maxlength="150" value="<?= $v($projekt_form['ansprechperson']) ?>" placeholder="z.B. Direktion, Leitung">
+                </div>
+                <div class="form-group" style="display: flex; gap: 1rem;">
+                    <div style="flex: 1;">
+                        <label class="form-label">Klassen/Gruppen gesamt</label>
+                        <input class="form-control" type="number" min="0" name="klassen_gesamt" value="<?= $v($projekt_form['klassen_gesamt']) ?>">
+                    </div>
+                    <div style="flex: 1;">
+                        <label class="form-label">Kinder</label>
+                        <input class="form-control" type="number" min="0" name="anzahl_kinder" value="<?= $v($projekt_form['anzahl_kinder']) ?>">
+                    </div>
+                </div>
+            </div>
+
+            <h4 class="tbe-abschnitt">Angebot &amp; Umfang</h4>
             <div class="form-row">
                 <div class="form-group">
                     <label class="form-label">Bewegungsangebot <span class="required">*</span></label>
-                    <input class="form-control <?= isset($errors['bewegungsangebot']) ? 'error' : '' ?>" type="text" name="bewegungsangebot" maxlength="150" value="<?= e((string)$projekt_form['bewegungsangebot']) ?>" placeholder="z.B. Koordination & Calisthenics">
+                    <input class="form-control <?= isset($errors['bewegungsangebot']) ? 'error' : '' ?>" type="text" name="bewegungsangebot" maxlength="150" value="<?= $v($projekt_form['bewegungsangebot']) ?>" placeholder="z.B. Polysportive Bewegungsstunde, Calisthenics">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Zielgruppe</label>
-                    <input class="form-control" type="text" name="zielgruppe" maxlength="150" value="<?= e((string)$projekt_form['zielgruppe']) ?>" placeholder="z.B. 1.–4. Klasse, 4–6 Jahre">
+                    <input class="form-control" type="text" name="zielgruppe" maxlength="150" value="<?= $v($projekt_form['zielgruppe']) ?>" placeholder="z.B. 1.–4. Klasse, 4–6 Jahre">
                 </div>
             </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label class="form-label">Anzahl Gruppen <span class="required">*</span></label>
-                    <input class="form-control tbe-calc <?= isset($errors['anzahl_gruppen']) ? 'error' : '' ?>" type="number" min="1" name="anzahl_gruppen" value="<?= e((string)$projekt_form['anzahl_gruppen']) ?>">
+                    <label class="form-label">Teilnehmende Klassen/Gruppen <span class="required">*</span></label>
+                    <input class="form-control tbe-calc <?= isset($errors['anzahl_gruppen']) ? 'error' : '' ?>" type="number" min="1" name="anzahl_gruppen" value="<?= $v($projekt_form['anzahl_gruppen']) ?>">
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Einheiten pro Woche und Gruppe <span class="required">*</span></label>
-                    <input class="form-control tbe-calc <?= isset($errors['einheiten_pro_woche']) ? 'error' : '' ?>" type="number" min="0.5" step="0.5" name="einheiten_pro_woche" value="<?= e((string)(float)$projekt_form['einheiten_pro_woche']) ?>">
-                </div>
-            </div>
-            <div class="form-row">
                 <div class="form-group">
                     <label class="form-label">Dauer einer Einheit (Minuten) <span class="required">*</span></label>
-                    <input class="form-control tbe-calc <?= isset($errors['dauer_minuten']) ? 'error' : '' ?>" type="number" min="1" name="dauer_minuten" value="<?= e((string)$projekt_form['dauer_minuten']) ?>">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Anzahl Wochen <span class="required">*</span></label>
-                    <input class="form-control tbe-calc <?= isset($errors['anzahl_wochen']) ? 'error' : '' ?>" type="number" min="1" name="anzahl_wochen" value="<?= e((string)$projekt_form['anzahl_wochen']) ?>">
+                    <input class="form-control tbe-calc <?= isset($errors['dauer_minuten']) ? 'error' : '' ?>" type="number" min="1" name="dauer_minuten" value="<?= $v($projekt_form['dauer_minuten']) ?>">
                 </div>
             </div>
+            <div class="form-row tbe-nur-fix">
+                <div class="form-group">
+                    <label class="form-label">Bewegungscoach-Stunden pro Woche und Klasse <span class="required">*</span></label>
+                    <input class="form-control tbe-calc <?= isset($errors['einheiten_pro_woche']) ? 'error' : '' ?>" type="number" min="1" max="10" step="1" name="einheiten_pro_woche" value="<?= $v((float)$projekt_form['einheiten_pro_woche']) ?>">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Schulwochen (September–Juni) <span class="required">*</span></label>
+                    <input class="form-control tbe-calc <?= isset($errors['anzahl_wochen']) ? 'error' : '' ?>" type="number" min="1" name="anzahl_wochen" value="<?= $v($projekt_form['anzahl_wochen']) ?>">
+                </div>
+            </div>
+            <div class="form-row tbe-nur-flex">
+                <div class="form-group">
+                    <label class="form-label">Geplante Flex-Einheiten gesamt <span class="required">*</span></label>
+                    <input class="form-control tbe-calc <?= isset($errors['flex_einheiten']) ? 'error' : '' ?>" type="number" min="0" step="1" name="flex_einheiten" value="<?= $v($projekt_form['flex_einheiten']) ?>">
+                </div>
+                <div class="form-group"></div>
+            </div>
             <p style="font-weight: 700; margin-bottom: 1rem;">Ergibt: <span id="tbe_calc_anzeige">–</span></p>
+
             <div class="form-row">
                 <div class="form-group">
-                    <label class="form-label">Trainer:in</label>
-                    <input class="form-control" type="text" name="trainer" maxlength="150" value="<?= e((string)$projekt_form['trainer']) ?>">
+                    <label class="form-label" id="tbe-trainer-label">Bewegungscoach</label>
+                    <input class="form-control" type="text" name="trainer" maxlength="150" value="<?= $v($projekt_form['trainer']) ?>">
                 </div>
                 <div class="form-group"></div>
             </div>
             <div class="form-group">
                 <label class="form-label">Kurzbeschreibung (erscheint im Bericht)</label>
-                <textarea class="form-control" name="beschreibung" rows="3" placeholder="Inhalte und Ziele des Angebots"><?= e((string)$projekt_form['beschreibung']) ?></textarea>
+                <textarea class="form-control" name="beschreibung" rows="3" placeholder="Inhalte und Ziele des Angebots"><?= $v($projekt_form['beschreibung']) ?></textarea>
             </div>
-            <button type="submit" class="btn btn-navy btn-sm"><?= $bearbeiten_id > 0 ? 'Änderungen speichern' : 'Projekt hinzufügen' ?></button>
-            <?php if ($bearbeiten_id > 0): ?>
-                <a href="<?= $self_url ?>#projekte" class="btn btn-ghost-light btn-sm">Abbrechen</a>
-            <?php endif; ?>
+
+            <h4 class="tbe-abschnitt">Voraussetzungen</h4>
+            <?php foreach (TBE_PROJEKT_CHECKS as $feld => $label): ?>
+                <label class="<?= $feld === 'chk_schulforum' ? 'tbe-nur-schulforum' : '' ?>" style="display: flex; gap: 0.6rem; align-items: center; margin-bottom: 0.5rem; font-size: 0.9rem;">
+                    <input type="checkbox" name="<?= $feld ?>" value="1" <?= !empty($projekt_form[$feld]) ? 'checked' : '' ?>>
+                    <?= e($label) ?>
+                </label>
+            <?php endforeach; ?>
+
+            <div style="margin-top: 1rem;">
+                <button type="submit" class="btn btn-navy btn-sm"><?= $bearbeiten_id > 0 ? 'Änderungen speichern' : 'Projekt hinzufügen' ?></button>
+                <?php if ($bearbeiten_id > 0): ?><a href="<?= $self_url ?>#projekte" class="btn btn-ghost-light btn-sm">Abbrechen</a><?php endif; ?>
+            </div>
         </form>
     </div>
 </div>
@@ -422,7 +553,7 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
         <h2 class="table-card-title">Einreichung &amp; Budgetrahmen</h2>
     </div>
     <div style="padding: 1.25rem;">
-        <p class="form-hint" style="margin-bottom: 1rem;">Ablauf: Projekte erfassen → Bericht als PDF erzeugen und einreichen → Status auf „Eingereicht“ setzen → bewilligten Budgetrahmen eintragen und auf die Projekte verteilen.</p>
+        <p class="form-hint" style="margin-bottom: 1rem;">Ablauf: Projekte erfassen → Kooperationsvereinbarungen mit den Einrichtungen unterschreiben → Bericht als PDF erzeugen und einreichen → bewilligten Budgetrahmen eintragen und verteilen → Einheiten laufend in der TBE-Datenbank bestätigen.</p>
         <form method="POST">
             <?= csrfField() ?>
             <input type="hidden" name="action" value="einreichung_speichern">
@@ -437,17 +568,17 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
                 </div>
                 <div class="form-group">
                     <label class="form-label">Eingereicht am</label>
-                    <input class="form-control" type="date" name="eingereicht_am" value="<?= e((string)($konzept['eingereicht_am'] ?? '')) ?>">
+                    <input class="form-control" type="date" name="eingereicht_am" value="<?= $v($konzept['eingereicht_am']) ?>">
                 </div>
             </div>
             <div class="form-row">
                 <div class="form-group">
                     <label class="form-label">Bewilligter Budgetrahmen (€)</label>
-                    <input class="form-control" type="number" min="0" step="0.01" name="budget_rahmen" value="<?= e((string)($konzept['budget_rahmen'] ?? '')) ?>">
+                    <input class="form-control" type="number" min="0" step="0.01" name="budget_rahmen" value="<?= $v($konzept['budget_rahmen']) ?>" placeholder="beantragt: <?= e(moneyFormat($foerderung_gesamt)) ?>">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Bewilligt am</label>
-                    <input class="form-control" type="date" name="budget_bewilligt_am" value="<?= e((string)($konzept['budget_bewilligt_am'] ?? '')) ?>">
+                    <input class="form-control" type="date" name="budget_bewilligt_am" value="<?= $v($konzept['budget_bewilligt_am']) ?>">
                 </div>
             </div>
             <button type="submit" class="btn btn-navy btn-sm">Speichern</button>
@@ -456,23 +587,23 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
 
     <?php if ($konzept['budget_rahmen'] !== null && !empty($projekte)): ?>
     <div style="padding: 1.25rem; border-top: 1px solid var(--border-light);">
-        <h3 style="font-family: 'Montserrat', sans-serif; font-size: 0.8rem; font-weight: 800; text-transform: uppercase; margin-bottom: 0.75rem;">Budget auf die Projekte verteilen</h3>
+        <h3 class="tbe-abschnitt" style="margin-top: 0;">Budget auf die Projekte verteilen</h3>
         <form method="POST" id="budget-form">
             <?= csrfField() ?>
             <input type="hidden" name="action" value="budget_verteilen">
             <div style="overflow-x: auto;">
                 <table class="data-table">
                     <thead>
-                        <tr><th>Projekt</th><th>Stunden</th><th>Anteil (€)</th></tr>
+                        <tr><th>Projekt</th><th>Förderrahmen</th><th>Anteil (€)</th></tr>
                     </thead>
                     <tbody>
                         <?php foreach ($projekte as $p): ?>
                         <tr>
-                            <td><?= e($p['einrichtung']) ?> · <?= e($p['bewegungsangebot']) ?></td>
-                            <td><?= tbeZahl(tbeStunden($p)) ?></td>
+                            <td><?= e($p['einrichtung']) ?> · <?= e(TBE_MODELLE[$p['modell']]['kurz'] ?? '') ?> · <?= e($p['bewegungsangebot']) ?></td>
+                            <td><?= moneyFormat($p['foerderung']) ?></td>
                             <td style="min-width: 140px;">
-                                <input class="form-control budget-anteil" type="number" min="0" step="0.01" data-stunden="<?= tbeStunden($p) ?>"
-                                       name="budget_zugeteilt[<?= $p['id'] ?>]" value="<?= e((string)($p['budget_zugeteilt'] ?? '')) ?>">
+                                <input class="form-control budget-anteil" type="number" min="0" step="0.01" data-gewicht="<?= e($p['foerderung']) ?>"
+                                       name="budget_zugeteilt[<?= $p['id'] ?>]" value="<?= $v($p['budget_zugeteilt']) ?>">
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -483,7 +614,7 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
                 Verteilt: <span id="budget_verteilt">–</span> von <?= moneyFormat($konzept['budget_rahmen']) ?>
                 · <span id="budget_rest">–</span>
             </p>
-            <button type="button" class="btn btn-ghost-light btn-sm" id="budget_nach_stunden">Nach Stunden aufteilen</button>
+            <button type="button" class="btn btn-ghost-light btn-sm" id="budget_anteilig">Anteilig nach Förderrahmen aufteilen</button>
             <button type="submit" class="btn btn-navy btn-sm">Verteilung speichern</button>
         </form>
     </div>
@@ -493,7 +624,7 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
 <!-- Konzeptdaten -->
 <div class="table-card" id="konzept" style="margin-bottom: 1.5rem;">
     <div class="table-card-header">
-        <h2 class="table-card-title">Konzeptdaten</h2>
+        <h2 class="table-card-title">Konzeptdaten &amp; Voraussetzungen des Vereins</h2>
     </div>
     <div style="padding: 1.25rem;">
         <form method="POST" action="<?= $self_url ?>#konzept">
@@ -501,34 +632,51 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
             <input type="hidden" name="action" value="konzept_speichern">
             <div class="form-row">
                 <div class="form-group">
-                    <label class="form-label">Förderjahr <span class="required">*</span></label>
-                    <input class="form-control <?= isset($errors['bezeichnung']) ? 'error' : '' ?>" type="text" name="bezeichnung" maxlength="20" value="<?= e((string)$konzept['bezeichnung']) ?>">
+                    <label class="form-label">Schuljahr <span class="required">*</span></label>
+                    <input class="form-control <?= isset($errors['bezeichnung']) ? 'error' : '' ?>" type="text" name="bezeichnung" maxlength="20" value="<?= $v($konzept['bezeichnung']) ?>">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Stundensatz Trainer:in (€)</label>
-                    <input class="form-control" type="number" min="0" step="0.01" name="stundensatz" value="<?= e((string)($konzept['stundensatz'] ?? '')) ?>">
+                    <label class="form-label">Stundensatz Coach (€, nur für die Kostenschätzung)</label>
+                    <input class="form-control" type="number" min="0" step="0.01" name="stundensatz" value="<?= $v($konzept['stundensatz']) ?>">
                 </div>
             </div>
             <div class="form-row">
                 <div class="form-group">
                     <label class="form-label">Zeitraum von</label>
-                    <input class="form-control <?= isset($errors['zeitraum']) ? 'error' : '' ?>" type="date" name="zeitraum_von" value="<?= e((string)$konzept['zeitraum_von']) ?>">
+                    <input class="form-control <?= isset($errors['zeitraum']) ? 'error' : '' ?>" type="date" name="zeitraum_von" value="<?= $v($konzept['zeitraum_von']) ?>">
                 </div>
                 <div class="form-group">
                     <label class="form-label">bis</label>
-                    <input class="form-control <?= isset($errors['zeitraum']) ? 'error' : '' ?>" type="date" name="zeitraum_bis" value="<?= e((string)$konzept['zeitraum_bis']) ?>">
+                    <input class="form-control <?= isset($errors['zeitraum']) ? 'error' : '' ?>" type="date" name="zeitraum_bis" value="<?= $v($konzept['zeitraum_bis']) ?>">
                 </div>
             </div>
+            <label style="display: flex; gap: 0.6rem; align-items: center; margin-bottom: 0.5rem; font-size: 0.9rem;">
+                <input type="checkbox" name="chk_kinderangebot" value="1" <?= !empty($konzept['chk_kinderangebot']) ? 'checked' : '' ?>>
+                Der Verein hat ein eigenes Kinderangebot (Teilnahmevoraussetzung)
+            </label>
+            <label style="display: flex; gap: 0.6rem; align-items: center; margin-bottom: 1rem; font-size: 0.9rem;">
+                <input type="checkbox" name="chk_fit_siegel" value="1" <?= !empty($konzept['chk_fit_siegel']) ? 'checked' : '' ?>>
+                Mind. ein Kinder-/Jugendangebot ist mit dem Fit-Sport-Austria-Qualitätssiegel zertifiziert (Pflicht für Flex)
+            </label>
             <div class="form-group">
                 <label class="form-label">Konzeptbeschreibung (Einleitung im Bericht)</label>
-                <textarea class="form-control" name="konzeptbeschreibung" rows="5" placeholder="Ziele, pädagogischer Ansatz, wie die Projekte die Tägliche Bewegungseinheit umsetzen …"><?= e((string)($konzept['konzeptbeschreibung'] ?? '')) ?></textarea>
+                <textarea class="form-control" name="konzeptbeschreibung" rows="5" placeholder="Ziele, pädagogischer Ansatz, wie die Projekte die Tägliche Bewegungseinheit umsetzen …"><?= $v($konzept['konzeptbeschreibung']) ?></textarea>
             </div>
             <div class="form-group">
                 <label class="form-label">Interne Notizen (nicht im Bericht)</label>
-                <textarea class="form-control" name="notizen" rows="3"><?= e((string)($konzept['notizen'] ?? '')) ?></textarea>
+                <textarea class="form-control" name="notizen" rows="3"><?= $v($konzept['notizen']) ?></textarea>
             </div>
             <button type="submit" class="btn btn-navy btn-sm">Konzeptdaten speichern</button>
         </form>
+
+        <h4 class="tbe-abschnitt">Unterlagen &amp; Kontakt</h4>
+        <ul style="margin-left: 1.25rem; font-size: 0.9rem;">
+            <?php foreach (TBE_LINKS as $label => $url): ?>
+                <li><a href="<?= e($url) ?>" target="_blank" rel="noopener"><?= e($label) ?></a></li>
+            <?php endforeach; ?>
+        </ul>
+        <p class="form-hint"><?= e(TBE_KONTAKT['name']) ?> · <a href="mailto:<?= e(TBE_KONTAKT['email']) ?>"><?= e(TBE_KONTAKT['email']) ?></a> · <?= e(TBE_KONTAKT['tel']) ?></p>
+        <p class="form-hint">Abrechenbar sind direkte Umsetzungskosten: Personal (Gehalt, Honorar, PRAE – immer im vollen Umfang), Material und Bekleidung, Aus- und Fortbildung, Hallenmiete/Eintritte, Mobilität, Personalverwaltung. Nachweis mit Originalbelegen und Zahlungsbestätigung.</p>
     </div>
 </div>
 
@@ -544,23 +692,43 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
 
 <script>
 (() => {
+const MODELLE = <?= json_encode(TBE_MODELLE, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?>;
+const FIX_SATZ = <?= TBE_FIX_SATZ ?>, FLEX_SATZ = <?= TBE_FLEX_SATZ ?>, PAKET = <?= TBE_FLEX_PAKET ?>;
 const eur = (v) => v.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
 const zahl = (v) => v.toLocaleString('de-DE', { maximumFractionDigits: 2 });
+const f = document.getElementById('tbe-projekt-form');
+const istFlex = () => f.modell.value !== 'fix';
 
-// Live-Berechnung Einheiten/Stunden im Projektformular
-function berechneProjekt() {
-    const f = document.querySelector('#projekt-formular form');
-    const gruppen = parseFloat(f.anzahl_gruppen.value) || 0;
-    const proWoche = parseFloat(f.einheiten_pro_woche.value) || 0;
-    const dauer = parseFloat(f.dauer_minuten.value) || 0;
-    const wochen = parseFloat(f.anzahl_wochen.value) || 0;
-    const einheiten = gruppen * proWoche * wochen;
-    document.getElementById('tbe_calc_anzeige').textContent = zahl(einheiten) + ' Einheiten = ' + zahl(einheiten * dauer / 60) + ' Stunden';
+// Felder und Hinweise passend zum Modell einblenden
+function zeigeModell() {
+    document.getElementById('tbe-modell-text').textContent = MODELLE[f.modell.value].text;
+    document.querySelectorAll('.tbe-nur-fix').forEach(el => el.style.display = istFlex() ? 'none' : '');
+    document.querySelectorAll('.tbe-nur-flex').forEach(el => el.style.display = istFlex() ? '' : 'none');
+    document.querySelectorAll('.tbe-nur-schulforum').forEach(el => el.style.display = (!istFlex() && f.einrichtungstyp.value === 'volksschule') ? 'flex' : 'none');
+    document.getElementById('tbe-trainer-label').textContent = istFlex() ? 'Übungsleiter:in' : 'Bewegungscoach';
+    berechneProjekt();
 }
-document.querySelectorAll('.tbe-calc').forEach(el => el.addEventListener('input', berechneProjekt));
-berechneProjekt();
 
-// Budgetverteilung: Summe live anzeigen, optional proportional nach Stunden aufteilen
+// Live-Berechnung Umfang und Förderrahmen (gleiche Regeln wie serverseitig)
+function berechneProjekt() {
+    const n = (name) => parseFloat(f[name].value) || 0;
+    const dauer = n('dauer_minuten');
+    let text;
+    if (istFlex()) {
+        const eh = n('flex_einheiten'), pakete = Math.floor(eh / PAKET);
+        text = zahl(eh) + ' Einheiten = ' + pakete + ' Paket' + (pakete === 1 ? '' : 'e') + ' à ' + PAKET + ' → Förderrahmen ' + eur(pakete * FLEX_SATZ) + ' · ' + zahl(eh * dauer / 60) + ' Std.';
+    } else {
+        const woche = n('anzahl_gruppen') * n('einheiten_pro_woche'), eh = woche * n('anzahl_wochen');
+        text = zahl(woche) + ' Bewegungscoach-Stunde' + (woche === 1 ? '' : 'n') + ' pro Woche → Förderrahmen ' + eur(woche * FIX_SATZ) + ' · ' + zahl(eh) + ' Einheiten = ' + zahl(eh * dauer / 60) + ' Std.';
+    }
+    document.getElementById('tbe_calc_anzeige').textContent = text;
+}
+f.modell.addEventListener('change', zeigeModell);
+f.einrichtungstyp.addEventListener('change', zeigeModell);
+document.querySelectorAll('.tbe-calc').forEach(el => el.addEventListener('input', berechneProjekt));
+zeigeModell();
+
+// Budgetverteilung: Summe live anzeigen, optional anteilig nach Förderrahmen aufteilen
 const budgetRahmen = <?= json_encode($konzept['budget_rahmen'] !== null ? (float)$konzept['budget_rahmen'] : null) ?>;
 const anteile = document.querySelectorAll('.budget-anteil');
 function zeigeBudget() {
@@ -574,15 +742,15 @@ function zeigeBudget() {
 }
 if (anteile.length && budgetRahmen !== null) {
     anteile.forEach(el => el.addEventListener('input', zeigeBudget));
-    document.getElementById('budget_nach_stunden').addEventListener('click', () => {
-        const stundenGesamt = [...anteile].reduce((s, el) => s + parseFloat(el.dataset.stunden), 0);
-        if (stundenGesamt <= 0) return;
+    document.getElementById('budget_anteilig').addEventListener('click', () => {
+        const gewichtGesamt = [...anteile].reduce((s, el) => s + parseFloat(el.dataset.gewicht), 0);
+        if (gewichtGesamt <= 0) return;
         let verteilt = 0;
         anteile.forEach((el, i) => {
             // Rundungsdifferenz landet beim letzten Projekt, damit die Summe exakt stimmt
             const betrag = i === anteile.length - 1
                 ? Math.round((budgetRahmen - verteilt) * 100) / 100
-                : Math.round(budgetRahmen * parseFloat(el.dataset.stunden) / stundenGesamt * 100) / 100;
+                : Math.round(budgetRahmen * parseFloat(el.dataset.gewicht) / gewichtGesamt * 100) / 100;
             el.value = betrag.toFixed(2);
             verteilt += betrag;
         });
