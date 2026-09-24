@@ -598,3 +598,42 @@
     .kpi-grid { grid-template-columns: 1fr 1fr; gap: var(--space-3); }
     .kpi-icon { display: none; }
 }
+
+/* ============================================================
+   Benachrichtigungen (Glocke im Header)
+============================================================ */
+.dash-glocke {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    color: rgba(255, 255, 255, 0.85);
+    flex-shrink: 0;
+    transition: background var(--transition-fast);
+}
+.dash-glocke:hover { background: rgba(255, 255, 255, 0.12); color: #fff; }
+.dash-glocke svg { width: 21px; height: 21px; }
+.dash-glocke-badge {
+    position: absolute;
+    top: 3px;
+    right: 1px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 99px;
+    background: var(--danger);
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    font-family: var(--font-heading);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--navy-primary);
+}
+@media (max-width: 420px) {
+    .dash-glocke { width: 36px; height: 36px; }
+}

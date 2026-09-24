@@ -33,7 +33,8 @@ if (!$user) {
 
 $trainer = in_array($user['rolle'], ['trainer', 'admin'], true);
 $eintraege = kalEintraege($db, (int)$user['organization_id'], (int)$user['id'], $trainer,
-                          date('Y-m-d', strtotime('-60 days')), date('Y-m-d', strtotime('+12 months')));
+                          date('Y-m-d', strtotime('-60 days')), date('Y-m-d', strtotime('+12 months')),
+                          ['einheiten', 'kurse', 'diagnostik', 'termine'], ['alle_einheiten' => $user['rolle'] === 'admin']);
 
 header('Content-Type: text/calendar; charset=utf-8');
 header('Content-Disposition: inline; filename="aci-kalender.ics"');

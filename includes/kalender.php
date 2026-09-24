@@ -6,6 +6,8 @@
  * für das Abo im Handy-/Outlook-Kalender.
  */
 
+require_once ROOT_PATH . '/includes/plattform.php';
+
 const KAL_TYPEN = [
     'termin'        => ['label' => 'Termin',        'farbe' => '#64748B'],
     'training'      => ['label' => 'Training',      'farbe' => '#22C55E'],
@@ -15,6 +17,7 @@ const KAL_TYPEN = [
     'sonstiges'     => ['label' => 'Sonstiges',     'farbe' => '#14B8A6'],
 ];
 const KAL_QUELLEN = [
+    'einheiten'  => ['label' => 'Einheiten',            'farbe' => '#22C55E'],
     'kurse'      => ['label' => 'Kurse',                'farbe' => '#3B82F6'],
     'diagnostik' => ['label' => 'Leistungsdiagnostik',  'farbe' => '#C6A135'],
     'termine'    => ['label' => 'Termine',              'farbe' => '#64748B'],
@@ -36,11 +39,66 @@ const KAL_ZEITZONE = 'Europe/Vienna';
  * Alle sichtbaren Einträge im Zeitraum [von, bis] (Y-m-d), sortiert.
  * Parameter explizit, damit auch der Abo-Feed ohne Login funktioniert.
  */
-function kalEintraege(PDO $db, int $org_id, int $user_id, bool $trainer, string $von, string $bis, array $quellen = ['kurse', 'diagnostik', 'termine']): array
+function kalEintraege(PDO $db, int $org_id, int $user_id, bool $trainer, string $von, string $bis, array $quellen = ['einheiten', 'kurse', 'diagnostik', 'termine'], array $optionen = []): array
 {
     $von_dt = $von . ' 00:00:00';
     $bis_dt = $bis . ' 23:59:59';
     $liste = [];
+    // Optionen: alle_einheiten (Planungsrecht), nur_trainer (Filter auf eine Person)
+    $alle_einheiten = !empty($optionen['alle_einheiten']);
+    $nur_trainer = !empty($optionen['nur_trainer']) ? (int)$optionen['nur_trainer'] : null;
+    $kurse_mit_einheiten = [];
+    try {
+        // Kurse mit eigenen Einheiten erscheinen nicht zusätzlich als Block
+        $stmt = $db->prepare('SELECT DISTINCT kurs_id FROM einheiten WHERE organization_id = ? AND kurs_id IS NOT NULL');
+        $stmt->execute([$org_id]);
+        $kurse_mit_einheiten = array_fill_keys(array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN)), true);
+    } catch (PDOException $e) {}
+
+    if (in_array('einheiten', $quellen, true)) {
+        try {
+            $bedingung = '1 = 1';
+            $p = [$org_id, $bis_dt, $von_dt];
+            if ($nur_trainer) {
+                $bedingung = 'EXISTS (SELECT 1 FROM einheit_trainer x WHERE x.einheit_id = e.id AND x.user_id = ?)';
+                $p[] = $nur_trainer;
+            } elseif (!$alle_einheiten) {
+                // eigene Einheiten, Einheiten eigener Kurse/Projekte, als Teilnehmer:in angemeldete Kurse (auch für Kinder)
+                $bedingung = "(EXISTS (SELECT 1 FROM einheit_trainer x WHERE x.einheit_id = e.id AND x.user_id = ?)
+                              OR e.kurs_id IN (SELECT k.id FROM kurse k WHERE k.trainer_id = ?)
+                              OR e.projekt_id IN (SELECT pr.id FROM projekte pr WHERE pr.leitung_id = ?)
+                              OR e.projekt_id IN (SELECT pt.projekt_id FROM projekt_team pt WHERE pt.user_id = ?)
+                              OR e.kurs_id IN (SELECT ka.kurs_id FROM kurs_anmeldungen ka WHERE ka.user_id = ? AND ka.status IN ('angemeldet','teilgenommen')))";
+                array_push($p, $user_id, $user_id, $user_id, $user_id, $user_id);
+            }
+            $stmt = $db->prepare("SELECT e.*, p.name AS projekt_name FROM einheiten e LEFT JOIN projekte p ON p.id = e.projekt_id
+                                  WHERE e.organization_id = ? AND e.start <= ? AND e.ende >= ? AND {$bedingung}");
+            $stmt->execute($p);
+            $einheiten = $stmt->fetchAll();
+            $namen = $namen_ids = [];
+            if ($einheiten) {
+                $ids = implode(',', array_map(fn($e) => (int)$e['id'], $einheiten));
+                foreach ($db->query("SELECT et.einheit_id, et.user_id, u.vorname, u.nachname FROM einheit_trainer et JOIN users u ON u.id = et.user_id
+                                     WHERE et.einheit_id IN ({$ids}) AND et.status <> 'storniert'")->fetchAll() as $t) {
+                    $namen[(int)$t['einheit_id']][] = $t['vorname'] . ' ' . mb_substr($t['nachname'], 0, 1) . '.';
+                    $namen_ids[(int)$t['einheit_id']][] = (int)$t['user_id'];
+                }
+            }
+            foreach ($einheiten as $e) {
+                $typ = EINHEIT_TYPEN[$e['typ']] ?? EINHEIT_TYPEN['sonstiges'];
+                $trainer_namen = $namen[(int)$e['id']] ?? [];
+                $liste[] = [
+                    'uid' => 'einheit-' . $e['id'], 'quelle' => 'einheiten', 'titel' => $e['titel'],
+                    'start' => $e['start'], 'ende' => $e['ende'], 'ganztags' => false, 'ort' => $e['ort'],
+                    'beschreibung' => trim(($e['projekt_name'] ? 'Projekt: ' . $e['projekt_name'] . "\n" : '') . ($trainer_namen ? 'Trainer:innen: ' . implode(', ', $trainer_namen) . "\n" : '') . ($e['notiz'] ?? '')),
+                    'typ' => $typ['label'], 'farbe' => $typ['farbe'], 'url' => '/dashboard/einheit.php?id=' . $e['id'],
+                    'abgesagt' => $e['status'] === 'storniert', 'wiederkehrend' => (bool)$e['serie_id'],
+                    'trainer' => $trainer_namen, 'eigen' => in_array($user_id, $namen_ids[(int)$e['id']] ?? [], true),
+                    'erledigt' => $e['status'] === 'durchgefuehrt',
+                ];
+            }
+        } catch (PDOException $e) { /* Migration 011 fehlt */ }
+    }
 
     if (in_array('termine', $quellen, true)) {
         try {
@@ -88,6 +146,8 @@ function kalEintraege(PDO $db, int $org_id, int $user_id, bool $trainer, string 
             $stmt->execute([$user_id, $org_id, $bis_dt, $von_dt]);
         }
         foreach ($stmt->fetchAll() as $k) {
+            if (isset($kurse_mit_einheiten[(int)$k['id']])) continue; // Kurs wird über seine Einheiten dargestellt
+            if ($nur_trainer && (int)$k['trainer_id'] !== $nur_trainer) continue;
             $info = array_filter([
                 $k['t_vorname'] ? 'Trainer:in: ' . $k['t_vorname'] . ' ' . $k['t_nachname'] : null,
                 $k['teilnehmer'] !== null ? 'Anmeldungen: ' . (int)$k['teilnehmer'] . ($k['max_teilnehmer'] ? ' / ' . (int)$k['max_teilnehmer'] : '') : null,
@@ -110,6 +170,7 @@ function kalEintraege(PDO $db, int $org_id, int $user_id, bool $trainer, string 
                                   WHERE s.organization_id = ? AND s.datum BETWEEN ? AND ?" . ($trainer ? '' : ' AND s.mitglied_id = ?'));
             $stmt->execute($trainer ? [$org_id, $von, $bis] : [$org_id, $von, $bis, $user_id]);
             foreach ($stmt->fetchAll() as $s) {
+                if ($nur_trainer && (int)$s['trainer_id'] !== $nur_trainer) continue;
                 $mit_zeit = !empty($s['uhrzeit']);
                 $start = $s['datum'] . ' ' . ($mit_zeit ? substr($s['uhrzeit'], 0, 8) : '00:00:00');
                 $liste[] = [

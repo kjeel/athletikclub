@@ -44,6 +44,30 @@ if (isTrainer()) {
     } catch (Exception $e) {}
 }
 
+// Vereinsplattform: Zähler für Menü und Glocke, tägliche Fälligkeitsprüfung (Migration 011 evtl. noch nicht eingespielt)
+require_once ROOT_PATH . '/includes/plattform.php';
+$offene_bestaetigungen = $meine_aufgaben = $meine_ueberfaellig = $abrechnungen_offen = $ungelesen = 0;
+try {
+    $db = getDB();
+    plattformFaelligkeiten($db);
+    $ungelesen = ungeleseneBenachrichtigungen($db, (int)$user['id']);
+    if (isTrainer()) {
+        $stmt = $db->prepare("SELECT COUNT(*) FROM einheit_trainer et JOIN einheiten e ON e.id = et.einheit_id WHERE et.user_id = ? AND et.status = 'geplant' AND e.status <> 'storniert' AND e.ende < ?");
+        $stmt->execute([$user['id'], date('Y-m-d H:i:s')]);
+        $offene_bestaetigungen = (int)$stmt->fetchColumn();
+        $stmt = $db->prepare("SELECT COUNT(*) AS n, SUM(CASE WHEN deadline < ? THEN 1 ELSE 0 END) AS ueber FROM aufgaben WHERE verantwortlich_id = ? AND status <> 'erledigt'");
+        $stmt->execute([date('Y-m-d'), $user['id']]);
+        $r = $stmt->fetch();
+        $meine_aufgaben = (int)$r['n'];
+        $meine_ueberfaellig = (int)$r['ueber'];
+    }
+    if (darfEines('abrechnung.bearbeiten', 'abrechnung.freigeben')) {
+        $stmt = $db->prepare("SELECT COUNT(*) FROM trainer_abrechnungen WHERE organization_id = ? AND status IN ('eingereicht','geprueft')");
+        $stmt->execute([currentOrgId()]);
+        $abrechnungen_offen = (int)$stmt->fetchColumn();
+    }
+} catch (Exception $e) {}
+
 // PRAE-Empfänger:in? (Menüpunkt „Meine PRAE“; Migration 010 evtl. noch nicht eingespielt)
 $ist_prae_empfaenger = false;
 try {
@@ -168,6 +192,10 @@ try {
         </div>
 
         <div class="dash-header-actions">
+            <a href="<?= APP_URL ?>/dashboard/benachrichtigungen.php" class="dash-glocke" aria-label="Benachrichtigungen<?= $ungelesen ? ' (' . $ungelesen . ' ungelesen)' : '' ?>" title="Benachrichtigungen">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                <?php if ($ungelesen > 0): ?><span class="dash-glocke-badge"><?= $ungelesen > 99 ? '99+' : $ungelesen ?></span><?php endif; ?>
+            </a>
             <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Farbschema wechseln" title="Hell/Dunkel umschalten">
                 <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
                 <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -293,6 +321,27 @@ try {
                 Meine Statistik
             </a>
             <?php endif; ?>
+
+            <!-- Einsatz & Projekte -->
+            <span class="sidebar-section-label" style="margin-top: 0.75rem;">Einsatz &amp; Projekte</span>
+            <a href="<?= APP_URL ?>/dashboard/zeiterfassung.php" class="sidebar-link <?= strpos($current_path, '/dashboard/zeiterfassung') !== false || strpos($current_path, '/dashboard/einheit') !== false ? 'active' : '' ?>">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Zeiterfassung
+                <?php if ($offene_bestaetigungen > 0): ?><span class="sidebar-link-badge"><?= $offene_bestaetigungen ?></span><?php endif; ?>
+            </a>
+            <a href="<?= APP_URL ?>/dashboard/projekte.php" class="sidebar-link <?= preg_match('#/dashboard/projekt#', $current_path) ? 'active' : '' ?>">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                Projekte
+            </a>
+            <a href="<?= APP_URL ?>/dashboard/aufgaben.php" class="sidebar-link <?= strpos($current_path, '/dashboard/aufgaben') !== false ? 'active' : '' ?>">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                Aufgaben
+                <?php if ($meine_aufgaben > 0): ?><span class="sidebar-link-badge" style="<?= $meine_ueberfaellig ? '' : 'background: var(--navy-light);' ?>"><?= $meine_aufgaben ?></span><?php endif; ?>
+            </a>
+            <a href="<?= APP_URL ?>/dashboard/qualifikationen.php" class="sidebar-link <?= strpos($current_path, '/dashboard/qualifikationen') !== false ? 'active' : '' ?>">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+                Qualifikationen
+            </a>
             <?php endif; ?>
 
             <?php if (isAdmin()): ?>
@@ -324,6 +373,11 @@ try {
             <a href="<?= APP_URL ?>/dashboard/admin/abrechnungen.php" class="sidebar-link <?= strpos($current_path, '/admin/abrechnungen') !== false ? 'active' : '' ?>">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                 Abrechnungen
+            </a>
+            <a href="<?= APP_URL ?>/dashboard/admin/trainerabrechnungen.php" class="sidebar-link <?= strpos($current_path, '/admin/trainerabrechnungen') !== false ? 'active' : '' ?>">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
+                Trainerabrechnungen
+                <?php if ($abrechnungen_offen > 0): ?><span class="sidebar-link-badge"><?= $abrechnungen_offen ?></span><?php endif; ?>
             </a>
             <a href="<?= APP_URL ?>/dashboard/admin/foerderungen.php" class="sidebar-link <?= strpos($current_path, '/admin/foerderung') !== false ? 'active' : '' ?>">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"/></svg>

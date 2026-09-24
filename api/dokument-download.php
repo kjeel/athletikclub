@@ -27,9 +27,33 @@ if (!$dok) {
 }
 
 // Zugriffsprüfung
+require_once ROOT_PATH . '/includes/plattform.php';
 $allowed = false;
 
-if (!empty($dok['foerderung_id']) || !empty($dok['kooperation_id'])) {
+/** Leitung oder Team des Projekts? */
+$imProjekt = function (int $projekt_id) use ($db): bool {
+    try {
+        $stmt = $db->prepare('SELECT 1 FROM projekte WHERE id = ? AND leitung_id = ? UNION SELECT 1 FROM projekt_team WHERE projekt_id = ? AND user_id = ?');
+        $stmt->execute([$projekt_id, getCurrentUserId(), $projekt_id, getCurrentUserId()]);
+        return (bool)$stmt->fetchColumn();
+    } catch (Exception $e) {
+        return false;
+    }
+};
+
+if (!empty($dok['qualifikation_id'])) {
+    // Qualifikationsnachweis: die Person selbst oder Qualifikations-Verwaltung
+    $allowed = (int)$dok['mitglied_id'] === getCurrentUserId() || darf('qualifikationen.anzeigen');
+} elseif (!empty($dok['vertrag_id'])) {
+    $allowed = darf('vertraege.anzeigen');
+} elseif (!empty($dok['partner_id'])) {
+    $allowed = darf('partner.anzeigen');
+} elseif (!empty($dok['buchung_id']) || !empty($dok['projekt_id'])) {
+    // Projekt-Dokumente und Belege: Projektrechte, Finanz-/Förderrechte oder Projektteam
+    $allowed = darfEines('projekte.anzeigen', 'finanzen.anzeigen', 'foerderungen.anzeigen') || (!empty($dok['projekt_id']) && $imProjekt((int)$dok['projekt_id']));
+} elseif (!empty($dok['foerderung_id'])) {
+    $allowed = darf('foerderungen.anzeigen');
+} elseif (!empty($dok['kooperation_id'])) {
     // Förder- bzw. Kooperationsdokument: nur Admin
     $allowed = isAdmin();
 } elseif (!empty($dok['mitglied_id'])) {

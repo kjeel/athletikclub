@@ -19,10 +19,17 @@ $user_id = (int)getCurrentUserId();
 $trainer = isTrainer();
 $errors  = [];
 
-$monat = preg_match('/^\d{4}-\d{2}$/', $_GET['monat'] ?? '') ? $_GET['monat'] : date('Y-m');
-$ansicht = ($_GET['ansicht'] ?? '') === 'liste' ? 'liste' : 'monat';
+$ansicht = in_array($_GET['ansicht'] ?? '', ['monat', 'woche', 'tag', 'liste'], true) ? $_GET['ansicht'] : 'monat';
+$datum = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['datum'] ?? '') && strtotime($_GET['datum']) ? $_GET['datum']
+       : (preg_match('/^\d{4}-\d{2}$/', $_GET['monat'] ?? '') ? $_GET['monat'] . '-01' : date('Y-m-d'));
+$monat = substr($datum, 0, 7);
 $quellen = isset($_GET['f']) ? array_values(array_intersect((array)($_GET['q'] ?? []), array_keys(KAL_QUELLEN))) : array_keys(KAL_QUELLEN);
-$basis = fn(array $mehr = []) => APP_URL . '/dashboard/kalender.php?' . http_build_query(array_merge(['monat' => $monat, 'ansicht' => $ansicht], isset($_GET['f']) ? ['f' => 1, 'q' => $quellen] : [], $mehr));
+// Filter „Trainer:in“: leer = alle sichtbaren, „meine“ = eigene Einsätze, Zahl = bestimmte Person (nur mit Planungsrecht)
+$planer = darf('kalender.anzeigen');
+$t_filter = $_GET['t'] ?? '';
+$nur_trainer = $t_filter === 'meine' ? $user_id : ($planer && ctype_digit((string)$t_filter) ? (int)$t_filter : null);
+$basis = fn(array $mehr = []) => APP_URL . '/dashboard/kalender.php?' . http_build_query(array_merge(['ansicht' => $ansicht, 'datum' => $datum],
+    isset($_GET['f']) ? ['f' => 1, 'q' => $quellen] : [], $t_filter !== '' ? ['t' => $t_filter] : [], $mehr));
 
 /** Termin laden (nur sichtbare), inkl. Bearbeitungsrecht. */
 $termin_laden = function (int $id) use ($db, $org_id, $user_id, $trainer): ?array {
@@ -55,8 +62,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             redirect($basis());
         }
         $titel    = mb_substr(trim($_POST['titel'] ?? ''), 0, 150);
-        $datum    = $_POST['datum'] ?? '';
-        $datum_bis = ($_POST['datum_bis'] ?? '') ?: $datum;
+        $t_datum    = $_POST['datum'] ?? '';
+        $datum_bis = ($_POST['datum_bis'] ?? '') ?: $t_datum;
         $ganztags = !empty($_POST['ganztags']);
         $zeit_von = preg_match('/^\d{2}:\d{2}$/', $_POST['zeit_von'] ?? '') ? $_POST['zeit_von'] : '18:00';
         $zeit_bis = preg_match('/^\d{2}:\d{2}$/', $_POST['zeit_bis'] ?? '') ? $_POST['zeit_bis'] : '19:00';
@@ -65,12 +72,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $mitglied = (int)($_POST['mitglied_id'] ?? 0) ?: null;
 
         if ($titel === '') $errors['titel'] = 'Bitte einen Titel angeben.';
-        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum) || !strtotime($datum)) $errors['datum'] = 'Bitte ein gültiges Datum angeben.';
-        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum_bis) || $datum_bis < $datum) $datum_bis = $datum;
-        $start = $datum . ' ' . ($ganztags ? '00:00' : $zeit_von) . ':00';
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $t_datum) || !strtotime($t_datum)) $errors['datum'] = 'Bitte ein gültiges Datum angeben.';
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum_bis) || $datum_bis < $t_datum) $datum_bis = $t_datum;
+        $start = $t_datum . ' ' . ($ganztags ? '00:00' : $zeit_von) . ':00';
         $ende  = $datum_bis . ' ' . ($ganztags ? '23:59' : $zeit_bis) . ':' . ($ganztags ? '59' : '00');
         if (!$ganztags && $ende <= $start) $errors['zeit'] = 'Das Ende muss nach dem Beginn liegen.';
-        if ($wiederholung !== 'keine' && $wdh_bis && $wdh_bis < $datum) $errors['wiederholung_bis'] = 'Die Wiederholung muss nach dem ersten Termin enden.';
+        if ($wiederholung !== 'keine' && $wdh_bis && $wdh_bis < $t_datum) $errors['wiederholung_bis'] = 'Die Wiederholung muss nach dem ersten Termin enden.';
         if ($mitglied) {
             $stmt = $db->prepare("SELECT id FROM users WHERE id = ? AND organization_id = ? AND rolle = 'mitglied'");
             $stmt->execute([$mitglied, $org_id]);
@@ -91,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             logActivity('termin_gespeichert', $titel);
             flashMessage('success', 'Termin „' . $titel . '“ gespeichert.');
-            redirect(APP_URL . '/dashboard/kalender.php?monat=' . substr($datum, 0, 7));
+            redirect(APP_URL . '/dashboard/kalender.php?monat=' . substr($t_datum, 0, 7));
         }
     }
 
@@ -125,18 +132,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // ----------------------------------------------------------------
 $erster   = $monat . '-01';
 $letzter  = date('Y-m-t', strtotime($erster));
-$raster_von = date('Y-m-d', strtotime('monday this week', strtotime($erster)));
-$raster_bis = date('Y-m-d', strtotime('sunday this week', strtotime($letzter)));
-$eintraege = kalEintraege($db, $org_id, $user_id, $trainer, $raster_von, $raster_bis, $quellen);
+$heute    = date('Y-m-d');
+if ($ansicht === 'woche') {
+    $raster_von = date('Y-m-d', strtotime('monday this week', strtotime($datum)));
+    $raster_bis = date('Y-m-d', strtotime($raster_von . ' +6 days'));
+} elseif ($ansicht === 'tag') {
+    $raster_von = $raster_bis = $datum;
+} else {
+    $raster_von = date('Y-m-d', strtotime('monday this week', strtotime($erster)));
+    $raster_bis = date('Y-m-d', strtotime('sunday this week', strtotime($letzter)));
+}
+$eintraege = kalEintraege($db, $org_id, $user_id, $trainer, $raster_von, $raster_bis, $quellen, ['alle_einheiten' => $planer, 'nur_trainer' => $nur_trainer]);
 $je_tag    = kalJeTag($eintraege, $raster_von, $raster_bis);
-$heute     = date('Y-m-d');
 
 $monate = [1 => 'Jänner', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
 $monat_label = $monate[(int)substr($monat, 5, 2)] . ' ' . substr($monat, 0, 4);
-$vor   = date('Y-m', strtotime($erster . ' -1 month'));
-$nach  = date('Y-m', strtotime($erster . ' +1 month'));
 $wochentage = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 $wochentage_lang = [1 => 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
+[$vor, $nach, $titel_zeitraum] = match ($ansicht) {
+    'woche' => [date('Y-m-d', strtotime($raster_von . ' -7 days')), date('Y-m-d', strtotime($raster_von . ' +7 days')),
+                'KW ' . (int)date('W', strtotime($raster_von)) . ' · ' . date('d.m.', strtotime($raster_von)) . '–' . date('d.m.Y', strtotime($raster_bis))],
+    'tag'   => [date('Y-m-d', strtotime($datum . ' -1 day')), date('Y-m-d', strtotime($datum . ' +1 day')),
+                $wochentage_lang[(int)date('N', strtotime($datum))] . ', ' . date('d.m.Y', strtotime($datum))],
+    default => [date('Y-m-d', strtotime($erster . ' -1 month')), date('Y-m-d', strtotime($erster . ' +1 month')), $monat_label],
+};
+$ist_heute = match ($ansicht) { 'woche' => $heute >= $raster_von && $heute <= $raster_bis, 'tag' => $datum === $heute, default => $monat === date('Y-m') };
+$darf_planen = darf('kalender.erstellen') || $trainer;
+$trainer_liste = $planer ? plattformTrainer($db) : [];
+
+/** Einträge eines Tages für das Zeitraster (mit Spalten bei Überschneidung). */
+$zeitraster = function (array $evs, string $tag): array {
+    $evs = array_values(array_filter($evs, fn($e) => !$e['ganztags'] && substr($e['start'], 0, 10) <= $tag && substr($e['ende'], 0, 10) >= $tag));
+    usort($evs, fn($a, $b) => $a['start'] <=> $b['start']);
+    // Gruppen sich überschneidender Termine; innerhalb einer Gruppe nebeneinander
+    $gruppe = $ergebnis = [];
+    $gruppe_ende = 0;
+    $abschliessen = function () use (&$gruppe, &$ergebnis) {
+        $spalten = max(1, max(array_column($gruppe, '_spalte') ?: [0]) + 1);
+        foreach ($gruppe as $g) { $g['_breite'] = 100 / $spalten; $ergebnis[] = $g; }
+        $gruppe = [];
+    };
+    foreach ($evs as $e) {
+        $s = max(strtotime($e['start']), strtotime($tag . ' 06:00'));
+        $en = min(strtotime($e['ende']), strtotime($tag . ' 23:00'));
+        if ($gruppe && $s >= $gruppe_ende) $abschliessen();
+        $e['_top'] = max(0, ($s - strtotime($tag . ' 06:00')) / 60);
+        $e['_hoehe'] = max(22, ($en - $s) / 60);
+        $belegt = array_map(fn($g) => $g['_ende'] > $s ? $g['_spalte'] : -1, $gruppe);
+        $spalte = 0;
+        while (in_array($spalte, $belegt, true)) $spalte++;
+        $e['_spalte'] = $spalte;
+        $e['_ende'] = $en;
+        $gruppe[] = $e;
+        $gruppe_ende = max($gruppe_ende, $en);
+    }
+    if ($gruppe) $abschliessen();
+    return $ergebnis;
+};
 
 // Termin-Formular / -Details
 $termin = null;
@@ -207,10 +259,29 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
 .kal-liste-ev .info { font-size: 0.75rem; color: var(--text-muted); }
 .kal-liste-ev.abgesagt .titel { text-decoration: line-through; }
 .kal-ansicht-monat .kal-liste { display: none; }
-.kal-ansicht-liste .kal-raster { display: none; }
+.kal-ansicht-liste .kal-raster, .kal-ansicht-woche .kal-raster, .kal-ansicht-tag .kal-raster, .kal-ansicht-woche .kal-liste, .kal-ansicht-tag .kal-liste { display: none; }
+.kal-ansichten { display: inline-flex; border: 1px solid var(--border-color); border-radius: 99px; overflow: hidden; }
+.kal-ansichten a { padding: 0.4rem 0.9rem; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); }
+.kal-ansichten a.aktiv { background: var(--navy-primary); color: #fff; }
+.kal-zeit { border: 1px solid var(--border-light); border-radius: 1rem; background: var(--surface); overflow: hidden; margin-bottom: 1rem; }
+.kal-zeit-kopf, .kal-zeit-koerper { display: grid; grid-template-columns: 3.4rem repeat(var(--tage), minmax(0, 1fr)); }
+.kal-zeit-kopf { border-bottom: 1px solid var(--border-light); background: var(--bg-muted); }
+.kal-zeit-kopf > div { padding: 0.5rem 0.4rem; font-size: 0.78rem; color: var(--text-secondary); min-width: 0; }
+.kal-zeit-kopf > div.heute strong { color: var(--gold-accent); }
+.kal-zeit-skala span { display: block; height: 48px; font-size: 0.68rem; color: var(--text-muted); text-align: right; padding: 0 0.4rem; transform: translateY(-0.45em); }
+.kal-zeit-spalte { position: relative; height: 816px; border-left: 1px solid var(--border-light); background-image: repeating-linear-gradient(to bottom, var(--border-light) 0, var(--border-light) 1px, transparent 1px, transparent 48px); }
+.kal-zeit-spalte.heute { background-color: color-mix(in srgb, var(--gold-accent) 6%, transparent); }
+.kal-zeit-neu { position: absolute; inset: 0; z-index: 0; }
+.kal-zeit-ev { position: absolute; z-index: 1; overflow: hidden; font-size: 0.72rem; line-height: 1.25; padding: 3px 5px; border-radius: 6px; border-left: 3px solid var(--ev); background: color-mix(in srgb, var(--ev) 18%, var(--surface)); color: var(--text-primary); }
+.kal-zeit-ev:hover { z-index: 2; box-shadow: var(--shadow-md); }
+.kal-zeit-ev.abgesagt { text-decoration: line-through; opacity: 0.55; }
+.kal-zeit-ev.erledigt::after { content: "✓"; position: absolute; right: 4px; top: 2px; color: var(--success); font-weight: 700; }
+.kal-zeit-trainer { display: block; color: var(--text-muted); font-size: 0.68rem; }
 @media (max-width: 768px) {
     .kal-ansicht-monat .kal-raster { display: none; }
-    .kal-ansicht-monat .kal-liste { display: flex; }
+    .kal-ansicht-monat .kal-liste, .kal-ansicht-woche .kal-liste { display: flex; }
+    .kal-zeit-7 { display: none; }
+    .kal-ansichten a { padding: 0.35rem 0.65rem; }
     .kal-nav h2 { min-width: 0; font-size: 1rem; }
     .kal-liste-ev { grid-template-columns: 4.5rem 1fr; }
 }
@@ -227,20 +298,63 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
 
 <div class="kal-kopf">
     <div class="kal-nav">
-        <a href="<?= e($basis(['monat' => $vor])) ?>" class="btn btn-ghost-light btn-sm" aria-label="Vorheriger Monat">‹</a>
-        <h2><?= e($monat_label) ?></h2>
-        <a href="<?= e($basis(['monat' => $nach])) ?>" class="btn btn-ghost-light btn-sm" aria-label="Nächster Monat">›</a>
-        <?php if ($monat !== date('Y-m')): ?><a href="<?= e($basis(['monat' => date('Y-m')])) ?>" class="btn btn-ghost-light btn-sm">Heute</a><?php endif; ?>
+        <a href="<?= e($basis(['datum' => $vor])) ?>" class="btn btn-ghost-light btn-sm" aria-label="Zurück">‹</a>
+        <h2><?= e($titel_zeitraum) ?></h2>
+        <a href="<?= e($basis(['datum' => $nach])) ?>" class="btn btn-ghost-light btn-sm" aria-label="Weiter">›</a>
+        <?php if (!$ist_heute): ?><a href="<?= e($basis(['datum' => $heute])) ?>" class="btn btn-ghost-light btn-sm">Heute</a><?php endif; ?>
     </div>
-    <form method="GET" class="kal-filter">
-        <input type="hidden" name="monat" value="<?= e($monat) ?>"><input type="hidden" name="ansicht" value="<?= e($ansicht) ?>"><input type="hidden" name="f" value="1">
-        <?php foreach (KAL_QUELLEN as $q => $info): ?>
-        <label class="kal-chip"><input type="checkbox" name="q[]" value="<?= $q ?>" <?= in_array($q, $quellen, true) ? 'checked' : '' ?> onchange="this.form.submit()"><i style="background: <?= $info['farbe'] ?>"></i><?= e($info['label']) ?></label>
+    <div class="kal-ansichten" role="tablist" aria-label="Ansicht">
+        <?php foreach (['tag' => 'Tag', 'woche' => 'Woche', 'monat' => 'Monat', 'liste' => 'Liste'] as $a => $label): ?>
+        <a href="<?= e($basis(['ansicht' => $a])) ?>" class="<?= $ansicht === $a ? 'aktiv' : '' ?>" role="tab" aria-selected="<?= $ansicht === $a ? 'true' : 'false' ?>"><?= $label ?></a>
         <?php endforeach; ?>
-        <a href="<?= e($basis(['ansicht' => $ansicht === 'monat' ? 'liste' : 'monat'])) ?>" class="btn btn-ghost-light btn-sm"><?= $ansicht === 'monat' ? 'Listenansicht' : 'Monatsansicht' ?></a>
-        <?php if ($trainer): ?><a href="<?= e($basis(['neu' => $monat === date('Y-m') ? $heute : $erster])) ?>#termin" class="btn btn-navy btn-sm">+ Termin</a><?php endif; ?>
-    </form>
+    </div>
 </div>
+<form method="GET" class="kal-filter" style="margin-bottom: 1rem;">
+    <input type="hidden" name="datum" value="<?= e($datum) ?>"><input type="hidden" name="ansicht" value="<?= e($ansicht) ?>"><input type="hidden" name="f" value="1">
+    <?php foreach (KAL_QUELLEN as $q => $info): ?>
+    <label class="kal-chip"><input type="checkbox" name="q[]" value="<?= $q ?>" <?= in_array($q, $quellen, true) ? 'checked' : '' ?> onchange="this.form.submit()"><i style="background: <?= $info['farbe'] ?>"></i><?= e($info['label']) ?></label>
+    <?php endforeach; ?>
+    <?php if ($trainer): ?>
+    <select class="form-control" name="t" onchange="this.form.submit()" style="max-width: 200px; padding-top: 0.3rem; padding-bottom: 0.3rem;" aria-label="Trainer:in">
+        <option value="">Alle Einsätze</option>
+        <option value="meine" <?= $t_filter === 'meine' ? 'selected' : '' ?>>Nur meine Einsätze</option>
+        <?php foreach ($trainer_liste as $tr): ?><option value="<?= (int)$tr['id'] ?>" <?= (string)$t_filter === (string)$tr['id'] ? 'selected' : '' ?>><?= e($tr['vorname'] . ' ' . $tr['nachname']) ?></option><?php endforeach; ?>
+    </select>
+    <?php endif; ?>
+    <span style="flex: 1;"></span>
+    <?php if ($darf_planen): ?><a href="<?= APP_URL ?>/dashboard/einheit-planen.php?datum=<?= e($ansicht === 'monat' && $monat !== date('Y-m') ? $erster : $datum) ?>" class="btn btn-navy btn-sm">+ Einheit planen</a><?php endif; ?>
+    <?php if ($trainer): ?><a href="<?= e($basis(['neu' => $datum])) ?>#termin" class="btn btn-ghost-light btn-sm">+ Persönlicher Termin</a><?php endif; ?>
+</form>
+
+<?php if ($ansicht === 'woche' || $ansicht === 'tag'): $tage = []; for ($d = $raster_von; $d <= $raster_bis; $d = date('Y-m-d', strtotime($d . ' +1 day'))) $tage[] = $d; ?>
+<!-- Zeitraster (Tag/Woche) -->
+<div class="kal-zeit kal-zeit-<?= count($tage) ?>" style="--tage: <?= count($tage) ?>;">
+    <div class="kal-zeit-kopf"><div></div>
+        <?php foreach ($tage as $d): $ganztags = array_filter($je_tag[$d] ?? [], fn($e) => $e['ganztags']); ?>
+        <div class="<?= $d === $heute ? 'heute' : '' ?>">
+            <a href="<?= e($basis(['ansicht' => 'tag', 'datum' => $d])) ?>"><?= $wochentage[(int)date('N', strtotime($d)) - 1] ?> <strong><?= date('d.m.', strtotime($d)) ?></strong></a>
+            <?php foreach ($ganztags as $e): ?><a class="kal-ev" style="--ev: <?= $e['farbe'] ?>; margin-top: 3px;" href="<?= e(APP_URL . $e['url']) ?>"><?= e($e['titel']) ?></a><?php endforeach; ?>
+        </div>
+        <?php endforeach; ?>
+    </div>
+    <div class="kal-zeit-koerper">
+        <div class="kal-zeit-skala"><?php for ($h = 6; $h < 23; $h++): ?><span><?= sprintf('%02d:00', $h) ?></span><?php endfor; ?></div>
+        <?php foreach ($tage as $d): ?>
+        <div class="kal-zeit-spalte <?= $d === $heute ? 'heute' : '' ?>">
+            <?php if ($darf_planen): ?><a class="kal-zeit-neu" href="<?= APP_URL ?>/dashboard/einheit-planen.php?datum=<?= $d ?>" title="Einheit am <?= date('d.m.', strtotime($d)) ?> planen" aria-label="Einheit planen"></a><?php endif; ?>
+            <?php foreach ($zeitraster($je_tag[$d] ?? [], $d) as $e): ?>
+            <a class="kal-zeit-ev <?= $e['abgesagt'] ? 'abgesagt' : '' ?> <?= !empty($e['erledigt']) ? 'erledigt' : '' ?>" href="<?= e(APP_URL . $e['url']) ?>"
+               style="--ev: <?= $e['farbe'] ?>; top: <?= round($e['_top'] * 0.8) ?>px; height: <?= round($e['_hoehe'] * 0.8) ?>px; left: <?= round($e['_spalte'] * $e['_breite'], 2) ?>%; width: calc(<?= round($e['_breite'], 2) ?>% - 3px);"
+               title="<?= e(kalZeit($e) . ' · ' . $e['titel'] . ($e['ort'] ? ' · ' . $e['ort'] : '') . (!empty($e['trainer']) ? ' · ' . implode(', ', $e['trainer']) : '')) ?>">
+                <b><?= date('H:i', strtotime($e['start'])) ?></b> <?= e($e['titel']) ?>
+                <?php if (!empty($e['trainer'])): ?><span class="kal-zeit-trainer"><?= e(implode(', ', $e['trainer'])) ?></span><?php endif; ?>
+            </a>
+            <?php endforeach; ?>
+        </div>
+        <?php endforeach; ?>
+    </div>
+</div>
+<?php endif; ?>
 
 <div class="kal-ansicht-<?= $ansicht ?>">
     <!-- Monatsraster -->
@@ -248,22 +362,22 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
         <?php foreach ($wochentage as $wt): ?><div class="kal-wt"><?= $wt ?></div><?php endforeach; ?>
         <?php for ($d = $raster_von; $d <= $raster_bis; $d = date('Y-m-d', strtotime($d . ' +1 day'))): $evs = $je_tag[$d] ?? []; ?>
         <div class="kal-tag <?= substr($d, 0, 7) !== $monat ? 'fremd' : '' ?> <?= $d === $heute ? 'heute' : '' ?>">
-            <div class="kal-tag-nr"><span><?= (int)substr($d, 8, 2) ?></span><?php if ($trainer): ?><a class="plus" href="<?= e($basis(['neu' => $d])) ?>#termin" title="Termin am <?= date('d.m.', strtotime($d)) ?> anlegen">+</a><?php endif; ?></div>
+            <div class="kal-tag-nr"><span><?= (int)substr($d, 8, 2) ?></span><?php if ($darf_planen): ?><a class="plus" href="<?= APP_URL ?>/dashboard/einheit-planen.php?datum=<?= $d ?>" title="Einheit am <?= date('d.m.', strtotime($d)) ?> anlegen">+</a><?php endif; ?></div>
             <?php foreach (array_slice($evs, 0, 4) as $e): ?>
             <a class="kal-ev <?= $e['abgesagt'] ? 'abgesagt' : '' ?>" style="--ev: <?= $e['farbe'] ?>" href="<?= e(APP_URL . $e['url']) ?>" title="<?= e(kalZeit($e) . ' · ' . $e['titel'] . ($e['ort'] ? ' · ' . $e['ort'] : '')) ?>">
                 <?php if (!$e['ganztags'] && substr($e['start'], 0, 10) === $d): ?><b><?= date('H:i', strtotime($e['start'])) ?></b> <?php endif; ?><?= e($e['titel']) ?>
             </a>
             <?php endforeach; ?>
-            <?php if (count($evs) > 4): ?><a class="kal-mehr" href="<?= e($basis(['ansicht' => 'liste'])) ?>#tag-<?= $d ?>">+<?= count($evs) - 4 ?> weitere</a><?php endif; ?>
+            <?php if (count($evs) > 4): ?><a class="kal-mehr" href="<?= e($basis(['ansicht' => 'tag', 'datum' => $d])) ?>">+<?= count($evs) - 4 ?> weitere</a><?php endif; ?>
         </div>
         <?php endfor; ?>
     </div>
 
     <!-- Liste (Handy / Listenansicht) -->
     <div class="kal-liste">
-        <?php $im_monat = array_filter($je_tag, fn($d) => substr($d, 0, 7) === $monat, ARRAY_FILTER_USE_KEY); ksort($im_monat); ?>
+        <?php $im_monat = array_filter($je_tag, fn($d) => in_array($ansicht, ['woche', 'tag'], true) ? ($d >= $raster_von && $d <= $raster_bis) : substr($d, 0, 7) === $monat, ARRAY_FILTER_USE_KEY); ksort($im_monat); ?>
         <?php if (!$im_monat): ?>
-            <div class="table-card"><div class="empty-state" style="padding: 2.5rem 1rem;"><h3>Keine Einträge im <?= e($monat_label) ?></h3><p><?= $trainer ? 'Lege mit „+ Termin“ einen neuen Termin an.' : 'Sobald du für Kurse angemeldet bist, erscheinen sie hier.' ?></p></div></div>
+            <div class="table-card"><div class="empty-state" style="padding: 2.5rem 1rem;"><h3>Keine Einträge (<?= e($titel_zeitraum) ?>)</h3><p><?= $trainer ? 'Plane mit „+ Einheit planen“ eine neue Einheit.' : 'Sobald du für Kurse angemeldet bist, erscheinen sie hier.' ?></p></div></div>
         <?php endif; ?>
         <?php foreach ($im_monat as $d => $evs): ?>
         <div class="kal-liste-tag <?= $d === $heute ? 'heute' : '' ?>" id="tag-<?= $d ?>">
