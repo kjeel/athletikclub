@@ -44,6 +44,38 @@
     }
 
     // ============================================================
+    // Benutzermenü (JK oben rechts) – per Tipp/Klick öffnen, da Hover am Handy fehlt
+    // ============================================================
+    const userMenu = document.getElementById('user-menu');
+
+    function setUserMenu(offen) {
+        userMenu.classList.toggle('open', offen);
+        userMenu.setAttribute('aria-expanded', offen ? 'true' : 'false');
+    }
+
+    if (userMenu) {
+        userMenu.addEventListener('click', function (e) {
+            if (e.target.closest('.dropdown-menu a')) return; // Link normal öffnen
+            const offen = !userMenu.classList.contains('open');
+            setUserMenu(offen);
+            if (!offen) userMenu.blur(); // sonst hält :focus-within das Menü offen
+        });
+        userMenu.addEventListener('keydown', function (e) {
+            if ((e.key === 'Enter' || e.key === ' ') && e.target === userMenu) {
+                e.preventDefault();
+                setUserMenu(!userMenu.classList.contains('open'));
+            }
+            if (e.key === 'Escape') { setUserMenu(false); userMenu.blur(); }
+        });
+        document.addEventListener('click', function (e) {
+            if (!userMenu.contains(e.target)) {
+                setUserMenu(false);
+                if (userMenu.contains(document.activeElement)) document.activeElement.blur();
+            }
+        });
+    }
+
+    // ============================================================
     // Drag & Drop für Upload-Zone
     // ============================================================
     const uploadZones = document.querySelectorAll('.upload-zone');

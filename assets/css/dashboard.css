@@ -448,6 +448,15 @@
     min-width: 0;
 }
 
+/* Benutzermenü (JK oben rechts): per Tipp öffnen; „Zur Website“ nur am Handy */
+.has-dropdown.open .dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.dash-dropdown-website { display: none; }
+
 /* Menü-Button (Sidebar) nur auf Tablet/Handy */
 #sidebar-toggle {
     display: none;
@@ -525,6 +534,7 @@
     .dash-breadcrumb-sep,
     .dash-website-btn,
     .dash-header-actions .user-name { display: none; }
+    .dash-dropdown-website { display: block; }
 
     .dashboard-main {
         padding: var(--space-5) var(--space-4) calc(var(--space-10) + env(safe-area-inset-bottom));

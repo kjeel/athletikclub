@@ -168,11 +168,15 @@ try {
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                 Website
             </a>
-            <div class="user-chip has-dropdown">
+            <div class="user-chip has-dropdown" id="user-menu" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false" aria-label="Benutzermenü">
                 <div class="user-avatar"><?= $initials ?></div>
                 <span class="user-name"><?= e($user['vorname']) ?></span>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
                 <ul class="dropdown-menu dropdown-right">
+                    <li class="dash-dropdown-website"><a href="<?= APP_URL ?>/">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                        Zur Website
+                    </a></li>
                     <li><a href="<?= APP_URL ?>/dashboard/profil.php">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                         Mein Profil
