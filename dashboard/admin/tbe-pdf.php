@@ -30,6 +30,11 @@ $mit_kosten = $k['stundensatz'] !== null;
 class TbePDF extends TCPDF
 {
     public string $headerTitel = '';
+    public function __construct(...$args)
+    {
+        parent::__construct(...$args);
+        $this->tcpdflink = false; // kein "Powered by TCPDF"-Vermerk
+    }
 
     public function Header()
     {
@@ -38,7 +43,7 @@ class TbePDF extends TCPDF
         $this->Cell(0, 8, $this->headerTitel, 0, 1, 'L');
         $this->SetDrawColor(198, 161, 53);
         $this->SetLineWidth(0.6);
-        $this->Line(15, 22, 195, 22);
+        $this->Line(15, 17, 195, 17);
         $this->SetTextColor(0, 0, 0);
     }
 
@@ -50,12 +55,12 @@ class TbePDF extends TCPDF
         $this->Cell(0, 10, APP_NAME . ' · ZVR ' . VEREIN_ZVR . ' · Seite ' . $this->getAliasNumPage() . '/' . $this->getAliasNbPages(), 0, 0, 'C');
     }
 
-    public function feldZeile(string $label, ?string $wert, float $labelWidth = 60): void
+    public function feldZeile(string $label, ?string $wert, float $labelWidth = 70): void
     {
         $this->SetFont('dejavusans', 'B', 10);
         $this->Cell($labelWidth, 7, $label, 0, 0, 'L');
         $this->SetFont('dejavusans', '', 10);
-        $this->Cell(0, 7, $wert !== null && $wert !== '' ? $wert : '–', 0, 1, 'L');
+        $this->MultiCell(0, 7, $wert !== null && $wert !== '' ? $wert : '–', 0, 'L');
     }
 
     public function abschnitt(string $titel): void
@@ -77,7 +82,7 @@ $pdf->headerTitel = 'TÄGLICHE BEWEGUNGSEINHEIT – GESAMTKONZEPT ' . $k['bezeic
 $pdf->SetCreator(APP_NAME);
 $pdf->SetAuthor(APP_NAME);
 $pdf->SetTitle('Gesamtkonzept Tägliche Bewegungseinheit ' . $k['bezeichnung']);
-$pdf->SetMargins(15, 26, 15);
+$pdf->SetMargins(15, 22, 15);
 $pdf->SetAutoPageBreak(true, 20);
 $pdf->AddPage();
 
@@ -136,35 +141,36 @@ if (empty($projekte)) {
     $th = 'style="background-color:#EEF1F5; font-weight:bold;"';
     $html = '<table border="0.3" cellpadding="3" style="font-size:8.5pt;">'
         . '<thead><tr>'
-        . '<th ' . $th . ' width="' . ($mit_kosten ? 28 : 33) . '%">Einrichtung</th>'
-        . '<th ' . $th . ' width="' . ($mit_kosten ? 24 : 29) . '%">Angebot / Zielgruppe</th>'
-        . '<th ' . $th . ' width="8%" align="right">Gruppen</th>'
-        . '<th ' . $th . ' width="8%" align="right">Einh./ Woche</th>'
-        . '<th ' . $th . ' width="8%" align="right">Dauer (Min.)</th>'
-        . '<th ' . $th . ' width="7%" align="right">Wochen</th>'
-        . '<th ' . $th . ' width="7%" align="right">Stunden</th>'
-        . ($mit_kosten ? '<th ' . $th . ' width="10%" align="right">Kosten</th>' : '')
+        . '<td ' . $th . ' width="' . ($mit_kosten ? 26 : 33) . '%">Einrichtung</td>'
+        . '<td ' . $th . ' width="' . ($mit_kosten ? 24 : 29) . '%">Angebot / Zielgruppe</td>'
+        . '<td ' . $th . ' width="8%" align="right">Gr.</td>'
+        . '<td ' . $th . ' width="8%" align="right">Einh./Wo.</td>'
+        . '<td ' . $th . ' width="8%" align="right">Min.</td>'
+        . '<td ' . $th . ' width="7%" align="right">Wo.</td>'
+        . '<td ' . $th . ' width="7%" align="right">Std.</td>'
+        . ($mit_kosten ? '<td ' . $th . ' width="12%" align="right">Kosten</td>' : '')
         . '</tr></thead><tbody>';
 
     foreach ($projekte as $p) {
         $html .= '<tr nobr="true">'
-            . '<td width="' . ($mit_kosten ? 28 : 33) . '%"><b>' . $h($p['einrichtung']) . '</b><br>' . $h(TBE_EINRICHTUNGSTYPEN[$p['einrichtungstyp']] ?? '') . ($p['ort'] ? ', ' . $h($p['ort']) : '') . '</td>'
+            . '<td width="' . ($mit_kosten ? 26 : 33) . '%"><b>' . $h($p['einrichtung']) . '</b><br>' . $h(TBE_EINRICHTUNGSTYPEN[$p['einrichtungstyp']] ?? '') . ($p['ort'] ? ', ' . $h($p['ort']) : '') . '</td>'
             . '<td width="' . ($mit_kosten ? 24 : 29) . '%">' . $h($p['bewegungsangebot']) . ($p['zielgruppe'] ? '<br>' . $h($p['zielgruppe']) : '') . '</td>'
             . '<td width="8%" align="right">' . (int)$p['anzahl_gruppen'] . '</td>'
             . '<td width="8%" align="right">' . tbeZahl((float)$p['einheiten_pro_woche']) . '</td>'
             . '<td width="8%" align="right">' . (int)$p['dauer_minuten'] . '</td>'
             . '<td width="7%" align="right">' . (int)$p['anzahl_wochen'] . '</td>'
             . '<td width="7%" align="right">' . tbeZahl(tbeStunden($p)) . '</td>'
-            . ($mit_kosten ? '<td width="10%" align="right">' . $h(moneyFormat(tbeKosten($p, $k['stundensatz']))) . '</td>' : '')
+            . ($mit_kosten ? '<td width="12%" align="right">' . $h(moneyFormat(tbeKosten($p, $k['stundensatz']))) . '</td>' : '')
             . '</tr>';
     }
 
     $html .= '<tr style="font-weight:bold;">'
-        . '<td width="' . ($mit_kosten ? 83 : 93) . '%" colspan="6">Gesamt</td>'
+        . '<td width="' . ($mit_kosten ? 81 : 93) . '%" colspan="6">Gesamt</td>'
         . '<td width="7%" align="right">' . tbeZahl($summe_stunden) . '</td>'
-        . ($mit_kosten ? '<td width="10%" align="right">' . $h(moneyFormat($kosten_gesamt)) . '</td>' : '')
+        . ($mit_kosten ? '<td width="12%" align="right">' . $h(moneyFormat($kosten_gesamt)) . '</td>' : '')
         . '</tr></tbody></table>';
 
+    $pdf->SetFont('dejavusans', '', 9);
     $pdf->writeHTML($html, true, false, false, false, '');
 }
 
