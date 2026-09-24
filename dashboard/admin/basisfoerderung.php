@@ -110,7 +110,8 @@ $zugesagt_jahr  = moneySum(array_merge([], ...array_map(fn($a) => $summen[$a['id
 $y = (int)date('Y');
 $fristen = [
     [$y . '-02-28', 'PRAE-Jahresmeldung (pauschale Reiseaufwandsentschädigungen des Vorjahres) ans Finanzamt'],
-    [$y . '-03-31', 'Einreichfrist Bausubventionen und Kostenvoranschläge für Lehrgänge/Kadertrainings'],
+    [$y . '-03-31', 'Einreichfrist Bausubventionen und Kostenvoranschläge für Lehrgänge/Kadertrainings · Vereinsbonus Sommersemester*'],
+    [$y . '-09-30', 'Vereinsbonus: Anträge für Maßnahmen im Herbst*'],
     [$y . '-10-31', 'Einreichfrist alle übrigen Förderungen · Abrechnung Bausubventionen'],
     [$y . '-11-30', 'Späteste Abrechnung aller übrigen Subventionen (binnen 3 Monaten nach Zusage)'],
     [$y . '-12-31', 'Ende Förderzeitraum – Rechnungs- und Zahlungsdatum müssen im Kalenderjahr liegen'],
@@ -225,6 +226,7 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
             </tbody>
         </table>
     </div>
+    <p class="form-hint" style="padding: 0.75rem 1.25rem;">* Vereinsbonus-Fristen laut anderen SPORTUNION-Landesverbänden für 2026 – für die Steiermark beim Landesverband bestätigen. Anträge immer vor Beginn der Maßnahme.</p>
 </div>
 
 <!-- Förderkatalog -->
@@ -239,6 +241,16 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
             Ab <?= moneyFormat(SU_FINANZIERUNGSPLAN_AB) ?> ist ein Finanzierungsplan Pflicht. Es besteht kein Rechtsanspruch – die Vergabe erfolgt im Ermessen der Landesleitung.
         </p>
         <?php foreach (SU_BEREICHE as $bereich => $bereich_label): ?>
+            <?php if ($bereich === 'infrastruktur'): ?>
+                <h3 style="font-family: 'Montserrat', sans-serif; font-size: 1rem; font-weight: 800; margin: 1rem 0 0.25rem;">A · Landesverbandsförderung nach den Förderrichtlinien</h3>
+            <?php elseif ($bereich === 'vereinsbonus'): ?>
+                <h3 style="font-family: 'Montserrat', sans-serif; font-size: 1rem; font-weight: 800; margin: 2rem 0 0.25rem;">B · SPORTUNION Vereinsbonus 2026</h3>
+                <p class="form-hint" style="margin-bottom: 0.5rem;">
+                    Offenes Fördersystem mit festen Höchstbeträgen, die Fördersäulen sind frei kombinierbar und mehrfach nutzbar.
+                    Voraussetzungen: mind. ein aktives Fit-Sport-Austria-Qualitätssiegel, Beratungsgespräch vor der ersten Förderung, Antrag über die Vereinsdatenbank VOR Beginn der Maßnahme.
+                    Abgerechnet wird nach den Richtlinien der Bundes-Sport GmbH, Leistungszeitraum ist das Kalenderjahr.
+                </p>
+            <?php endif; ?>
             <h3 style="font-family: 'Montserrat', sans-serif; font-size: 0.85rem; font-weight: 800; text-transform: uppercase; margin: 1.25rem 0 0.5rem;"><?= e($bereich_label) ?></h3>
             <?php foreach (SU_FOERDERARTEN as $schluessel => $art): if ($art['bereich'] !== $bereich) continue; ?>
                 <details style="border: 1px solid var(--border-light); border-radius: 0.5rem; padding: 0.75rem 1rem; margin-bottom: 0.5rem;">
@@ -251,6 +263,7 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
                             <?php if ($art['berechnung'] === 'ausbildung'): ?> · € 100,– bis € 450,– je Abschluss<?php endif; ?>
                             <?php if ($art['berechnung'] === 'pro_person'): ?> · <?= moneyFormat($art['satz']) ?>/<?= moneyFormat($art['satz_uebernachtung']) ?> je Person<?php endif; ?>
                             <?php if ($art['berechnung'] === 'ermessen'): ?> · nach Ermessen<?php endif; ?>
+                            <?php if ($art['berechnung'] === 'deckel'): ?> · max. <?= moneyFormat($art['max_je']) ?> je <?= e($art['je']) ?><?php endif; ?>
                         </span>
                     </summary>
                     <p style="margin: 0.75rem 0 0.5rem;"><?= e($art['kurz']) ?><?= $art['beispiel'] ? ' <em>' . e($art['beispiel']) . '</em>' : '' ?></p>
@@ -267,6 +280,12 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
                 <h3 style="font-family: 'Montserrat', sans-serif; font-size: 0.85rem; font-weight: 800; text-transform: uppercase; margin-bottom: 0.5rem;">Unterlagen &amp; Links</h3>
                 <ul style="margin-left: 1.25rem;">
                     <?php foreach (SU_QUELLEN as $label => $url): ?>
+                        <li><a href="<?= e($url) ?>" target="_blank" rel="noopener"><?= e($label) ?></a></li>
+                    <?php endforeach; ?>
+                </ul>
+                <h3 style="font-family: 'Montserrat', sans-serif; font-size: 0.85rem; font-weight: 800; text-transform: uppercase; margin: 1rem 0 0.5rem;">Abrechnungsformulare</h3>
+                <ul style="margin-left: 1.25rem;">
+                    <?php foreach (SU_ABRECHNUNGSFORMULARE as $label => $url): ?>
                         <li><a href="<?= e($url) ?>" target="_blank" rel="noopener"><?= e($label) ?></a></li>
                     <?php endforeach; ?>
                 </ul>

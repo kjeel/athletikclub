@@ -90,6 +90,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 suBetragAusPost('andere_foerderungen') ?? '0.00',
                 trim($_POST['andere_foerderungen_text'] ?? '') ?: null,
                 suBetragAusPost('betrag_beantragt'),
+                $hat('kategorie') && isset(SU_SOZIAL_KATEGORIEN[$_POST['kategorie'] ?? '']) ? $_POST['kategorie'] : null,
+                // Nur Prüfpunkte der gewählten Förderart übernehmen
+                json_encode(array_values(array_intersect(array_keys(SU_CHECKS[$foerderart] ?? []), (array)($_POST['checks'] ?? [])))),
             ];
 
             $db->beginTransaction();
@@ -97,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $db->prepare(
                     'UPDATE su_antrag_positionen SET foerderart = ?, titel = ?, beschreibung = ?, nutzen = ?, massnahme_von = ?, massnahme_bis = ?,
                         anzahl_personen = ?, ausbildungsstufe = ?, mit_uebernachtung = ?, wettkampf = ?, platzierung = ?,
-                        eigenmittel = ?, andere_foerderungen = ?, andere_foerderungen_text = ?, betrag_beantragt = ?
+                        eigenmittel = ?, andere_foerderungen = ?, andere_foerderungen_text = ?, betrag_beantragt = ?, kategorie = ?, checks = ?
                      WHERE id = ? AND antrag_id = ?'
                 )->execute(array_merge($werte, [$position_id, $antrag_id]));
                 $db->prepare('DELETE FROM su_antrag_kosten WHERE position_id = ?')->execute([$position_id]);
@@ -105,8 +108,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $db->prepare(
                     'INSERT INTO su_antrag_positionen (foerderart, titel, beschreibung, nutzen, massnahme_von, massnahme_bis,
                         anzahl_personen, ausbildungsstufe, mit_uebernachtung, wettkampf, platzierung,
-                        eigenmittel, andere_foerderungen, andere_foerderungen_text, betrag_beantragt, antrag_id)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                        eigenmittel, andere_foerderungen, andere_foerderungen_text, betrag_beantragt, kategorie, checks, antrag_id)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
                 )->execute(array_merge($werte, [$antrag_id]));
                 $position_id = (int)$db->lastInsertId();
             }
@@ -140,11 +143,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (empty($errors)) {
             $funktion = ($_POST['vertreter2_funktion'] ?? '') === 'schriftfuehrer' ? 'schriftfuehrer' : 'kassier';
-            $erkl = array_map(fn($k) => !empty($_POST[$k]) ? 1 : 0, array_keys(SU_ERKLAERUNGEN));
+            // Erklärungen plus Vereinsbonus-Voraussetzungen (Häkchen)
+            $haken = array_merge(array_keys(SU_ERKLAERUNGEN), ['vb_fit_siegel', 'vb_beratung']);
+            $erkl  = array_map(fn($k) => !empty($_POST[$k]) ? 1 : 0, $haken);
             $db->prepare(
                 'UPDATE su_antraege SET jahr = ?, titel = ?, sportarten = ?, mitglieder_gesamt = ?, mitglieder_jugend = ?, vereinsbeschreibung = ?,
                     obmann_name = ?, vertreter2_funktion = ?, vertreter2_name = ?, kontakt_name = ?, kontakt_email = ?, kontakt_telefon = ?,
-                    kontoinhaber = ?, iban = ?, bic = ?, bank = ?, ' . implode(' = ?, ', array_keys(SU_ERKLAERUNGEN)) . ' = ?, notizen = ?
+                    kontoinhaber = ?, iban = ?, bic = ?, bank = ?, ' . implode(' = ?, ', $haken) . ' = ?, notizen = ?
                  WHERE id = ?'
             )->execute(array_merge([
                 $jahr, mb_substr($titel, 0, 150),
@@ -213,6 +218,7 @@ if ($positionen) {
 }
 
 $kosten_gesamt = []; $beantragt_gesamt = []; $zugesagt_gesamt = []; $pruefung = []; $mit_bau = false;
+$beantragt_programm = ['landesverband' => [], 'vereinsbonus' => []];
 foreach ($positionen as &$p) {
     $p['kosten']      = $kosten_je_position[$p['id']] ?? [];
     $p['kostensumme'] = suKostenSumme($p['kosten']);
@@ -221,6 +227,7 @@ foreach ($positionen as &$p) {
     $p['meldungen']   = suPruefePosition($antrag, $p, $p['kosten'], $p['kostensumme'], $p['beantragt']);
     $kosten_gesamt[]    = $p['kostensumme'];
     $beantragt_gesamt[] = $p['beantragt'];
+    $beantragt_programm[suProgramm($p['foerderart'])][] = $p['beantragt'];
     if ($p['betrag_zugesagt'] !== null) $zugesagt_gesamt[] = $p['betrag_zugesagt'];
     if ($p['foerderart'] === 'bau') $mit_bau = true;
     foreach ($p['meldungen'] as $mld) $pruefung[] = $mld + ['bezug' => $p['titel']];
@@ -229,7 +236,10 @@ unset($p);
 $kosten_gesamt    = moneySum($kosten_gesamt);
 $beantragt_gesamt = moneySum($beantragt_gesamt);
 $zugesagt_gesamt  = $zugesagt_gesamt ? moneySum($zugesagt_gesamt) : null;
-foreach (suPruefeAntrag($antrag, $beantragt_gesamt, count($positionen)) as $mld) array_unshift($pruefung, $mld + ['bezug' => 'Ansuchen']);
+$mit_vereinsbonus = !empty($beantragt_programm['vereinsbonus']);
+$beantragt_lv = moneySum($beantragt_programm['landesverband']);
+$beantragt_vb = moneySum($beantragt_programm['vereinsbonus']);
+foreach (array_reverse(suPruefeAntrag($antrag, $beantragt_gesamt, count($positionen), $mit_vereinsbonus)) as $mld) array_unshift($pruefung, $mld + ['bezug' => 'Ansuchen']);
 
 $anzahl_fehler   = count(array_filter($pruefung, fn($m) => $m['typ'] === 'fehler'));
 $anzahl_warnung  = count(array_filter($pruefung, fn($m) => $m['typ'] === 'warnung'));
@@ -246,7 +256,9 @@ $pos_form = [
     'foerderart' => $_GET['art'] ?? 'geraete', 'titel' => '', 'beschreibung' => '', 'nutzen' => '', 'massnahme_von' => '', 'massnahme_bis' => '',
     'anzahl_personen' => '', 'ausbildungsstufe' => '', 'mit_uebernachtung' => 0, 'wettkampf' => '', 'platzierung' => '',
     'eigenmittel' => '', 'andere_foerderungen' => '', 'andere_foerderungen_text' => '', 'betrag_beantragt' => '', 'kosten' => [],
+    'kategorie' => '', 'checks' => '[]',
 ];
+if (!isset(SU_FOERDERARTEN[$pos_form['foerderart']])) $pos_form['foerderart'] = 'geraete';
 if ($bearbeiten_id > 0) {
     foreach ($positionen as $p) {
         if ((int)$p['id'] === $bearbeiten_id) $pos_form = array_merge($pos_form, $p);
@@ -255,7 +267,9 @@ if ($bearbeiten_id > 0) {
 if (($_POST['action'] ?? '') === 'position_speichern') {
     $pos_form = array_merge($pos_form, $_POST);
     $pos_form['kosten'] = $kosten ?? [];
+    $pos_form['checks'] = json_encode(array_values((array)($_POST['checks'] ?? [])));
 }
+$pos_checks = suChecks($pos_form);
 if (($_POST['action'] ?? '') === 'stammdaten_speichern') $antrag = array_merge($antrag, $_POST);
 $kosten_zeilen = $pos_form['kosten'] ?: [['bezeichnung' => '', 'menge' => 1, 'einzelpreis' => '', 'anbieter' => '']];
 
@@ -314,7 +328,7 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
     <div class="kpi-card" style="--kpi-color: #F59E0B;">
         <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
         <div class="kpi-value"><?= moneyFormat($beantragt_gesamt) ?></div>
-        <div class="kpi-label">Beantragt</div>
+        <div class="kpi-label">Beantragt (Landesverband <?= moneyFormat($beantragt_lv) ?> · Vereinsbonus <?= moneyFormat($beantragt_vb) ?>)</div>
     </div>
     <div class="kpi-card" style="--kpi-color: #22C55E;">
         <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div>
@@ -338,7 +352,7 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
     </div>
     <div style="padding: 1.25rem;">
         <?php if (empty($pruefung)): ?>
-            <p style="margin: 0;">Alles vollständig. Das PDF erzeugen, von Obmann/Obfrau und <?= $antrag['vertreter2_funktion'] === 'schriftfuehrer' ? 'Schriftführer:in' : 'Kassier:in' ?> unterschreiben lassen und über die <a href="<?= e(SU_QUELLEN['Online-Förderansuchen (Vereinsdatenbank)']) ?>" target="_blank" rel="noopener">Vereinsdatenbank</a> einreichen.</p>
+            <p style="margin: 0;">Alles vollständig. Das PDF erzeugen, von Obmann/Obfrau und <?= $antrag['vertreter2_funktion'] === 'schriftfuehrer' ? 'Schriftführer:in' : 'Kassier:in' ?> unterschreiben lassen und über die <a href="<?= e(SU_VEREINSDATENBANK) ?>" target="_blank" rel="noopener">Vereinsdatenbank</a> einreichen.</p>
         <?php else: ?>
             <?php foreach ($pruefung as $mld): ?>
                 <div class="su-meldung su-meldung-<?= $mld['typ'] ?>">
@@ -377,8 +391,10 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
                             <?php if ($fehler_pos): ?><span class="badge badge-danger"><?= $fehler_pos ?> offen</span><?php endif; ?>
                         </td>
                         <td>
+                            <?php $prog = SU_PROGRAMME[suProgramm($p['foerderart'])]; ?>
+                            <span class="badge <?= $prog['class'] ?>"><?= e($prog['kurz']) ?></span>
                             <div><?= e($art['label']) ?></div>
-                            <div style="font-size: 0.75rem; color: var(--text-muted);"><?= e(SU_BEREICHE[$art['bereich']] ?? '') ?></div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted);"><?= e($p['kategorie'] ? (SU_SOZIAL_KATEGORIEN[$p['kategorie']] ?? '') : (SU_BEREICHE[$art['bereich']] ?? '')) ?></div>
                         </td>
                         <td><?= bccomp($p['kostensumme'], '0', 2) > 0 ? moneyFormat($p['kostensumme']) : '–' ?></td>
                         <td>
@@ -487,6 +503,19 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
                     Mit Übernachtung (€ 50,– statt € 25,– je Teilnehmer:in)
                 </label>
             </div>
+            <div class="form-group su-feld" data-feld="kategorie">
+                <label class="form-label">Kategorie der sozialen Maßnahme <span class="required">*</span></label>
+                <select class="form-control" name="kategorie">
+                    <option value="">– bitte wählen –</option>
+                    <?php foreach (SU_SOZIAL_KATEGORIEN as $val => $label): ?>
+                        <option value="<?= $val ?>" <?= ($pos_form['kategorie'] ?? '') === $val ? 'selected' : '' ?>><?= e($label) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <!-- Voraussetzungen der gewählten Förderart (per JS befüllt) -->
+            <h4 class="su-abschnitt">Voraussetzungen</h4>
+            <div id="su-checks" data-init="<?= e(json_encode($pos_checks)) ?>"></div>
 
             <!-- Kostenaufstellung -->
             <h4 class="su-abschnitt">Kostenaufstellung</h4>
@@ -653,6 +682,16 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
                 </label>
             <?php endforeach; ?>
 
+            <h4 class="su-abschnitt">Voraussetzungen SPORTUNION Vereinsbonus</h4>
+            <label style="display: flex; gap: 0.6rem; align-items: flex-start; margin-bottom: 0.6rem; font-size: 0.9rem;">
+                <input type="checkbox" name="vb_fit_siegel" value="1" <?= !empty($antrag['vb_fit_siegel']) ? 'checked' : '' ?> style="margin-top: 0.2rem;">
+                <span>Der Verein hat mindestens ein aktives Fit-Sport-Austria-Qualitätssiegel (Kurs mit mind. 10 Einheiten à 45 Min. pro Semester, max. 20 Teilnehmer:innen je ÜL, ÜL mit mind. 57 EH Ausbildung).</span>
+            </label>
+            <label style="display: flex; gap: 0.6rem; align-items: flex-start; margin-bottom: 0.6rem; font-size: 0.9rem;">
+                <input type="checkbox" name="vb_beratung" value="1" <?= !empty($antrag['vb_beratung']) ? 'checked' : '' ?> style="margin-top: 0.2rem;">
+                <span>Das verpflichtende Beratungsgespräch mit der SPORTUNION Steiermark wurde geführt.</span>
+            </label>
+
             <div class="form-group" style="margin-top: 1rem;">
                 <label class="form-label">Interne Notizen (nicht im Antrag)</label>
                 <textarea class="form-control" name="notizen" rows="3"><?= $v($antrag['notizen']) ?></textarea>
@@ -722,7 +761,12 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
             <li>Trainer:innen-Honorare: PRAE (max. € 120,–/Tag, € 720,–/Monat, Jahresmeldung bis Ende Februar) oder Honorarnote mit Versteuerungsvermerk</li>
             <?php if (bccomp($beantragt_gesamt, (string)SU_BERICHT_AB, 2) >= 0): ?><li><strong>Bericht über die geförderte Maßnahme (ab <?= moneyFormat(SU_BERICHT_AB) ?>)</strong></li><?php endif; ?>
         </ul>
-        <p class="form-hint">Vorlagen: <a href="<?= e(SU_QUELLEN['Abrechnungsformulare']) ?>" target="_blank" rel="noopener">Abrechnungsformulare der SPORTUNION</a> · Ansprechperson Abrechnung: Ina Werni, ina.werni@sportunion-steiermark.at</p>
+        <p class="form-hint" style="margin-bottom: 0.4rem;">Vorlagen der SPORTUNION für die Abrechnung:</p>
+        <p class="form-hint">
+            <?php $links = []; foreach (SU_ABRECHNUNGSFORMULARE as $label => $url) $links[] = '<a href="' . e($url) . '" target="_blank" rel="noopener">' . e($label) . '</a>'; ?>
+            <?= implode(' · ', $links) ?>
+        </p>
+        <p class="form-hint">Ansprechperson Abrechnung: Ina Werni, ina.werni@sportunion-steiermark.at, +43 316 32 44 30 71<?= $mit_vereinsbonus ? ' · Vereinsbonus: Abrechnung nach den Richtlinien der Bundes-Sport GmbH, Leistungs- und Abrechnungszeitraum ist das Kalenderjahr.' : '' ?></p>
     </div>
 </div>
 
@@ -740,6 +784,7 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
 (() => {
     const ARTEN   = <?= json_encode(SU_FOERDERARTEN, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?>;
     const STUFEN  = <?= json_encode(SU_AUSBILDUNG_SAETZE, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?>;
+    const CHECKS  = <?= json_encode(SU_CHECKS, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?>;
     const FP_AB   = <?= (int)SU_FINANZIERUNGSPLAN_AB ?>;
     const form    = document.getElementById('su-position-form');
     const artSel  = document.getElementById('su-foerderart');
@@ -759,10 +804,22 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
         document.querySelectorAll('.su-feld').forEach(el => {
             el.style.display = art.felder.includes(el.dataset.feld) ? '' : 'none';
         });
-        document.getElementById('su-personen-label').textContent =
-            art.berechnung === 'ausbildung' ? 'Anzahl Absolvent:innen' : 'Anzahl Teilnehmer:innen';
-        document.getElementById('su-wettkampf-label').textContent =
-            art.berechnung === 'ausbildung' ? 'Ausbildung (Bezeichnung, Anbieter)' : 'Wettkampf / Veranstaltung (Name, Ort)';
+        const labels = art.feld_labels || {};
+        document.getElementById('su-personen-label').textContent = labels.anzahl_personen ||
+            (art.berechnung === 'ausbildung' ? 'Anzahl Absolvent:innen' : 'Anzahl Teilnehmer:innen');
+        document.getElementById('su-wettkampf-label').textContent = labels.wettkampf ||
+            (art.berechnung === 'ausbildung' ? 'Ausbildung (Bezeichnung, Anbieter)' : 'Wettkampf / Veranstaltung (Name, Ort)');
+
+        // Prüfpunkte der Förderart als Häkchen anzeigen (bereits erfüllte bleiben erhalten)
+        const box = document.getElementById('su-checks');
+        const gesetzt = new Set([...box.querySelectorAll('input:checked')].map(i => i.value).concat(box.dataset.init ? JSON.parse(box.dataset.init) : []));
+        box.dataset.init = '';
+        const checks = CHECKS[artSel.value] || {};
+        box.innerHTML = Object.keys(checks).length
+            ? Object.entries(checks).map(([k, label]) =>
+                '<label style="display:flex; gap:0.6rem; align-items:center; margin-bottom:0.5rem; font-size:0.9rem;">' +
+                '<input type="checkbox" name="checks[]" value="' + esc(k) + '"' + (gesetzt.has(k) ? ' checked' : '') + '> ' + esc(label) + '</label>').join('')
+            : '<p class="form-hint">Keine besonderen Voraussetzungen.</p>';
         berechne();
     }
 
@@ -794,6 +851,11 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
             text = '(' + personen + ' × ' + eur(satz) + ')';
         } else if (art.berechnung === 'fix') {
             richtwert = art.betrag; text = '(Fixbetrag)';
+        } else if (art.berechnung === 'deckel') {
+            const menge = art.menge_zaehlt ? Math.max(1, personen) : 1;
+            const deckel = menge * art.max_je;
+            richtwert = kosten > 0 ? Math.min(luecke, deckel) : deckel;
+            text = '(' + (menge > 1 ? menge + ' × ' : '') + 'max. ' + eur(art.max_je) + (kosten > 0 ? ', Lücke ' + eur(luecke) : ', Höchstbetrag') + ')';
         } else if (art.berechnung === 'ermessen' && kosten > 0) {
             richtwert = luecke; text = '(Finanzierungslücke, Höhe nach Ermessen)';
         }
@@ -804,7 +866,11 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
         feld.placeholder = richtwert !== null ? 'leer = Richtwert ' + eur(richtwert) : 'leer = Richtwert übernehmen';
         const beantragt = feld.value !== '' ? num(feld) : (richtwert || 0);
         let info = '';
-        if (kosten > 0 && ['rahmen', 'ermessen'].includes(art.berechnung)) {
+        if (art.berechnung === 'deckel') {
+            const max = (art.menge_zaehlt ? Math.max(1, personen) : 1) * art.max_je;
+            if (beantragt > max) info += '<span style="color: var(--danger);">Über dem Höchstbetrag von ' + eur(max) + '!</span><br>';
+        }
+        if (kosten > 0 && ['rahmen', 'ermessen', 'deckel'].includes(art.berechnung)) {
             const diff = Math.round((kosten - eigen - andere - beantragt) * 100) / 100;
             info = 'Finanzierung: Kosten ' + eur(kosten) + ' = Eigenmittel ' + eur(eigen) + ' + andere ' + eur(andere) + ' + SPORTUNION ' + eur(beantragt) +
                 (diff === 0 ? ' ✓ ausgeglichen' : (diff > 0 ? ' → ' + eur(diff) + ' ungedeckt' : ' → ' + eur(-diff) + ' überfinanziert'));

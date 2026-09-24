@@ -2,11 +2,14 @@
 /**
  * Athletikclub Steiermark – Basisförderung SPORTUNION Steiermark
  *
- * Förderkatalog, Richtwert-Berechnung, Fristen und Plausibilitätsprüfung.
- * Quellen (Stand Förderrichtlinien 2023):
- *  - Förderrichtlinien der SPORTUNION Steiermark (Foerderrichtlinien-2023.pdf)
+ * Förderkatalog, Richtwert-Berechnung, Fristen und Plausibilitätsprüfung für zwei Programme:
+ *  A) Landesverbandsförderung nach den Förderrichtlinien (Infrastruktur, Allgemein-, Leistungssport)
+ *  B) SPORTUNION Vereinsbonus (5 Fördersäulen mit Höchstbeträgen)
+ * Quellen:
+ *  - Förderrichtlinien der SPORTUNION Steiermark 2023 (Foerderrichtlinien-2023.pdf)
  *  - Finanzielle Zuschüsse der SPORTUNION Steiermark
  *  - Abrechnungsrichtlinien für Subventionen (2023_ABRECHNUNGSRICHTLINIEN_Vereine.pdf)
+ *  - SPORTUNION Vereinsbonus, Fördersäulen 2026 (sportunion.at/stmk/projekte/sportunion-vereinsbonus/)
  * Ändern sich Sätze oder Fristen, nur hier anpassen.
  */
 
@@ -15,21 +18,55 @@ const SU_QUELLEN = [
     'Förderrichtlinien 2023'       => 'https://sportunion.at/stmk/wp-content/uploads/sites/7/Foerderrichtlinien-2023.pdf',
     'Finanzielle Zuschüsse'        => 'https://sportunion.at/stmk/wp-content/uploads/sites/7/Finanzielle-Zuschüsse-der-SPORTUNION-Steiermark.pdf',
     'Abrechnungsrichtlinien'       => 'https://sportunion.at/stmk/wp-content/uploads/sites/7/2023_ABRECHNUNGSRICHTLINIEN_Vereine.pdf',
-    'Abrechnungsformulare'         => 'https://sportunion.at/stmk/service/downloads/#Abrechnungsformulare',
-    'Online-Förderansuchen (Vereinsdatenbank)' => 'https://suvw.at/vereinsmeldung/index.php',
+    'SPORTUNION Vereinsbonus'      => 'https://sportunion.at/stmk/projekte/sportunion-vereinsbonus/',
+    'Vereinsbonus-Fördersäulen 2026 (Grafik)' => 'https://sportunion.at/stmk/wp-content/uploads/SU-Vereinsbonus_Foerdersaeulen-2026.png',
+    'Fit Sport Austria – Qualitätssiegel' => 'https://www.fitsportaustria.at/qualitaetssiegel/',
+    'Downloads & Abrechnungsformulare' => 'https://sportunion.at/stmk/service/downloads/',
+    'Online-Förderansuchen / Vereinsbonus-Antrag (Vereinsdatenbank)' => 'https://suvw.at/vereinsmeldung/index.php',
+];
+
+const SU_VEREINSDATENBANK = 'https://suvw.at/vereinsmeldung/index.php';
+
+/** Vorlagen der SPORTUNION für die Abrechnung. */
+const SU_ABRECHNUNGSFORMULARE = [
+    'PRAE – Pauschale Reiseaufwandsentschädigung' => 'https://sportunion.at/stmk/wp-content/uploads/sites/7/2023_PRAE_Pauschale_Reiseaufwandsentschaedigung.xlsx',
+    'Honorarnote'                                 => 'https://sportunion.at/wp-content/uploads/2018_Honorarnote_HN_neu-1.xlsx',
+    'Letztempfängerliste (Fahrtkosten)'           => 'https://sportunion.at/stmk/wp-content/uploads/sites/7/2020_LEL_Letztempfaengerliste.xlsx',
+    'Tatsächliche Reisekosten'                    => 'https://sportunion.at/wp-content/uploads/2020_TRK_Tatsaechliche_Reisekosten.xlsx',
+    'Teilnehmer:innenliste'                       => 'https://sportunion.at/stmk/wp-content/uploads/sites/7/2020_TN_TeilnehmerInnenliste.xlsx',
+    'Kostenzusammenstellung'                      => 'https://sportunion.at/stmk/wp-content/uploads/sites/7/2020_KostZ_Kostenzusammenstellung.xlsx',
+    'Anlageverzeichnis'                           => 'https://sportunion.at/stmk/wp-content/uploads/sites/7/2020_AV_Anlageverzeichnis.xls',
+    'Kassabuch'                                   => 'https://sportunion.at/wp-content/uploads/20180207_Vorlage_Kassabuch-1.xlsx',
+    'PRAE-Jahresmeldung (Formular L19)'           => 'https://sportunion.at/stmk/wp-content/uploads/sites/7/2023_PRAE-BMF-Meldeformular_L19-1.pdf',
 ];
 
 const SU_KONTAKTE = [
     ['rolle' => 'Förderungen / GF Leistungs- und Wettkampfsport', 'name' => 'Mag. Herwig Reupichler', 'email' => 'herwig.reupichler@sportunion-steiermark.at', 'tel' => '+43 316 3244 30 75'],
+    ['rolle' => 'Vereinsbonus, Aus- und Fortbildung', 'name' => 'Mag.a Lydia Mitterhammer', 'email' => 'lydia.mitterhammer@sportunion-steiermark.at', 'tel' => '+43 316 3244 30 74'],
     ['rolle' => 'Abrechnung', 'name' => 'Ina Werni', 'email' => 'ina.werni@sportunion-steiermark.at', 'tel' => '+43 316 32 44 30 71'],
     ['rolle' => 'Landesgeschäftsstelle', 'name' => 'SPORTUNION Steiermark, Gaußgasse 3, 8010 Graz', 'email' => 'office@sportunion-steiermark.at', 'tel' => '+43 316 32 44 30'],
 ];
 
+/** Bereiche; „vereinsbonus“ ist Programm B, alle anderen gehören zur Landesverbandsförderung (Programm A). */
 const SU_BEREICHE = [
     'infrastruktur'  => 'Infrastruktur',
     'allgemeinsport' => 'Allgemeinsport',
     'leistungssport' => 'Leistungssport',
     'sonstiges'      => 'Sonstige Zuschüsse',
+    'vereinsbonus'   => 'SPORTUNION Vereinsbonus',
+];
+
+const SU_PROGRAMME = [
+    'landesverband' => ['label' => 'Landesverbandsförderung (Förderrichtlinien)', 'kurz' => 'Landesverband', 'class' => 'badge-navy'],
+    'vereinsbonus'  => ['label' => 'SPORTUNION Vereinsbonus', 'kurz' => 'Vereinsbonus', 'class' => 'badge-gold'],
+];
+
+/** Kategorien der sozialen Maßnahme (Vereinsbonus). */
+const SU_SOZIAL_KATEGORIEN = [
+    'inklusion'             => 'Inklusion (Menschen mit und ohne Beeinträchtigung)',
+    'integration'           => 'Integration (Menschen mit Migrationshintergrund)',
+    'gender'                => 'Gendergerechtigkeit (Chancengleichheit, Prävention sexueller Übergriffe)',
+    'soziale_verantwortung' => 'Soziale Verantwortung (Betrugs-/Dopingprävention, benachteiligte Gruppen)',
 ];
 
 /** Fixbeträge für abgeschlossene Fachausbildungen. */
@@ -43,7 +80,8 @@ const SU_AUSBILDUNG_SAETZE = [
 /**
  * Förderkatalog.
  *  berechnung: rahmen (Grund-/Höchstbetrag), ausbildung (Fixbetrag je Abschluss),
- *              pro_person (Satz je Teilnehmer:in), fix (fester Betrag), ermessen (Finanzierungslücke)
+ *              pro_person (Satz je Teilnehmer:in), fix (fester Betrag), ermessen (Finanzierungslücke),
+ *              deckel (Vereinsbonus: Höchstbetrag max_je, bei menge_zaehlt × Anzahl)
  *  frist:      Einreichfrist im Förderjahr (TT.MM.)
  *  nachtraeglich: darf nach Durchführung beantragt werden
  *  felder:     zusätzliche Eingabefelder im Formular
@@ -196,6 +234,102 @@ const SU_FOERDERARTEN = [
         'nachweise' => ['Rechnungen für Stempel, Briefpapier, Kuverts u.Ä.', 'Zahlungsnachweise'],
         'beispiel' => 'z.B. Vereinsstempel, Briefpapier, Kuverts',
     ],
+
+    // ---------------- Programm B: SPORTUNION Vereinsbonus ----------------
+    'vb_kurs' => [
+        'bereich' => 'vereinsbonus', 'label' => 'Vereinsbonus: Start eines neuen Semesterkurses',
+        'kurz' => 'Neuer Kurs, der zusätzlich zum bestehenden Vereinsprogramm gegründet wird und bei der Förderzusage noch nicht gestartet ist.',
+        'berechnung' => 'deckel', 'max_je' => 450, 'je' => 'Kurs', 'frist' => '30.09.', 'nachtraeglich' => false,
+        'felder' => ['wettkampf'], 'feld_labels' => ['wettkampf' => 'Kurs (Name, Tag/Uhrzeit, Ort)'],
+        'regeln' => [
+            'Höchstens € 450,– pro genehmigtem Kurs.',
+            'Kurs in der SPORTUNION-Vereinsdatenbank eintragen, Fit-Sport-Austria-Qualitätssiegel beantragen und den Tag „Vereinsbonus“ zuordnen.',
+            'Abrechenbar: Belege mit direktem Bezug zum Kurs (PRAE der Übungsleiter:in, Material, Hallenkosten).',
+        ],
+        'nachweise' => ['Kurseintrag mit Qualitätssiegel und Tag „Vereinsbonus“', 'PRAE/Honorarnoten der Übungsleiter:innen', 'Material- und Hallenrechnungen', 'Zahlungsnachweise'],
+        'beispiel' => 'z.B. neuer Calisthenics-Anfängerkurs, Padel für Einsteiger:innen, Skate-Kurs für Mädchen',
+    ],
+    'vb_sozial' => [
+        'bereich' => 'vereinsbonus', 'label' => 'Vereinsbonus: Soziale Maßnahme',
+        'kurz' => 'Vereinsangebote oder neue Projekte in den Bereichen Inklusion, Integration, Gendergerechtigkeit oder soziale Verantwortung.',
+        'berechnung' => 'deckel', 'max_je' => 450, 'je' => 'Projekt', 'frist' => '30.09.', 'nachtraeglich' => false,
+        'felder' => ['kategorie', 'anzahl_personen'], 'feld_labels' => ['anzahl_personen' => 'Erwartete Teilnehmer:innen'], 'menge_zaehlt' => false,
+        'regeln' => [
+            'Höchstens € 450,– pro genehmigtem Projekt.',
+            'Zusätzlich zum Antrag das Formular „Soziale Maßnahme“ ausfüllen; Dokumentation nach Absprache mit dem Landesverband.',
+            'Menschen mit Migrationshintergrund sind ausschließlich Zielgruppe der Kategorie „Integration“.',
+        ],
+        'nachweise' => ['Formular „Soziale Maßnahme“', 'Dokumentation der Maßnahme', 'Belege (PRAE, Material, Hallenkosten)', 'Zahlungsnachweise'],
+        'beispiel' => 'z.B. inklusive Bewegungsstunde, Mädchen-Skate-Nachmittag, kostenloser Kurs für einkommensschwache Familien',
+    ],
+    'vb_partner' => [
+        'bereich' => 'vereinsbonus', 'label' => 'Vereinsbonus: Sporteinheiten mit Partnereinrichtungen',
+        'kurz' => 'Sport- und Bewegungseinheiten in Partnereinrichtungen: Schulen Sek I und II, Altersheime, Firmen, Jugendzentren, Betreuungseinrichtungen u.a.',
+        'berechnung' => 'deckel', 'max_je' => 30, 'je' => 'Einheit', 'frist' => '30.09.', 'nachtraeglich' => false,
+        'felder' => ['anzahl_personen', 'wettkampf'], 'feld_labels' => ['anzahl_personen' => 'Anzahl Einheiten', 'wettkampf' => 'Partnereinrichtung'], 'menge_zaehlt' => true,
+        'regeln' => [
+            'Höchstens € 30,– pro abgehaltener Einheit.',
+            'Kooperation vorab schriftlich mit der Partnereinrichtung festhalten.',
+            'Stundenliste mit Stempel und Unterschrift der Partnereinrichtung führen und der Abrechnung beilegen.',
+            'Volksschulen laufen über die Tägliche Bewegungseinheit (eigener Menüpunkt „TBE-Gesamtkonzept“).',
+        ],
+        'nachweise' => ['Kooperationsvereinbarung mit der Partnereinrichtung', 'Stundenliste mit Stempel und Unterschrift', 'Belege (PRAE, Material, Hallenkosten)'],
+        'beispiel' => 'z.B. Calisthenics an der Mittelschule, Bewegungseinheit im Seniorenheim, Firmensport',
+    ],
+    'vb_ausbildung' => [
+        'bereich' => 'vereinsbonus', 'label' => 'Vereinsbonus: Übungsleiter:innen-Ausbildung',
+        'kurz' => 'Übungsleiter:innen-Ausbildungen der SPORTUNION Akademie oder vergleichbare; Erstausbildungen werden bevorzugt gefördert.',
+        'berechnung' => 'deckel', 'max_je' => 314, 'je' => 'Ausbildung', 'frist' => '30.09.', 'nachtraeglich' => false,
+        'felder' => ['anzahl_personen', 'wettkampf'], 'feld_labels' => ['anzahl_personen' => 'Anzahl Personen', 'wettkampf' => 'Ausbildung (Bezeichnung, Anbieter)'], 'menge_zaehlt' => true,
+        'regeln' => [
+            'Höchstens € 314,– pro Ausbildung, abgerechnet mit der Rechnung.',
+            'Bekanntgabe VOR Ausbildungsbeginn; Nachweis über den Abschluss (z.B. Zertifikat).',
+            'Der Verein übernimmt die Kosten, die Rechnung lautet auf den Verein.',
+            'Die Übungsleiter:in ist danach in einem qualitätsgesiegelten Kurs im Verein tätig.',
+        ],
+        'nachweise' => ['Rechnung des Ausbildungsanbieters auf den Verein', 'Zahlungsnachweis', 'Abschlusszertifikat'],
+        'beispiel' => 'z.B. Übungsleiter:in Allgemeine Körperausbildung, Übungsleiter:in Kinder & Jugend',
+    ],
+    'vb_fortbildung' => [
+        'bereich' => 'vereinsbonus', 'label' => 'Vereinsbonus: Fortbildung',
+        'kurz' => 'Fortbildungen der SPORTUNION Akademie oder vergleichbare für bereits ausgebildete Übungsleiter:innen.',
+        'berechnung' => 'deckel', 'max_je' => 99, 'je' => 'Fortbildung', 'frist' => '30.09.', 'nachtraeglich' => false,
+        'felder' => ['anzahl_personen', 'wettkampf'], 'feld_labels' => ['anzahl_personen' => 'Anzahl Personen', 'wettkampf' => 'Fortbildung (Bezeichnung, Anbieter)'], 'menge_zaehlt' => true,
+        'regeln' => [
+            'Höchstens € 99,– pro Fortbildung, abgerechnet mit der Rechnung.',
+            'Eine Übungsleiter:innen-Ausbildung ist Voraussetzung.',
+            'Bekanntgabe VOR Beginn; Nachweis über die Teilnahme (z.B. Teilnahmebestätigung).',
+            'Der Verein übernimmt die Kosten, die Rechnung lautet auf den Verein.',
+        ],
+        'nachweise' => ['Rechnung auf den Verein', 'Zahlungsnachweis', 'Teilnahmebestätigung'],
+        'beispiel' => 'z.B. Kinderschutz-Fortbildung, Mobility-Workshop, Erste Hilfe im Sport',
+    ],
+];
+
+/**
+ * Voraussetzungen je Förderart, die im Formular abgehakt werden.
+ * Nicht erfüllte Punkte erscheinen im Antrags-Check.
+ */
+const SU_CHECKS = [
+    'geraete'            => ['angebote' => 'Angebote/Kostenvoranschläge liegen vor', 'nicht_gekauft' => 'Geräte sind noch nicht angeschafft', 'sportbezug' => 'Geräte dienen unmittelbar der Sportausübung'],
+    'bau'                => ['oeiss' => 'Maßnahme entspricht den ÖISS-Bestimmungen', 'plaene' => 'Pläne und Kostenvoranschläge liegen vor', 'keine_kantine' => 'Kein Buffet-/Kantinenbereich enthalten', 'nicht_begonnen' => 'Bau hat noch nicht begonnen'],
+    'ausbildung'         => ['zeugnis' => 'Zeugnis/Abschlusszertifikat liegt vor bzw. wird nachgereicht', 'amateursport' => 'Einsatz im Amateursport des Vereins'],
+    'jugend'             => ['ueber_ueblich' => 'Maßnahme geht über die übliche Kinder- und Jugendbetreuung hinaus', 'kooperation' => 'Kooperationspartner (z.B. Schule) steht fest'],
+    'veranstaltung'      => ['kein_fachverband' => 'Keine Meisterschaft/kein Cup eines Fachverbands', 'kalkulation' => 'Budget/Kalkulation der Veranstaltung liegt vor'],
+    'jugendmannschaft'   => ['teilnehmerliste' => 'Teilnehmerliste liegt vor', 'bundesfinale' => 'Teilnahme an Nachwuchs-Bundesfinalspielen bestätigt'],
+    'fahrt_allgemein'    => ['ergebnisliste' => 'Ergebnisliste liegt vor'],
+    'fahrt_nachwuchs'    => ['ergebnisliste' => 'Ergebnisliste liegt vor'],
+    'su_meisterschaften' => ['nominierung' => 'Nominierung durch Landesspartenreferent:in', 'abgestimmt' => 'Mit dem GF Leistungs- und Wettkampfsport abgestimmt'],
+    'entsendung'         => ['einladung' => 'Einladung/Nominierung zum internationalen Wettkampf liegt vor'],
+    'lehrgang'           => ['kva_referent' => 'Kostenvoranschlag über Landesspartenreferent:in eingereicht'],
+    'personifiziert'     => ['plan' => 'Trainings- und Wettkampfplan liegt vor'],
+    'bundesliga'         => ['liga' => 'Nachweis der Ligazugehörigkeit (Vorjahr) liegt vor', 'amateur' => 'Keine Profimannschaft'],
+    'gruendung'          => ['neu' => 'Verein ist neu gegründetes SPORTUNION-Mitglied'],
+    'vb_kurs'            => ['zusaetzlich' => 'Kurs ist zusätzlich zum bestehenden Vereinsprogramm', 'nicht_gestartet' => 'Kurs ist noch nicht gestartet', 'qs_tag' => 'Kurs in der Vereinsdatenbank eingetragen, Qualitätssiegel beantragt, Tag „Vereinsbonus“ zugeordnet'],
+    'vb_sozial'          => ['formular' => 'Formular „Soziale Maßnahme“ ausgefüllt', 'doku' => 'Dokumentation mit dem Landesverband abgesprochen'],
+    'vb_partner'         => ['kooperation' => 'Kooperationsvereinbarung mit der Partnereinrichtung unterschrieben', 'stundenliste' => 'Stundenliste mit Stempel und Unterschrift wird geführt', 'keine_vs' => 'Partner ist keine Volksschule (diese laufen über die TBE)'],
+    'vb_ausbildung'      => ['vorab' => 'Vor Ausbildungsbeginn bekanntgegeben', 'rechnung_verein' => 'Verein übernimmt die Kosten, Rechnung lautet auf den Verein', 'qs_kurs' => 'Übungsleiter:in wird in einem qualitätsgesiegelten Kurs tätig', 'erstausbildung' => 'Es handelt sich um eine Erstausbildung'],
+    'vb_fortbildung'     => ['ul_vorhanden' => 'Übungsleiter:innen-Ausbildung ist vorhanden', 'vorab' => 'Vor Beginn bekanntgegeben', 'rechnung_verein' => 'Verein übernimmt die Kosten, Rechnung lautet auf den Verein', 'qs_kurs' => 'Übungsleiter:in ist in einem qualitätsgesiegelten Kurs tätig'],
 ];
 
 const SU_STATUS = [
@@ -231,6 +365,27 @@ const SU_ANLAGENVERZEICHNIS_AB = 800;  // Langlebige Wirtschaftsgüter
 function suFoerderart(string $schluessel): array
 {
     return SU_FOERDERARTEN[$schluessel] ?? ['bereich' => 'sonstiges', 'label' => $schluessel, 'kurz' => '', 'berechnung' => 'ermessen', 'frist' => '31.10.', 'nachtraeglich' => false, 'felder' => [], 'regeln' => [], 'nachweise' => [], 'beispiel' => ''];
+}
+
+/** Programm einer Förderart: „vereinsbonus“ oder „landesverband“. */
+function suProgramm(string $foerderart): string
+{
+    return suFoerderart($foerderart)['bereich'] === 'vereinsbonus' ? 'vereinsbonus' : 'landesverband';
+}
+
+/** Abgehakte Voraussetzungen einer Position (JSON-Spalte „checks“). */
+function suChecks(array $pos): array
+{
+    $liste = json_decode((string)($pos['checks'] ?? ''), true);
+    return is_array($liste) ? $liste : [];
+}
+
+/** Höchstbetrag einer „deckel“-Förderart (Höchstsatz × Menge, falls die Menge zählt). */
+function suDeckel(array $pos): string
+{
+    $art   = suFoerderart($pos['foerderart']);
+    $menge = !empty($art['menge_zaehlt']) ? max(1, (int)($pos['anzahl_personen'] ?? 1)) : 1;
+    return moneyRound($menge * $art['max_je']);
 }
 
 /** Summe der Kostenaufstellung (Menge × Einzelpreis). */
@@ -270,6 +425,14 @@ function suRichtwert(array $pos, string $kostenSumme): array
 
         case 'fix':
             return ['betrag' => moneyRound($art['betrag']), 'erklaerung' => 'Fixbetrag.'];
+
+        case 'deckel':
+            $deckel = suDeckel($pos);
+            $menge  = !empty($art['menge_zaehlt']) ? max(1, (int)($pos['anzahl_personen'] ?? 1)) : 1;
+            $text   = ($menge > 1 ? $menge . ' × ' : '') . 'max. ' . moneyFormat($art['max_je']) . ' = ' . moneyFormat($deckel);
+            if (bccomp($kostenSumme, '0', 2) <= 0) return ['betrag' => $deckel, 'erklaerung' => $text . ' (Höchstbetrag; abgerechnet werden nur tatsächliche Belege).'];
+            $betrag = bccomp($luecke, $deckel, 2) > 0 ? $deckel : $luecke;
+            return ['betrag' => $betrag, 'erklaerung' => 'Finanzierungslücke ' . moneyFormat($luecke) . ', gedeckelt auf ' . $text . '.'];
 
         default: // ermessen
             if (bccomp($kostenSumme, '0', 2) <= 0) return ['betrag' => null, 'erklaerung' => 'Kostenaufstellung fehlt.'];
@@ -328,6 +491,23 @@ function suPruefePosition(array $antrag, array $pos, array $kosten, string $kost
     if ($art['berechnung'] === 'pro_person' && (int)$pos['anzahl_personen'] < 1) {
         $m[] = ['typ' => 'fehler', 'text' => 'Bitte die Anzahl der Teilnehmer:innen angeben und die Teilnehmerliste beilegen.'];
     }
+    if ($art['berechnung'] === 'deckel' && empty($kosten)) {
+        $m[] = ['typ' => 'info', 'text' => 'Ohne Kostenaufstellung wird der Höchstbetrag angesetzt – abgerechnet werden nur tatsächliche Belege (PRAE, Material, Hallenkosten bzw. Rechnung).'];
+    }
+    if ($art['berechnung'] === 'deckel' && bccomp($beantragt, suDeckel($pos), 2) > 0) {
+        $m[] = ['typ' => 'fehler', 'text' => 'Beantragter Betrag über dem Höchstbetrag von ' . moneyFormat(suDeckel($pos)) . '.'];
+    }
+    if ($pos['foerderart'] === 'vb_sozial' && empty($pos['kategorie'])) {
+        $m[] = ['typ' => 'fehler', 'text' => 'Bitte die Kategorie der sozialen Maßnahme wählen (Inklusion, Integration, Gendergerechtigkeit, soziale Verantwortung).'];
+    }
+    if ($pos['foerderart'] === 'vb_partner' && (int)$pos['anzahl_personen'] < 1) {
+        $m[] = ['typ' => 'fehler', 'text' => 'Bitte die geplante Anzahl der Einheiten angeben (max. € 30,– je Einheit).'];
+    }
+    // Abgehakte Voraussetzungen je Förderart
+    $erfuellt = suChecks($pos);
+    foreach (SU_CHECKS[$pos['foerderart']] ?? [] as $schluessel => $label) {
+        if (!in_array($schluessel, $erfuellt, true)) $m[] = ['typ' => 'warnung', 'text' => 'Voraussetzung offen: ' . $label . '.'];
+    }
     if (in_array($pos['foerderart'], ['fahrt_allgemein', 'fahrt_nachwuchs'], true) && trim((string)$pos['platzierung']) === '') {
         $m[] = ['typ' => 'warnung', 'text' => 'Platzierung angeben – gefördert wird nur bei ' . ($pos['foerderart'] === 'fahrt_allgemein' ? 'Platz 1–3 (LM) bzw. 1–6 (ÖM).' : 'Platz 1 (LM) bzw. 1–3 (ÖM).')];
     }
@@ -355,7 +535,7 @@ function suPruefePosition(array $antrag, array $pos, array $kosten, string $kost
             $m[] = ['typ' => 'info', 'text' => 'Betrag unter dem Grundbetrag von ' . moneyFormat($art['grund']) . ' – prüfen, ob sich das Ansuchen lohnt oder mit weiteren Anschaffungen gebündelt werden kann.'];
         }
     }
-    if (bccomp($kostenSumme, '0', 2) > 0 && in_array($art['berechnung'], ['rahmen', 'ermessen'], true)) {
+    if (bccomp($kostenSumme, '0', 2) > 0 && in_array($art['berechnung'], ['rahmen', 'ermessen', 'deckel'], true)) {
         $finanziert = moneySum([$pos['eigenmittel'], $pos['andere_foerderungen'], $beantragt]);
         $diff = bcsub($kostenSumme, $finanziert, 2);
         if (bccomp($diff, '0', 2) !== 0) {
@@ -391,17 +571,24 @@ function suPruefePosition(array $antrag, array $pos, array $kosten, string $kost
         'lehrgang'      => 'Der Kostenvoranschlag ist über die Landesspartenreferent:innen bis 31. März vorzulegen.',
         'bundesliga'    => 'Förderung erst ab dem Kalenderjahr nach dem Aufstieg; nicht für Profi-Mannschaften und Fußball.',
         'jugend'        => 'Kooperation Schule – Verein ausdrücklich erwünscht: Bezug zur Täglichen Bewegungseinheit und zu Partnerschulen herausstreichen.',
+        'vb_ausbildung' => 'Ausbildungen können auch über die Landesverbandsförderung (Fixbetrag nach Abschluss) unterstützt werden – dieselbe Rechnung nicht doppelt abrechnen.',
+        'ausbildung'    => 'Übungsleiter:innen-Ausbildungen sind auch über den Vereinsbonus (bis € 314,–, Antrag VOR Beginn) förderbar – dieselbe Rechnung nicht doppelt abrechnen.',
     ];
     if (isset($hinweise[$pos['foerderart']])) $m[] = ['typ' => 'info', 'text' => $hinweise[$pos['foerderart']]];
 
     return $m;
 }
 
-/** Prüfung auf Ebene des Ansuchens (Vertreter, Erklärungen, Gesamtbetrag). */
-function suPruefeAntrag(array $antrag, string $beantragtGesamt, int $anzahlPositionen): array
+/** Prüfung auf Ebene des Ansuchens (Vertreter, Erklärungen, Gesamtbetrag, Vereinsbonus-Voraussetzungen). */
+function suPruefeAntrag(array $antrag, string $beantragtGesamt, int $anzahlPositionen, bool $mitVereinsbonus = false): array
 {
     $m = [];
     if ($anzahlPositionen === 0) $m[] = ['typ' => 'fehler', 'text' => 'Noch keine Fördergegenstände erfasst.'];
+    if ($mitVereinsbonus) {
+        if (empty($antrag['vb_fit_siegel'])) $m[] = ['typ' => 'fehler', 'text' => 'Vereinsbonus: Der Verein braucht mindestens ein aktives Fit-Sport-Austria-Qualitätssiegel.'];
+        if (empty($antrag['vb_beratung']))   $m[] = ['typ' => 'warnung', 'text' => 'Vereinsbonus: Vor der ersten Förderung ist ein Beratungsgespräch mit dem Landesverband verpflichtend.'];
+        $m[] = ['typ' => 'info', 'text' => 'Vereinsbonus: Andere Landesverbände nennen für 2026 die Fristen 31.03. (Sommersemester) und 30.09. (Herbst); die Frist für die Steiermark beim Landesverband bestätigen. Anträge immer vor Beginn der Maßnahme.'];
+    }
     if (trim((string)$antrag['obmann_name']) === '' || trim((string)$antrag['vertreter2_name']) === '') {
         $m[] = ['typ' => 'fehler', 'text' => 'Statutarische Vertreter fehlen – Ansuchen stellen Obmann/Obfrau gemeinsam mit Kassier:in oder Schriftführer:in.'];
     }
