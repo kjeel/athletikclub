@@ -153,6 +153,15 @@ $stmt = $db->prepare(
 $stmt->execute([$mitglied_id, currentOrgId(), $mitglied_id, currentOrgId()]);
 $plaene = $stmt->fetchAll();
 
+// Leistungsdiagnostik (Migration 009 – fehlt sie, wird der Abschnitt ausgeblendet)
+$testungen = null;
+try {
+    $stmt = $db->prepare("SELECT s.id, s.datum, s.status, (SELECT COUNT(*) FROM ld_ergebnisse e WHERE e.sitzung_id = s.id AND e.wert IS NOT NULL) AS gemessen
+                          FROM ld_sitzungen s WHERE s.mitglied_id = ? AND s.organization_id = ? ORDER BY s.datum DESC, s.id DESC LIMIT 5");
+    $stmt->execute([$mitglied_id, currentOrgId()]);
+    $testungen = $stmt->fetchAll();
+} catch (PDOException $e) {}
+
 $page_title = $mitglied['vorname'] . ' ' . $mitglied['nachname'];
 $breadcrumb = 'Mitglieder';
 require_once ROOT_PATH . '/includes/dashboard-header.php';
@@ -216,6 +225,37 @@ $s = $status_labels[$mitglied['mitgliedsstatus'] ?? 'ausstehend'] ?? ['label' =>
     </div>
     <?php endif; ?>
 </div>
+
+<?php if ($testungen !== null): ?>
+<!-- Leistungsdiagnostik -->
+<div class="table-card" style="margin-bottom: 1.5rem;">
+    <div class="table-card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+        <h2 class="table-card-title">Leistungsdiagnostik</h2>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <?php if ($testungen): ?><a href="<?= APP_URL ?>/dashboard/leistungsprofil.php?mitglied=<?= $mitglied_id ?>" class="btn btn-primary btn-sm">Leistungsverlauf</a><?php endif; ?>
+            <a href="<?= APP_URL ?>/dashboard/leistungsdiagnostik.php?mitglied=<?= $mitglied_id ?>#neu" class="btn btn-ghost-light btn-sm">+ Testung</a>
+        </div>
+    </div>
+    <?php if (!$testungen): ?>
+    <div style="padding: 1.25rem; color: var(--text-muted); font-size: 0.875rem;">Noch keine Testungen für dieses Mitglied.</div>
+    <?php else: ?>
+    <div style="overflow-x: auto;">
+        <table class="data-table">
+            <thead><tr><th>Datum</th><th>Gemessene Tests</th><th>Status</th></tr></thead>
+            <tbody>
+                <?php foreach ($testungen as $t): ?>
+                <tr data-row-href="<?= APP_URL ?>/dashboard/leistungstest.php?id=<?= $t['id'] ?>">
+                    <td><a class="text-primary" href="<?= APP_URL ?>/dashboard/leistungstest.php?id=<?= $t['id'] ?>"><?= date('d.m.Y', strtotime($t['datum'])) ?></a></td>
+                    <td><?= (int)$t['gemessen'] ?></td>
+                    <td><span class="badge <?= $t['status'] === 'durchgefuehrt' ? 'badge-success' : 'badge-info' ?>"><?= $t['status'] === 'durchgefuehrt' ? 'Durchgeführt' : 'Geplant' ?></span></td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+    <?php endif; ?>
+</div>
+<?php endif; ?>
 
 <div class="grid-2" style="align-items: start;">
 
