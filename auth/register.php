@@ -74,8 +74,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$vorname, $nachname, $email, $password_hash, 'mitglied', $verify_token]);
             $user_id = (int)$db->lastInsertId();
 
-            // Mitglieder-Profil automatisch anlegen
-            $db->prepare('INSERT INTO mitglieder_profile (organization_id, user_id, mitglied_seit) VALUES (1, ?, NOW())')
+            // Mitglieder-Profil automatisch anlegen; Login erst nach Freigabe durch Admin
+            $db->prepare('INSERT INTO mitglieder_profile (organization_id, user_id, mitglied_seit, mitgliedsstatus) VALUES (1, ?, NOW(), \'ausstehend\')')
                ->execute([$user_id]);
 
             // RBAC-Rolle zuordnen (CUSTOMER)
@@ -92,13 +92,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         . "Bitte bestätige deine E-Mail-Adresse durch Klick auf folgenden Link:\n"
                         . $verify_url . "\n\n"
                         . "Der Link ist 48 Stunden gültig.\n\n"
+                        . "Danach prüfen wir deine Registrierung und schalten dein Konto frei. "
+                        . "Du bekommst eine E-Mail, sobald du dich anmelden kannst.\n\n"
                         . "Sportliche Grüße,\nDas Athletikclub-Steiermark-Team";
             $headers = 'From: ' . MAIL_FROM_NAME . ' <' . MAIL_FROM . '>';
             @mail($email, $subject, $message, $headers);
 
+            // Admin über neue Registrierung informieren, damit sie freigegeben werden kann
+            @mail(
+                MAIL_ADMIN,
+                'Neue Registrierung wartet auf Freigabe: ' . preg_replace('/[\r\n]+/', ' ', "{$vorname} {$nachname}"),
+                "Neue Registrierung auf " . APP_URL . ":\n\n"
+                . "Name:   {$vorname} {$nachname}\n"
+                . "E-Mail: {$email}\n\n"
+                . "Freigeben in der Mitgliederverwaltung:\n"
+                . APP_URL . "/dashboard/mitglieder.php?status=ausstehend\n",
+                $headers
+            );
+
             logActivity('registrierung', "Neues Mitglied: {$email}");
 
-            flashMessage('success', 'Registrierung erfolgreich! Bitte bestätige deine E-Mail-Adresse.');
+            flashMessage('success', 'Registrierung erfolgreich! Bitte bestätige deine E-Mail-Adresse. Danach schalten wir dein Konto frei.');
             redirect(APP_URL . '/auth/login.php?registered=1');
         } catch (Exception $e) {
             $errors['general'] = 'Registrierung fehlgeschlagen. Bitte versuche es später erneut.';

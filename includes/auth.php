@@ -95,6 +95,18 @@ function requireAdmin(): void
 // ----------------------------------------------------------------
 
 /**
+ * Selbst registrierte Mitglieder starten mit Status "ausstehend" und dürfen
+ * sich erst anmelden, wenn ein Admin sie in der Mitgliederverwaltung freigibt.
+ * Mitglieder ohne Profil (Altbestand) werden nicht gesperrt.
+ */
+function mitgliedWartetAufFreigabe(PDO $db, int $userId): bool
+{
+    $stmt = $db->prepare('SELECT mitgliedsstatus FROM mitglieder_profile WHERE user_id = ? LIMIT 1');
+    $stmt->execute([$userId]);
+    return $stmt->fetchColumn() === 'ausstehend';
+}
+
+/**
  * Loggt einen Benutzer ein und befüllt die Session.
  */
 function loginUser(array $user): void

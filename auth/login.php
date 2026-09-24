@@ -42,6 +42,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errors['general'] = 'Dein Konto wurde deaktiviert. Bitte kontaktiere uns.';
             } elseif (!$user['email_verified']) {
                 $errors['general'] = 'Bitte bestätige zunächst deine E-Mail-Adresse. Sieh in deinem Posteingang nach.';
+            } elseif ($user['rolle'] === 'mitglied' && mitgliedWartetAufFreigabe($db, (int)$user['id'])) {
+                $errors['general'] = 'Dein Konto wird gerade geprüft. Sobald wir es freigegeben haben, bekommst du eine E-Mail und kannst dich anmelden.';
             } else {
                 loginUser($user);
 
@@ -107,12 +109,12 @@ $verified   = isset($_GET['verified']);
         <!-- Success Messages -->
         <?php if ($registered): ?>
             <div class="flash-message flash-success" style="margin-bottom: 1.5rem; border-radius: 0.5rem;">
-                <span>✅ Registrierung erfolgreich! Bitte bestätige deine E-Mail-Adresse.</span>
+                <span>✅ Registrierung erfolgreich! Bitte bestätige deine E-Mail-Adresse. Danach prüfen wir dein Konto und schalten es frei.</span>
             </div>
         <?php endif; ?>
         <?php if ($verified): ?>
             <div class="flash-message flash-success" style="margin-bottom: 1.5rem; border-radius: 0.5rem;">
-                <span>✅ E-Mail bestätigt! Du kannst dich jetzt anmelden.</span>
+                <span>✅ E-Mail bestätigt! Sobald wir dein Konto freigegeben haben, bekommst du eine E-Mail und kannst dich anmelden.</span>
             </div>
         <?php endif; ?>
         <?php if (!empty($errors['general'])): ?>

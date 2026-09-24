@@ -97,6 +97,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'updat
 }
 
 // ----------------------------------------------------------------
+// Selbst registriertes Mitglied freigeben (nur Admin) + Mitglied informieren
+// ----------------------------------------------------------------
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'freigeben') {
+    requireCsrf();
+    requireAdmin();
+
+    $mitglied_user_id = (int)($_POST['user_id'] ?? 0);
+    $stmt = $db->prepare(
+        "SELECT u.vorname, u.email FROM users u
+         JOIN mitglieder_profile mp ON mp.user_id = u.id
+         WHERE u.id = ? AND u.organization_id = ? AND u.rolle = 'mitglied' AND mp.mitgliedsstatus = 'ausstehend'"
+    );
+    $stmt->execute([$mitglied_user_id, currentOrgId()]);
+    $freizugeben = $stmt->fetch();
+
+    if ($freizugeben) {
+        $db->prepare("UPDATE mitglieder_profile SET mitgliedsstatus = 'aktiv' WHERE user_id = ?")
+           ->execute([$mitglied_user_id]);
+
+        @mail(
+            $freizugeben['email'],
+            'Dein Konto ist freigeschaltet: ' . APP_NAME,
+            "Hallo {$freizugeben['vorname']},\n\n"
+            . "dein Konto beim Athletikclub Steiermark wurde freigeschaltet. Du kannst dich jetzt anmelden:\n"
+            . APP_URL . "/auth/login.php\n\n"
+            . "Sportliche Grüße,\nDas Athletikclub-Steiermark-Team",
+            'From: ' . MAIL_FROM_NAME . ' <' . MAIL_FROM . '>'
+        );
+
+        logActivity('mitglied_freigegeben', "User-ID: {$mitglied_user_id}");
+        flashMessage('success', $freizugeben['vorname'] . ' wurde freigegeben und per E-Mail informiert.');
+    }
+    redirect(APP_URL . '/dashboard/mitglieder.php' . (isset($_GET['status']) ? '?status=' . urlencode($_GET['status']) : ''));
+}
+
+// ----------------------------------------------------------------
 // Filter & Liste
 // ----------------------------------------------------------------
 $filter_suche  = trim($_GET['suche'] ?? '');
@@ -128,6 +164,13 @@ $stmt = $db->prepare(
 $stmt->execute($params);
 $mitglieder = $stmt->fetchAll();
 
+$stmt = $db->prepare(
+    "SELECT COUNT(*) FROM users u JOIN mitglieder_profile mp ON mp.user_id = u.id
+     WHERE u.rolle = 'mitglied' AND u.organization_id = ? AND mp.mitgliedsstatus = 'ausstehend'"
+);
+$stmt->execute([currentOrgId()]);
+$anzahl_ausstehend = (int)$stmt->fetchColumn();
+
 $page_title = 'Mitglieder';
 $breadcrumb = 'Mitglieder';
 require_once ROOT_PATH . '/includes/dashboard-header.php';
@@ -149,6 +192,15 @@ $status_labels = [
         Mitglied anlegen
     </button>
 </div>
+
+<?php if (isAdmin() && $anzahl_ausstehend > 0 && $filter_status !== 'ausstehend'): ?>
+<div class="flash-message flash-warning" style="border-radius: 0.5rem; margin-bottom: 1.5rem;">
+    <span>
+        <?= $anzahl_ausstehend === 1 ? '1 neue Registrierung wartet' : $anzahl_ausstehend . ' neue Registrierungen warten' ?> auf deine Freigabe.
+        <a href="<?= APP_URL ?>/dashboard/mitglieder.php?status=ausstehend" style="font-weight: 700; text-decoration: underline;">Jetzt ansehen</a>
+    </span>
+</div>
+<?php endif; ?>
 
 <?php if ($invite_link): ?>
 <div class="flash-message flash-success" style="border-radius: 0.5rem; margin-bottom: 1.5rem; align-items: flex-start;">
@@ -258,6 +310,14 @@ $status_labels = [
                         <td><?= (int)$m['aktive_kurse'] ?></td>
                         <td><span class="badge <?= $sl['class'] ?>"><?= e($sl['label']) ?></span></td>
                         <td style="white-space: nowrap;">
+                            <?php if (isAdmin() && $m['mitgliedsstatus'] === 'ausstehend'): ?>
+                            <form method="POST" style="display: inline;">
+                                <?= csrfField() ?>
+                                <input type="hidden" name="action" value="freigeben">
+                                <input type="hidden" name="user_id" value="<?= (int)$m['id'] ?>">
+                                <button type="submit" class="btn btn-secondary btn-sm">Freigeben</button>
+                            </form>
+                            <?php endif; ?>
                             <a href="<?= APP_URL ?>/dashboard/mitglied-detail.php?id=<?= $m['id'] ?>" class="btn btn-primary btn-sm">Fortschritt &amp; Dokumente</a>
                             <?php if (isAdmin()): ?>
                             <button type="button" class="btn btn-ghost-light btn-sm" onclick="document.getElementById('edit-<?= $m['id'] ?>').classList.toggle('open-row')">Bearbeiten</button>

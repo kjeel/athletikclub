@@ -39,7 +39,7 @@ if (!empty($token) && mb_strlen($token) === 64) {
 }
 
 if ($status === 'success') {
-    flashMessage('success', 'E-Mail bestätigt! Du kannst dich jetzt anmelden.');
+    flashMessage('success', 'E-Mail bestätigt! Sobald wir dein Konto freigegeben haben, kannst du dich anmelden.');
     redirect(APP_URL . '/auth/login.php?verified=1');
 }
 ?>
