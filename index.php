@@ -351,9 +351,9 @@ try {
         </div>
 
         <div class="reveal reveal-delay-1" style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; margin-top: 3rem;">
-            <a href="/pages/vision.php" class="btn btn-ghost-light">Unsere Vision</a>
-            <a href="/pages/mission.php" class="btn btn-ghost-light">Unsere Mission</a>
-            <a href="/pages/leitbild.php" class="btn btn-ghost-light">Unser Leitbild</a>
+            <a href="/pages/vision.php" class="btn btn-ghost">Unsere Vision</a>
+            <a href="/pages/mission.php" class="btn btn-ghost">Unsere Mission</a>
+            <a href="/pages/leitbild.php" class="btn btn-ghost">Unser Leitbild</a>
         </div>
     </div>
 </section>
