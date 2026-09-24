@@ -379,6 +379,12 @@
 :root[data-theme="dark"] .role-admin   { background: rgba(198,161,53,0.22); color: #E8CE7A; }
 :root[data-theme="dark"] .role-trainer { background: rgba(120,150,200,0.18); color: #A9C2E8; }
 
+/* Sidebar im Dunkelmodus: Navy-Text wäre auf dunklem Grund unsichtbar */
+:root[data-theme="dark"] .sidebar-link:hover,
+:root[data-theme="dark"] .sidebar-link.active { color: #E8EEF7; }
+:root[data-theme="dark"] .sidebar-link.active { background: rgba(198,161,53,0.14); }
+:root[data-theme="dark"] .sidebar-link.active svg { color: var(--gold-accent); }
+
 /* ============================================================
    Dokument Upload Card
 ============================================================ */
