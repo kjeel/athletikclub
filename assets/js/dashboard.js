@@ -8,32 +8,40 @@
     // ============================================================
     // Sidebar Mobile Toggle
     // ============================================================
-    const sidebarToggle = document.getElementById('sidebar-toggle');
-    const sidebar       = document.getElementById('sidebar');
+    // Sichtbarkeit des Menü-Buttons steuert das CSS (ab 1024px abwärts)
+    const sidebarToggle   = document.getElementById('sidebar-toggle');
+    const sidebar         = document.getElementById('sidebar');
+    const sidebarBackdrop = document.getElementById('sidebar-backdrop');
+
+    function setSidebar(offen) {
+        sidebar.classList.toggle('open', offen);
+        sidebarToggle.classList.toggle('active', offen);
+        sidebarToggle.setAttribute('aria-expanded', offen ? 'true' : 'false');
+        sidebarToggle.setAttribute('aria-label', offen ? 'Menü schließen' : 'Menü öffnen');
+        document.body.classList.toggle('sidebar-offen', offen);
+        if (sidebarBackdrop) sidebarBackdrop.hidden = !offen;
+    }
 
     if (sidebarToggle && sidebar) {
         sidebarToggle.addEventListener('click', function () {
-            sidebar.classList.toggle('open');
+            setSidebar(!sidebar.classList.contains('open'));
+        });
+        if (sidebarBackdrop) sidebarBackdrop.addEventListener('click', function () { setSidebar(false); });
+
+        // Nach Klick auf einen Menüpunkt schließen
+        sidebar.querySelectorAll('a').forEach(function (link) {
+            link.addEventListener('click', function () { setSidebar(false); });
         });
 
-        // Klick außerhalb schließt Sidebar
-        document.addEventListener('click', function (e) {
-            if (sidebar.classList.contains('open')
-                && !sidebar.contains(e.target)
-                && !sidebarToggle.contains(e.target)) {
-                sidebar.classList.remove('open');
-            }
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && sidebar.classList.contains('open')) setSidebar(false);
+        });
+
+        // Beim Wechsel auf Desktop-Breite Menü-Zustand zurücksetzen
+        window.matchMedia('(min-width: 1025px)').addEventListener('change', function (mq) {
+            if (mq.matches) setSidebar(false);
         });
     }
-
-    // Hamburger bei kleinen Screens anzeigen
-    function checkSidebarVisibility() {
-        if (sidebarToggle) {
-            sidebarToggle.style.display = window.innerWidth <= 1024 ? 'flex' : 'none';
-        }
-    }
-    checkSidebarVisibility();
-    window.addEventListener('resize', checkSidebarVisibility);
 
     // ============================================================
     // Drag & Drop für Upload-Zone

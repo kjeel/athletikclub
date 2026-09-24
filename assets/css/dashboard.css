@@ -422,43 +422,173 @@
 }
 
 /* ============================================================
-   Dashboard Responsive
+   Dashboard Header (Kopfzeile)
+============================================================ */
+.dash-header-inner {
+    padding-inline: var(--space-6);
+    gap: var(--space-3);
+}
+
+.dash-header-left,
+.dash-header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    min-width: 0;
+}
+
+.dash-breadcrumb {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Hauptbereich darf im Grid schrumpfen (sonst drücken breite Tabellen die Seite auf) */
+.dashboard-main {
+    min-width: 0;
+}
+
+/* Menü-Button (Sidebar) nur auf Tablet/Handy */
+#sidebar-toggle {
+    display: none;
+    background: none;
+    border: 0;
+    cursor: pointer;
+    padding: 10px 8px;
+    margin-left: -8px;
+}
+
+.sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1250;
+    background: rgba(13, 31, 53, 0.55);
+    backdrop-filter: blur(2px);
+}
+
+/* ============================================================
+   Dashboard Responsive – Tablet
 ============================================================ */
 @media (max-width: 1024px) {
     .dashboard-layout {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
     }
 
+    #sidebar-toggle { display: flex; }
+
+    /* Sidebar als ausfahrbares Menü von links */
     .sidebar {
-        display: none;
+        display: flex;
         position: fixed;
         top: 0;
         left: 0;
+        bottom: 0;
         height: 100vh;
-        width: 280px;
+        height: 100dvh;
+        width: min(300px, 85vw);
         z-index: 1300;
         box-shadow: var(--shadow-xl);
+        transform: translateX(-105%);
+        visibility: hidden;
+        transition: transform 0.25s ease, visibility 0s linear 0.25s;
+        overscroll-behavior: contain;
+        padding-bottom: calc(var(--space-6) + env(safe-area-inset-bottom));
     }
 
-    .sidebar.open { display: flex; }
+    .sidebar.open {
+        transform: translateX(0);
+        visibility: visible;
+        transition: transform 0.25s ease, visibility 0s;
+    }
+
+    body.sidebar-offen { overflow: hidden; }
+
+    .sidebar-link { padding: 0.8rem var(--space-4); }
 
     .dashboard-main {
-        padding: var(--space-5) var(--space-4);
+        padding: var(--space-6) var(--space-5);
     }
 
     .kpi-grid {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
-@media (max-width: 600px) {
-    .kpi-grid {
-        grid-template-columns: 1fr 1fr;
+/* ============================================================
+   Dashboard Responsive – Handy
+============================================================ */
+@media (max-width: 768px) {
+    .dash-header-inner { padding-inline: var(--space-4); }
+    .dash-header-left { gap: var(--space-2); }
+    .dash-header-actions { gap: var(--space-2); }
+    .dash-breadcrumb,
+    .dash-breadcrumb-sep,
+    .dash-website-btn,
+    .dash-header-actions .user-name { display: none; }
+
+    .dashboard-main {
+        padding: var(--space-5) var(--space-4) calc(var(--space-10) + env(safe-area-inset-bottom));
     }
+
+    .dashboard-header { margin-bottom: var(--space-5); }
+    .dashboard-title  { font-size: var(--text-xl); line-height: 1.25; word-break: break-word; }
+    .dashboard-subtitle { font-size: var(--text-sm); }
+
+    /* Karten & Tabellen */
+    .table-card-header { padding: var(--space-4); }
+    .table-card-title  { font-size: var(--text-sm); }
 
     .data-table {
         display: block;
+        width: 100%;
         overflow-x: auto;
-        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
     }
+    .data-table th { white-space: nowrap; }
+    .data-table th,
+    .data-table td { padding: 0.65rem 0.75rem; }
+
+    /* Formulare: 16px verhindert das automatische Hineinzoomen auf dem iPhone */
+    .form-control,
+    .dashboard-main input,
+    .dashboard-main select,
+    .dashboard-main textarea { font-size: 16px; }
+    .dashboard-main .form-control { max-width: 100%; }
+
+    /* Buttons fingerfreundlich */
+    .dashboard-main .btn-sm { min-height: 38px; }
+
+    /* Inline-Layouts der Seiten umbrechen */
+    .dashboard-main [style*="display: flex"],
+    .dashboard-main [style*="display:flex"] { flex-wrap: wrap; }
+    .dashboard-main label[style*="display: flex"],
+    .dashboard-main label[style*="display:flex"],
+    .dashboard-main .form-check { flex-wrap: nowrap; }
+    .dashboard-main label input[type="checkbox"],
+    .dashboard-main label input[type="radio"] { flex-shrink: 0; }
+    /* gleich breite Formularspalten nicht zu schmal werden lassen */
+    .dashboard-main [style*="display: flex"] > [style*="flex: 1"] { min-width: 8.5rem; }
+    .dashboard-main [style*="grid-template-columns"] { grid-template-columns: minmax(0, 1fr) !important; }
+    .dashboard-main [style*="max-width: 200px"],
+    .dashboard-main [style*="max-width: 220px"],
+    .dashboard-main [style*="max-width: 260px"] { max-width: 100% !important; flex: 1 1 100%; }
+
+    /* Prüf-Hinweise (Förderanträge): Überschrift über dem Text */
+    .su-meldung, .tbe-meldung { flex-direction: column; gap: 0.15rem; }
+    .su-meldung strong, .tbe-meldung strong { white-space: normal !important; }
+
+    .grid-2, .grid-3, .grid-4 { gap: var(--space-5); }
+
+    .kpi-card  { padding: var(--space-4); }
+    .kpi-value { font-size: var(--text-xl); }
+    .kpi-label { overflow-wrap: anywhere; hyphens: auto; }
+
+
+    .empty-state { padding: var(--space-8) var(--space-4); }
+}
+
+@media (max-width: 420px) {
+    .dash-header-left .logo-text { display: none; }
+    .kpi-grid { grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+    .kpi-icon { display: none; }
 }

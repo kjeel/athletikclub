@@ -137,10 +137,10 @@ try {
 
 <!-- Dashboard Header -->
 <header class="site-header" id="site-header" style="position: sticky; top: 0; z-index: 1000;">
-    <div class="header-inner container" style="max-width: 100%; padding-inline: 1.5rem;">
-        <div style="display: flex; align-items: center; gap: 1rem;">
+    <div class="header-inner container dash-header-inner" style="max-width: 100%;">
+        <div class="dash-header-left">
             <!-- Mobile Sidebar Toggle -->
-            <button class="nav-toggle" id="sidebar-toggle" aria-label="Sidebar öffnen" style="display: none;">
+            <button type="button" class="nav-toggle" id="sidebar-toggle" aria-label="Menü öffnen" aria-controls="sidebar" aria-expanded="false">
                 <span></span><span></span><span></span>
             </button>
             <a href="<?= APP_URL ?>/" class="logo">
@@ -153,18 +153,18 @@ try {
                 </div>
             </a>
             <!-- Breadcrumb -->
-            <span style="color: rgba(255,255,255,0.3); font-size: 1.2rem; margin-left: 0.5rem;">/</span>
-            <span style="font-family: 'Montserrat', sans-serif; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.7);">
+            <span class="dash-breadcrumb-sep" style="color: rgba(255,255,255,0.3); font-size: 1.2rem; margin-left: 0.5rem;">/</span>
+            <span class="dash-breadcrumb" style="font-family: 'Montserrat', sans-serif; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.7);">
                 <?= isset($breadcrumb) ? e($breadcrumb) : 'Dashboard' ?>
             </span>
         </div>
 
-        <div style="display: flex; align-items: center; gap: 1rem;">
+        <div class="dash-header-actions">
             <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Farbschema wechseln" title="Hell/Dunkel umschalten">
                 <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
                 <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
             </button>
-            <a href="<?= APP_URL ?>/" class="btn btn-ghost btn-sm">
+            <a href="<?= APP_URL ?>/" class="btn btn-ghost btn-sm dash-website-btn">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                 Website
             </a>
@@ -311,6 +311,8 @@ try {
             </a>
         </div>
     </aside>
+
+    <div class="sidebar-backdrop" id="sidebar-backdrop" hidden></div>
 
     <!-- MAIN CONTENT STARTS HERE -->
     <main class="dashboard-main" id="main-content">

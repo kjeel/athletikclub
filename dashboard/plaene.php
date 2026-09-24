@@ -145,7 +145,7 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
 ?>
 
 <div class="dashboard-header">
-    <h1 class="dashboard-title"><?= e($page_title) ?></h1>
+    <h1 class="dashboard-title"><?= e($breadcrumb) ?></h1>
     <p class="dashboard-subtitle">
         <?= isTrainer()
             ? 'Individuelle Trainingspläne und Ernährungspläne für Mitglieder erstellen, Vorlagen verwalten und Trainingsprotokolle einsehen.'
