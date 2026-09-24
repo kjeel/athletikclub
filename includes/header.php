@@ -198,11 +198,12 @@ $canonical_url = SITE_URL . $canonical_path;
                     <i data-feather="grid"></i>
                     Dashboard
                 </a>
-                <div class="user-chip has-dropdown">
+                <div class="user-chip has-dropdown" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false" aria-label="Benutzermenü">
                     <div class="user-avatar"><?= strtoupper(substr($current_user['vorname'], 0, 1) . substr($current_user['nachname'], 0, 1)) ?></div>
                     <span class="user-name"><?= e($current_user['vorname']) ?></span>
                     <i data-feather="chevron-down"></i>
                     <ul class="dropdown-menu dropdown-right">
+                        <li class="dropdown-nur-mobil"><a href="<?= APP_URL ?>/dashboard/index.php"><i data-feather="grid"></i> Dashboard</a></li>
                         <li><a href="<?= APP_URL ?>/dashboard/profil.php"><i data-feather="user"></i> Mein Profil</a></li>
                         <?php if (isTrainer()): ?>
                         <li><a href="<?= APP_URL ?>/dashboard/mitglieder.php"><i data-feather="users"></i> Mitglieder</a></li>

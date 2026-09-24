@@ -671,7 +671,8 @@ p { color: var(--text-secondary); line-height: 1.8; }
 }
 
 .has-dropdown:hover .dropdown-menu,
-.has-dropdown:focus-within .dropdown-menu {
+.has-dropdown:focus-within .dropdown-menu,
+.has-dropdown.open .dropdown-menu {
     opacity: 1;
     visibility: visible;
     transform: translateY(0);
@@ -758,6 +759,10 @@ p { color: var(--text-secondary); line-height: 1.8; }
     height: 14px;
     color: rgba(255,255,255,0.7);
 }
+
+/* Menüpunkte im Benutzermenü, die nur am Handy nötig sind
+   (dort sind die Buttons „Dashboard“ bzw. „Website“ ausgeblendet) */
+.dropdown-nur-mobil { display: none; }
 
 /* Hamburger */
 .nav-toggle {
@@ -2018,6 +2023,14 @@ textarea.form-control {
     .header-actions .user-chip .user-name {
         display: none;
     }
+
+    /* Kopfzeile kompakter, damit Logo, Farbschema, Benutzermenü und ☰ Platz haben */
+    .header-inner { gap: var(--space-3); }
+    .header-actions { gap: var(--space-2); }
+    .theme-toggle { width: 38px; height: 38px; }
+    .user-chip { padding: 3px; }
+    .user-chip > svg { display: none; }
+    .dropdown-nur-mobil { display: block; }
 
     .grid-2, .grid-3, .grid-4 {
         grid-template-columns: 1fr;

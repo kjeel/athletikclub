@@ -267,14 +267,29 @@
     }
 
     // ============================================================
-    // Dropdown – Klick außerhalb schließt
+    // Benutzermenü (Initialen oben rechts) – per Tipp/Klick öffnen,
+    // weil es am Handy kein Hover gibt. Klick außerhalb schließt.
     // ============================================================
-    document.addEventListener('click', function (e) {
-        if (!e.target.closest('.has-dropdown')) {
-            document.querySelectorAll('.has-dropdown .dropdown-menu').forEach(function (menu) {
-                // CSS :hover handled – this is for JS-triggered ones
-            });
+    document.querySelectorAll('.user-chip.has-dropdown').forEach(function (chip) {
+        function setOffen(offen) {
+            chip.classList.toggle('open', offen);
+            chip.setAttribute('aria-expanded', offen ? 'true' : 'false');
+            if (!offen && chip.contains(document.activeElement)) document.activeElement.blur(); // sonst hält :focus-within es offen
         }
+        chip.addEventListener('click', function (e) {
+            if (e.target.closest('.dropdown-menu a')) return; // Link normal öffnen
+            setOffen(!chip.classList.contains('open'));
+        });
+        chip.addEventListener('keydown', function (e) {
+            if ((e.key === 'Enter' || e.key === ' ') && e.target === chip) {
+                e.preventDefault();
+                setOffen(!chip.classList.contains('open'));
+            }
+            if (e.key === 'Escape') setOffen(false);
+        });
+        document.addEventListener('click', function (e) {
+            if (!chip.contains(e.target)) setOffen(false);
+        });
     });
 
     // ============================================================
