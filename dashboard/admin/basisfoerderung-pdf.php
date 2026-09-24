@@ -1,6 +1,7 @@
 <?php
 /**
- * Athletikclub Steiermark – Admin: Förderansuchen an die SPORTUNION Steiermark als PDF
+ * Athletikclub Steiermark – Admin: Förderansuchen als PDF, je Förderstelle getrennt
+ * (?stelle=sportunion: Landesverbandsförderung + Vereinsbonus, ?stelle=land: Sportförderung Land Steiermark)
  */
 define('ROOT_PATH', dirname(dirname(__DIR__)));
 require_once ROOT_PATH . '/config/config.php';
@@ -38,8 +39,13 @@ foreach ($positionen as &$p) {
     $p['beantragt']   = suBeantragt($p, $p['kostensumme']);
 }
 unset($p);
-// Landesverbandsförderung (A) vor Vereinsbonus (B), innerhalb stabil in Erfassungsreihenfolge
-usort($positionen, fn($a, $b) => [suProgramm($a['foerderart']) === 'vereinsbonus', $a['sortierung'], $a['id']] <=> [suProgramm($b['foerderart']) === 'vereinsbonus', $b['sortierung'], $b['id']]);
+// Je Förderstelle ein eigenes Ansuchen: SPORTUNION (Programme A + B) oder Land Steiermark (Programm C)
+$stelle      = ($_GET['stelle'] ?? '') === 'land' ? 'land' : 'sportunion';
+$stelle_info = SU_STELLEN[$stelle];
+$positionen  = array_values(array_filter($positionen, fn($p) => suStelle($p['foerderart']) === $stelle));
+// Programme in Reihenfolge A, B, C, innerhalb stabil in Erfassungsreihenfolge
+$prog_rang = array_flip(array_keys(SU_PROGRAMME));
+usort($positionen, fn($a, $b) => [$prog_rang[suProgramm($a['foerderart'])], $a['sortierung'], $a['id']] <=> [$prog_rang[suProgramm($b['foerderart'])], $b['sortierung'], $b['id']]);
 $mit_vereinsbonus = in_array('vereinsbonus', array_map(fn($p) => suProgramm($p['foerderart']), $positionen), true);
 
 $kosten_gesamt    = moneySum(array_column($positionen, 'kostensumme'));
@@ -51,6 +57,7 @@ $vertreter2_label = $a['vertreter2_funktion'] === 'schriftfuehrer' ? 'Schriftfü
 class SuPDF extends TCPDF
 {
     public string $headerTitel = '';
+    public string $fusszeile = '';
     public function __construct(...$args)
     {
         parent::__construct(...$args);
@@ -73,10 +80,10 @@ class SuPDF extends TCPDF
         $this->SetY(-15);
         $this->SetFont('dejavusans', '', 8);
         $this->SetTextColor(140, 140, 140);
-        $this->Cell(0, 10, APP_NAME . ' · ZVR ' . VEREIN_ZVR . ' · Förderansuchen an die SPORTUNION Steiermark · Seite ' . $this->getAliasNumPage() . '/' . $this->getAliasNbPages(), 0, 0, 'C');
+        $this->Cell(0, 10, APP_NAME . ' · ZVR ' . VEREIN_ZVR . ' · ' . $this->fusszeile . ' · Seite ' . $this->getAliasNumPage() . '/' . $this->getAliasNbPages(), 0, 0, 'C');
     }
 
-    public function feldZeile(string $label, ?string $wert, float $labelWidth = 55): void
+    public function feldZeile(string $label, ?string $wert, float $labelWidth = 64): void
     {
         $this->SetFont('dejavusans', 'B', 9.5);
         $this->Cell($labelWidth, 6, $label, 0, 0, 'L');
@@ -117,7 +124,8 @@ $h  = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
 $th = 'style="background-color:#EEF1F5; font-weight:bold;"';
 
 $pdf = new SuPDF('P', 'mm', 'A4', true, 'UTF-8', false);
-$pdf->headerTitel = 'FÖRDERANSUCHEN SPORTUNION STEIERMARK ' . $a['jahr'];
+$pdf->headerTitel = $stelle_info['kopf'] . ' ' . $a['jahr'];
+$pdf->fusszeile  = 'Förderansuchen an ' . ($stelle === 'land' ? 'das ' : 'die ') . $stelle_info['name'];
 $pdf->SetCreator(APP_NAME);
 $pdf->SetAuthor(APP_NAME);
 $pdf->SetTitle($a['titel']);
@@ -129,7 +137,7 @@ $pdf->AddPage();
 // Empfänger / Antragsteller
 // ----------------------------------------------------------------
 $pdf->SetFont('dejavusans', '', 9.5);
-$pdf->MultiCell(0, 5, "An die\nSPORTUNION Steiermark\nGaußgasse 3, 8010 Graz", 0, 'L');
+$pdf->MultiCell(0, 5, $stelle_info['adresse'], 0, 'L');
 $pdf->Ln(2);
 $pdf->SetFont('dejavusans', 'B', 14);
 $pdf->MultiCell(0, 7, $a['titel'], 0, 'L');
@@ -170,17 +178,19 @@ if (empty($positionen)) {
         . '<td ' . $th . ' width="16%" align="right">Beantragt</td>'
         . '</tr></thead><tbody>';
     // Zeilen nach Programm gruppiert, mit Zwischensumme je Programm
-    foreach (['landesverband' => 'A', 'vereinsbonus' => 'B'] as $programm => $buchstabe) {
+    foreach (SU_PROGRAMME as $programm => $prog) {
+        $buchstabe = $prog['buchstabe'];
         $gruppe = array_filter($positionen, fn($p) => suProgramm($p['foerderart']) === $programm);
         if (!$gruppe) continue;
-        $html .= '<tr style="background-color:#F7F3E6;"><td width="100%" colspan="5"><b>' . $buchstabe . ' · ' . $h(SU_PROGRAMME[$programm]['label']) . '</b></td></tr>';
+        $html .= '<tr style="background-color:#F7F3E6;"><td width="100%" colspan="5"><b>' . $buchstabe . ' · ' . $h($prog['label']) . '</b></td></tr>';
         foreach ($gruppe as $i => $p) {
             $art = suFoerderart($p['foerderart']);
             $unter = $p['kategorie'] ? (SU_SOZIAL_KATEGORIEN[$p['kategorie']] ?? '')
-                : ($art['berechnung'] === 'deckel' ? 'max. ' . moneyFormat($art['max_je']) . ' je ' . $art['je'] : (SU_BEREICHE[$art['bereich']] ?? ''));
+                : ($art['berechnung'] === 'deckel' ? 'max. ' . moneyFormat($art['max_je']) . ' je ' . $art['je']
+                : ($art['berechnung'] === 'land' ? 'Standard ' . moneyFormat($art['standard']) : (SU_BEREICHE[$art['bereich']] ?? '')));
             $html .= '<tr nobr="true">'
                 . '<td width="6%">' . ($i + 1) . '</td>'
-                . '<td width="24%">' . $h(preg_replace('/^Vereinsbonus: /', '', $art['label'])) . '<br><span style="color:#777777;">' . $h($unter) . '</span></td>'
+                . '<td width="24%">' . $h(preg_replace('/^(Vereinsbonus|Land): /', '', $art['label'])) . '<br><span style="color:#777777;">' . $h($unter) . '</span></td>'
                 . '<td width="38%">' . $h($p['titel']) . '</td>'
                 . '<td width="16%" align="right">' . (bccomp($p['kostensumme'], '0', 2) > 0 ? $h(moneyFormat($p['kostensumme'])) : '–') . '</td>'
                 . '<td width="16%" align="right"><b>' . $h(moneyFormat($p['beantragt'])) . '</b></td>'
@@ -204,7 +214,7 @@ if (empty($positionen)) {
 // ----------------------------------------------------------------
 foreach ($positionen as $i => $p) {
     $art = suFoerderart($p['foerderart']);
-    $pdf->abschnitt($nr . '.' . ($i + 1) . ' ' . preg_replace('/^Vereinsbonus: /', 'Vereinsbonus – ', $art['label']) . ': ' . $p['titel']);
+    $pdf->abschnitt($nr . '.' . ($i + 1) . ' ' . preg_replace('/^(Vereinsbonus|Land): /', '$1 – ', $art['label']) . ': ' . $p['titel']);
 
     $zeitraum = null;
     if ($p['massnahme_von'] || $p['massnahme_bis']) {
@@ -214,6 +224,9 @@ foreach ($positionen as $i => $p) {
     $pdf->feldZeile('Programm:', SU_PROGRAMME[suProgramm($p['foerderart'])]['label']);
     if ($art['berechnung'] === 'deckel') {
         $pdf->feldZeile('Förderhöchstbetrag:', 'max. ' . moneyFormat($art['max_je']) . ' je ' . $art['je']);
+    } elseif ($art['berechnung'] === 'land') {
+        $pdf->feldZeile('Förderungssatz:', 'Standardförderung ' . moneyFormat($art['standard']) . ', Bandbreite ' . moneyFormat($art['min']) . ' – '
+            . (isset($art['max']) ? moneyFormat($art['max']) : 'max. ' . $art['max_prozent_kosten'] . ' % des Gesamtbudgets'));
     } else {
         $pdf->feldZeile('Förderbereich:', SU_BEREICHE[$art['bereich']] ?? '');
     }
@@ -252,11 +265,13 @@ foreach ($positionen as $i => $p) {
 
     // Finanzierungsplan (ab € 1.500,– Pflicht, bei Kostenaufstellung immer mitgedruckt)
     if ($p['kosten'] || bccomp($p['beantragt'], (string)SU_FINANZIERUNGSPLAN_AB, 2) >= 0) {
-        $pdf->unterTitel('Finanzierungsplan' . (bccomp($p['beantragt'], (string)SU_FINANZIERUNGSPLAN_AB, 2) >= 0 ? ' (verpflichtend ab ' . moneyFormat(SU_FINANZIERUNGSPLAN_AB) . ')' : ''));
+        $pdf->unterTitel($stelle === 'land'
+            ? 'Finanzierung (Einnahmen/Ausgaben – keine Vollfinanzierung aus Förderungen)'
+            : 'Finanzierungsplan' . (bccomp($p['beantragt'], (string)SU_FINANZIERUNGSPLAN_AB, 2) >= 0 ? ' (verpflichtend ab ' . moneyFormat(SU_FINANZIERUNGSPLAN_AB) . ')' : ''));
         $html = '<table border="0.3" cellpadding="3" style="font-size:8.5pt;">'
             . '<tr><td width="70%">Eigenmittel des Vereins</td><td width="30%" align="right">' . $h(moneyFormat($p['eigenmittel'])) . '</td></tr>'
             . '<tr><td width="70%">Andere Förderungen' . ($p['andere_foerderungen_text'] ? ' (' . $h($p['andere_foerderungen_text']) . ')' : '') . '</td><td width="30%" align="right">' . $h(moneyFormat($p['andere_foerderungen'])) . '</td></tr>'
-            . '<tr><td width="70%"><b>Beantragte Förderung SPORTUNION Steiermark</b></td><td width="30%" align="right"><b>' . $h(moneyFormat($p['beantragt'])) . '</b></td></tr>'
+            . '<tr><td width="70%"><b>Beantragte Förderung ' . $h($stelle_info['name']) . '</b></td><td width="30%" align="right"><b>' . $h(moneyFormat($p['beantragt'])) . '</b></td></tr>'
             . '<tr style="background-color:#EEF1F5;"><td width="70%"><b>Gesamtfinanzierung</b></td><td width="30%" align="right"><b>' . $h(moneyFormat(moneySum([$p['eigenmittel'], $p['andere_foerderungen'], $p['beantragt']]))) . '</b></td></tr>'
             . '</table>';
         $pdf->SetFont('dejavusans', '', 9);
@@ -293,7 +308,7 @@ if (count($positionen) > 1) {
             ? '<tr><td width="70%">davon Landesverbandsförderung (A)</td><td width="30%" align="right">' . $h(moneyFormat(moneySum(array_column(array_filter($positionen, fn($p) => suProgramm($p['foerderart']) === 'landesverband'), 'beantragt')))) . '</td></tr>'
             . '<tr><td width="70%">davon SPORTUNION Vereinsbonus (B)</td><td width="30%" align="right">' . $h(moneyFormat(moneySum(array_column(array_filter($positionen, fn($p) => suProgramm($p['foerderart']) === 'vereinsbonus'), 'beantragt')))) . '</td></tr>'
             : '')
-        . '<tr style="background-color:#EEF1F5;"><td width="70%"><b>Beantragte Förderung SPORTUNION Steiermark gesamt</b></td><td width="30%" align="right"><b>' . $h(moneyFormat($beantragt_gesamt)) . '</b></td></tr>'
+        . '<tr style="background-color:#EEF1F5;"><td width="70%"><b>Beantragte Förderung ' . $h($stelle_info['name']) . ' gesamt</b></td><td width="30%" align="right"><b>' . $h(moneyFormat($beantragt_gesamt)) . '</b></td></tr>'
         . '</table>';
     $pdf->SetFont('dejavusans', '', 9);
     $pdf->writeHTML($html, true, false, false, false, '');
@@ -304,12 +319,20 @@ if (count($positionen) > 1) {
 // ----------------------------------------------------------------
 $pdf->abschnitt($nr++ . '. Erklärungen des Vereins');
 $pdf->SetFont('dejavusans', '', 9);
-foreach (SU_ERKLAERUNGEN as $feld => $text) {
+if ($stelle === 'land') {
+    // Voraussetzungen laut Richtlinie des Landes – vor der Unterschrift abhaken
+    foreach (SU_LAND_ERKLAERUNGEN as $text) {
+        $pdf->MultiCell(8, 5, '☐', 0, 'L', false, 0);
+        $pdf->MultiCell(0, 5, $text, 0, 'L');
+        $pdf->Ln(1);
+    }
+}
+foreach ($stelle === 'land' ? [] : SU_ERKLAERUNGEN as $feld => $text) {
     $pdf->MultiCell(8, 5, !empty($a[$feld]) ? '☒' : '☐', 0, 'L', false, 0);
     $pdf->MultiCell(0, 5, $text, 0, 'L');
     $pdf->Ln(1);
 }
-$pdf->MultiCell(8, 5, '☒', 0, 'L', false, 0);
+$pdf->MultiCell(8, 5, $stelle === 'land' ? '☐' : '☒', 0, 'L', false, 0);
 $pdf->MultiCell(0, 5, 'Die eingereichten Belege werden bei keinem anderen Förderungsgeber zur Abrechnung vorgelegt und nicht durch Dritte übernommen.', 0, 'L');
 if (in_array('bau', array_column($positionen, 'foerderart'), true)) {
     $pdf->Ln(1);
@@ -342,8 +365,13 @@ foreach ($positionen as $p) {
     if ($art === 'vb_sozial') $beilagen[] = 'Formular „Soziale Maßnahme“';
     if ($art === 'vb_partner') $beilagen[] = 'Kooperationsvereinbarung mit der Partnereinrichtung';
     if (in_array($art, ['vb_ausbildung', 'vb_fortbildung'], true)) $beilagen[] = 'Anmeldung/Ausschreibung der Aus- bzw. Fortbildung (Nachweis folgt nach Abschluss)';
+    if (in_array($art, ['land_betrieb', 'land_nachwuchs'], true)) $beilagen[] = 'Jahresbudget des Vereins (Einnahmen/Ausgaben) und Tätigkeitsbeschreibung';
+    if ($art === 'land_nachwuchs') $beilagen[] = 'Übersicht Nachwuchsgruppen, aktive Nachwuchssportler:innen und Schwerpunkte';
+    if (str_starts_with($art, 'land_veranst_')) $beilagen[] = 'Ausschreibung/Programm und Budget der Veranstaltung (inkl. Startgelder, Sponsoren)';
+    if ($art === 'land_einzelspitzensport') $beilagen[] = 'Ergebnislisten und Stellungnahme des Fachverbandspräsidenten';
+    if (suStelle($art) === 'land') $beilagen[] = 'Nachweis der Mitgliedschaft im steirischen Landesfachverband';
 }
-if (bccomp($beantragt_gesamt, (string)SU_FINANZIERUNGSPLAN_AB, 2) >= 0) $beilagen[] = 'Finanzierungsplan (in diesem Ansuchen enthalten)';
+if ($stelle !== 'land' && bccomp($beantragt_gesamt, (string)SU_FINANZIERUNGSPLAN_AB, 2) >= 0) $beilagen[] = 'Finanzierungsplan (in diesem Ansuchen enthalten)';
 $beilagen = array_values(array_unique($beilagen));
 if ($beilagen) {
     $pdf->abschnitt($nr++ . '. Beilagen');
@@ -374,7 +402,9 @@ $pdf->MultiCell(50, 5, $vertreter2_label . "\n" . ($a['vertreter2_name'] ?? ''),
 $pdf->Ln(8);
 $pdf->SetFont('dejavusans', '', 7.5);
 $pdf->SetTextColor(110, 110, 110);
-$pdf->MultiCell(0, 4, 'Hinweis: Förderansuchen' . ($mit_vereinsbonus ? ' und Vereinsbonus-Anträge' : '') . ' sind digital über die Vereinsdatenbank der SPORTUNION Steiermark (suvw.at) einzubringen, Vereinsbonus-Anträge vor Beginn der jeweiligen Maßnahme; dieses Dokument dient als Beilage. Grundlage sind die Förderrichtlinien und Abrechnungsrichtlinien der SPORTUNION Steiermark in der jeweils gültigen Fassung. Es besteht kein Rechtsanspruch auf Förderung.', 0, 'L');
+$pdf->MultiCell(0, 4, $stelle === 'land'
+    ? 'Hinweis: Förderungsanträge an das Land Steiermark sind ausschließlich elektronisch über das Online-Formular (egov.stmk.gv.at) einzubringen; dieses Dokument dient als Vorlage und Beilage. Der Förderungsvertrag ist binnen eines Monats unterschrieben zu retournieren; der Verwendungsnachweis ist grundsätzlich zwei Monate nach Ende einzureichen (bis € 2.500,– Bagatellgrenze, bis € 8.000,– Tätigkeits-/Projektbericht und Einnahmen-Ausgaben-Aufstellung). Grundlage ist die Richtlinie für Sportförderungen des Landes Steiermark (gültig ab 15.01.2026). Es besteht kein Rechtsanspruch auf Förderung.'
+    : 'Hinweis: Förderansuchen' . ($mit_vereinsbonus ? ' und Vereinsbonus-Anträge' : '') . ' sind digital über die Vereinsdatenbank der SPORTUNION Steiermark (suvw.at) einzubringen, Vereinsbonus-Anträge vor Beginn der jeweiligen Maßnahme; dieses Dokument dient als Beilage. Grundlage sind die Förderrichtlinien und Abrechnungsrichtlinien der SPORTUNION Steiermark in der jeweils gültigen Fassung. Es besteht kein Rechtsanspruch auf Förderung.', 0, 'L');
 
-$pdf->Output('Foerderansuchen_SPORTUNION_' . (int)$a['jahr'] . '.pdf', 'I');
+$pdf->Output('Foerderansuchen_' . ($stelle === 'land' ? 'Land_Steiermark_' : 'SPORTUNION_') . (int)$a['jahr'] . '.pdf', 'I');
 exit;

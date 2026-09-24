@@ -45,6 +45,8 @@ const SU_KONTAKTE = [
     ['rolle' => 'Vereinsbonus, Aus- und Fortbildung', 'name' => 'Mag.a Lydia Mitterhammer', 'email' => 'lydia.mitterhammer@sportunion-steiermark.at', 'tel' => '+43 316 3244 30 74'],
     ['rolle' => 'Abrechnung', 'name' => 'Ina Werni', 'email' => 'ina.werni@sportunion-steiermark.at', 'tel' => '+43 316 32 44 30 71'],
     ['rolle' => 'Landesgeschäftsstelle', 'name' => 'SPORTUNION Steiermark, Gaußgasse 3, 8010 Graz', 'email' => 'office@sportunion-steiermark.at', 'tel' => '+43 316 32 44 30'],
+    ['rolle' => 'Land Steiermark – Referat Sport (Abrechnung, Berichte)', 'name' => 'Andreas Wanner, MBA', 'email' => 'andreas.wanner@stmk.gv.at', 'tel' => '+43 316 877-4390'],
+    ['rolle' => 'Land Steiermark – Abteilung 9 Kultur, Europa, Sport', 'name' => 'Landhausgasse 7, 8010 Graz (Abrechnungen an sport@stmk.gv.at)', 'email' => 'abteilung9@stmk.gv.at', 'tel' => '+43 316 877-4321'],
 ];
 
 /** Bereiche; „vereinsbonus“ ist Programm B, alle anderen gehören zur Landesverbandsförderung (Programm A). */
@@ -54,11 +56,67 @@ const SU_BEREICHE = [
     'leistungssport' => 'Leistungssport',
     'sonstiges'      => 'Sonstige Zuschüsse',
     'vereinsbonus'   => 'SPORTUNION Vereinsbonus',
+    'land'           => 'Sportförderung Land Steiermark',
 ];
 
+/** Programme; A und B werden bei der SPORTUNION eingereicht, C beim Land Steiermark (eigener Online-Antrag). */
 const SU_PROGRAMME = [
-    'landesverband' => ['label' => 'Landesverbandsförderung (Förderrichtlinien)', 'kurz' => 'Landesverband', 'class' => 'badge-navy'],
-    'vereinsbonus'  => ['label' => 'SPORTUNION Vereinsbonus', 'kurz' => 'Vereinsbonus', 'class' => 'badge-gold'],
+    'landesverband' => ['label' => 'Landesverbandsförderung (Förderrichtlinien)', 'kurz' => 'Landesverband', 'class' => 'badge-navy', 'buchstabe' => 'A', 'stelle' => 'sportunion'],
+    'vereinsbonus'  => ['label' => 'SPORTUNION Vereinsbonus', 'kurz' => 'Vereinsbonus', 'class' => 'badge-gold', 'buchstabe' => 'B', 'stelle' => 'sportunion'],
+    'land'          => ['label' => 'Sportförderung Land Steiermark', 'kurz' => 'Land Stmk', 'class' => 'badge-success', 'buchstabe' => 'C', 'stelle' => 'land'],
+];
+
+/** Förderstellen, bei denen eingereicht wird (je Förderstelle ein eigenes PDF). */
+const SU_STELLEN = [
+    'sportunion' => [
+        'name' => 'SPORTUNION Steiermark', 'kopf' => 'FÖRDERANSUCHEN SPORTUNION STEIERMARK',
+        'adresse' => "An die\nSPORTUNION Steiermark\nGaußgasse 3, 8010 Graz",
+    ],
+    'land' => [
+        'name' => 'Land Steiermark', 'kopf' => 'FÖRDERANSUCHEN SPORTFÖRDERUNG LAND STEIERMARK',
+        'adresse' => "An das\nAmt der Steiermärkischen Landesregierung\nAbteilung 9 Kultur, Europa, Sport – Referat Sport\nJahngasse 1, 8010 Graz",
+    ],
+];
+
+/** Sportförderung Land Steiermark: Quellen, Vorlagen und Kontakt (Richtlinie gültig ab 15.01.2026). */
+const SU_LAND_QUELLEN = [
+    'Richtlinie für Sportförderungen des Landes Steiermark (ab 15.01.2026)' => 'https://www.verwaltung.steiermark.at/cms/dokumente/11684766_74836244/d7cdf3c2/Richtlinie%20f%C3%BCr%20Sportf%C3%B6rderungen%20des%20Landes%20Steiermark_14012026.pdf',
+    'Online-Antrag Sportförderung (Land)' => 'http://egov.stmk.gv.at/eform/LDF/start.do?generalid=SF-FO-AS',
+    'Sportförderung – Allgemeine Informationen' => 'https://www.verwaltung.steiermark.at/cms/ziel/74836846/DE/',
+];
+const SU_LAND_FORMULARE = [
+    'Merkblatt Abrechnung'            => 'https://www.verwaltung.steiermark.at/cms/dokumente/11680471_74836846/7dec2d98/Merkblatt%20zur%20Erstellung%20der%20Abrechnung%20NEU.pdf',
+    'Merkblatt Tätigkeitsbericht'     => 'https://www.verwaltung.steiermark.at/cms/dokumente/11680471_74836846/1bde454a/Merkblatt%20zur%20Erstellung%20des%20T%C3%A4tigkeitsberichtes.pdf',
+    'Merkblatt Projektbericht'        => 'https://www.verwaltung.steiermark.at/cms/dokumente/11680471_74836846/55a1e381/Merkblatt%20zur%20Erstellung%20Projektbericht%20NEU.pdf',
+    'Einnahmen-Ausgaben-Aufstellung'  => 'https://www.verwaltung.steiermark.at/cms/dokumente/11680471_74836846/99db93b9/EinnahmenAusgaben-Aufstellung.xlsx',
+    'Belegaufstellung Sachkosten'     => 'https://www.verwaltung.steiermark.at/cms/dokumente/11680471_74836846/f2da3de7/Belegaufstellung%20Sachkosten.xls',
+    'Belegaufstellung Personalkosten' => 'https://www.verwaltung.steiermark.at/cms/dokumente/11680471_74836846/56cffc70/Belegaufstellung%20Personalkosten.xls',
+    'Leistungsverzeichnis Eigenhonorare' => 'https://www.verwaltung.steiermark.at/cms/dokumente/11680471_74836846/f130870c/Leistungsverzeichnis%20f%C3%BCr%20Eigenhonorare.xlsx',
+    'Sammelrechnung'                  => 'https://www.verwaltung.steiermark.at/cms/dokumente/11680471_74836846/82acc9d0/Sammelrechnung.xlsx',
+];
+const SU_LAND_BAGATELLGRENZE  = 2500; // bis dahin kein Verwendungsnachweis (Stichproben möglich)
+const SU_LAND_NACHWEIS_EINFACH = 8000; // bis dahin nur Bericht + Einnahmen-Ausgaben-Aufstellung
+
+/** Erklärungen für den Antrag beim Land Steiermark (laut Richtlinie, vor Unterschrift zu bestätigen). */
+const SU_LAND_ERKLAERUNGEN = [
+    'Der Verein hat eine gültige ZVR-Zahl und ist Mitglied eines steirischen, bei Sport Austria anerkannten Landesfachverbands.',
+    'Gegen den Verein ist kein Zwangsvollstreckungs- oder Insolvenzverfahren bewilligt bzw. eröffnet.',
+    'Die geförderten Leistungen dienen nicht überwiegend Erwerbszwecken und werden nicht zur Gänze aus Förderungsmitteln finanziert.',
+    'Alle Förderungen zum selben Förderungsgegenstand (auch nachträglich beantragte) sind vollständig angegeben.',
+    'Die Richtlinie für Sportförderungen des Landes Steiermark wird anerkannt; die Angaben sind richtig und vollständig; einer Kontrolle durch den Landesrechnungshof wird zugestimmt.',
+    'Wesentliche Änderungen werden unverzüglich schriftlich gemeldet; der Förderungsvertrag wird binnen eines Monats unterschrieben retourniert.',
+    'Förderungen über € 1.500,– im Kalenderjahr können im Transparenzportal veröffentlicht werden.',
+];
+
+/** Kosten, die das Land Steiermark laut Richtlinie/Merkblatt nicht anerkennt (Stichwortsuche in der Kostenaufstellung). */
+const SU_LAND_NICHT_FOERDERBAR = [
+    'miete' => 'Miet-/Pachtzinszahlungen', 'pacht' => 'Miet-/Pachtzinszahlungen', 'versicherung' => 'Versicherungskosten',
+    'bekleidung' => 'Bekleidung und Ausrüstung (außer Spitzensport)', 'dress' => 'Bekleidung und Ausrüstung (außer Spitzensport)', 'trikot' => 'Bekleidung und Ausrüstung (außer Spitzensport)',
+    'verpflegung' => 'Verköstigung und Proviant', 'verköstigung' => 'Verköstigung und Proviant', 'proviant' => 'Verköstigung und Proviant', 'catering' => 'Verköstigung und Proviant',
+    'bankspesen' => 'Bankspesen', 'bankgebühr' => 'Bankspesen', 'verbandsgebühr' => 'Verbandsgebühren', 'broschüre' => 'Broschüren und Publikationen', 'publikation' => 'Broschüren und Publikationen',
+    'beschriftung' => 'Beschriftungskosten', 'ehrengeschenk' => 'Ehrengeschenke und Dekoration', 'dekoration' => 'Ehrengeschenke und Dekoration', 'preisgeld' => 'Preisgelder',
+    'betriebskosten' => 'Betriebskosten', 'strom' => 'Betriebskosten', 'kredit' => 'Kreditraten', 'rechtsanwalt' => 'Rechts- und Beratungskosten', 'beratung' => 'Rechts- und Beratungskosten',
+    'nahrungsergänzung' => 'Nahrungsergänzungsmittel', 'vip' => 'VIP-Bereiche und Empfänge',
 ];
 
 /** Kategorien der sozialen Maßnahme (Vereinsbonus). */
@@ -304,6 +362,97 @@ const SU_FOERDERARTEN = [
         'nachweise' => ['Rechnung auf den Verein', 'Zahlungsnachweis', 'Teilnahmebestätigung'],
         'beispiel' => 'z.B. Kinderschutz-Fortbildung, Mobility-Workshop, Erste Hilfe im Sport',
     ],
+
+    // ---------------- Programm C: Sportförderung Land Steiermark ----------------
+    // berechnung „land“: Standardförderung mit Bandbreite (Zu-/Abschläge je nach Vereinsgröße, Kostenintensität, Nachwuchsqualität)
+    'land_betrieb' => [
+        'bereich' => 'land', 'label' => 'Land: Vereinsförderung – Allg. Trainings- und Wettkampfbetrieb',
+        'kurz' => 'Jährliche Vereinsförderung für den allgemeinen Trainings- und Wettkampfbetrieb steirischer Vereine, die Mitglied eines Landesfachverbands sind.',
+        'berechnung' => 'land', 'standard' => 500, 'min' => 300, 'max_prozent_kosten' => 10, 'frist' => '31.10.', 'nachtraeglich' => true,
+        'felder' => [], 'kosten_hinweis' => 'Jahresbudget des Trainings- und Wettkampfbetriebs eintragen (Förderung max. 10 % davon)',
+        'regeln' => [
+            'Standardförderung € 500,–, Bandbreite € 300,– bis max. 10 % des Gesamtbudgets.',
+            'Antrag von 1. Jänner bis 31. Oktober, vor Meisterschaftsbeginn; pro Kalenderjahr nur EIN Antrag (gemeinsam mit der Nachwuchsförderung).',
+            'Voraussetzung: Mitgliedschaft in einem steirischen, bei Sport Austria anerkannten Landesfachverband. Reine Breitensportvereine werden grundsätzlich über die Dachverbände gefördert.',
+            'Nicht förderbar u.a.: Miete/Pacht, Betriebskosten, Versicherungen, Bekleidung/Ausrüstung, Verköstigung, Bankspesen.',
+        ],
+        'nachweise' => ['Tätigkeitsbericht', 'Einnahmen-Ausgaben-Aufstellung (Plan/Ist)', 'ab € 8.000,–: Belegaufstellungen mit Originalrechnungen und Zahlungsnachweisen'],
+        'beispiel' => 'z.B. Trainer:innen-Honorare, Wettkampfgebühren, Fahrten zu Meisterschaften',
+    ],
+    'land_nachwuchs' => [
+        'bereich' => 'land', 'label' => 'Land: Vereinsförderung – Nachwuchsarbeit',
+        'kurz' => 'Jährliche Förderung der Kinder- und Jugendarbeit; bemessen an Nachwuchsmannschaften, aktiven Nachwuchssportler:innen und inhaltlichen Schwerpunkten.',
+        'berechnung' => 'land', 'standard' => 500, 'min' => 300, 'max' => 5000, 'frist' => '31.10.', 'nachtraeglich' => true,
+        'felder' => ['anzahl_personen'], 'feld_labels' => ['anzahl_personen' => 'Aktive Nachwuchssportler:innen'],
+        'regeln' => [
+            'Standardförderung € 500,–, Bandbreite € 300,– bis € 5.000,–.',
+            'Zuschläge für Vereinsgröße, Kostenintensität der Sportart und Qualität der Nachwuchsarbeit (Mannschaften, Aktive, Schwerpunkte).',
+            'Antrag von 1. Jänner bis 31. Oktober; gemeinsam mit der Förderung des Trainings- und Wettkampfbetriebs in EINEM Antrag.',
+        ],
+        'nachweise' => ['Tätigkeitsbericht (Nachwuchsgruppen, Trainingsumfang, Erfolge, Fotos)', 'Einnahmen-Ausgaben-Aufstellung', 'ab € 8.000,–: Belegaufstellungen'],
+        'beispiel' => 'z.B. Nachwuchstraining Calisthenics/Tischtennis, Nachwuchs-Trainer:innen, Trainingslager',
+    ],
+    'land_veranst_nachwuchs' => [
+        'bereich' => 'land', 'label' => 'Land: Nachwuchsleistungssport-Veranstaltung',
+        'kurz' => 'Veranstaltungen im Nachwuchsleistungssport mit klarem Steiermark-Bezug.',
+        'berechnung' => 'land', 'standard' => 500, 'min' => 300, 'max' => 8000, 'frist' => '31.12.', 'vorlauf_monate' => 3, 'nachtraeglich' => false,
+        'felder' => ['anzahl_personen', 'wettkampf'], 'feld_labels' => ['anzahl_personen' => 'Erwartete Teilnehmer:innen', 'wettkampf' => 'Veranstaltung (Name, Ort)'],
+        'regeln' => [
+            'Standardförderung € 500,–, Bandbreite € 300,– bis € 8.000,–.',
+            'Antrag spätestens drei Monate vor Beginn der Veranstaltung.',
+            'Zu-/Abschläge nach Dauer, infrastrukturellem und personellem Aufwand, sportlicher Bedeutung, Teilnehmerzahl und Eigendeckungsgrad (Startgelder, Sponsoren).',
+        ],
+        'nachweise' => ['Projektbericht (Ergebnislisten, Fotos, Presse)', 'Einnahmen-Ausgaben-Aufstellung', 'ab € 8.000,–: Belegaufstellungen'],
+        'beispiel' => 'z.B. Nachwuchs-Landesmeisterschaft Tischtennis',
+    ],
+    'land_veranst_oem' => [
+        'bereich' => 'land', 'label' => 'Land: Österreichische Meisterschaft',
+        'kurz' => 'Durchführung einer Österreichischen Meisterschaft in der Steiermark.',
+        'berechnung' => 'land', 'standard' => 2000, 'min' => 1000, 'max' => 10000, 'frist' => '31.12.', 'vorlauf_monate' => 3, 'nachtraeglich' => false,
+        'felder' => ['anzahl_personen', 'wettkampf'], 'feld_labels' => ['anzahl_personen' => 'Erwartete Teilnehmer:innen', 'wettkampf' => 'Meisterschaft (Name, Ort)'],
+        'regeln' => ['Standardförderung € 2.000,–, Bandbreite € 1.000,– bis € 10.000,–.', 'Antrag spätestens drei Monate vor Beginn.'],
+        'nachweise' => ['Projektbericht mit Ergebnislisten', 'Einnahmen-Ausgaben-Aufstellung', 'ab € 8.000,–: Belegaufstellungen'],
+        'beispiel' => '',
+    ],
+    'land_veranst_leistung' => [
+        'bereich' => 'land', 'label' => 'Land: Leistungs- und Spitzensportveranstaltung',
+        'kurz' => 'Internationale Bewerbe, Staatsmeisterschaften, Steirische Meisterschaften und Veranstaltungen mit besonderer sportlicher Bedeutung.',
+        'berechnung' => 'land', 'standard' => 3000, 'min' => 2000, 'max' => 20000, 'frist' => '31.12.', 'vorlauf_monate' => 3, 'nachtraeglich' => false,
+        'felder' => ['anzahl_personen', 'wettkampf'], 'feld_labels' => ['anzahl_personen' => 'Erwartete Teilnehmer:innen', 'wettkampf' => 'Veranstaltung (Name, Ort)'],
+        'regeln' => ['Standardförderung € 3.000,–, Bandbreite € 2.000,– bis € 20.000,–.', 'Antrag spätestens drei Monate vor Beginn.'],
+        'nachweise' => ['Projektbericht mit Ergebnislisten', 'Einnahmen-Ausgaben-Aufstellung', 'ab € 8.000,–: Belegaufstellungen'],
+        'beispiel' => '',
+    ],
+    'land_veranst_sonstige' => [
+        'bereich' => 'land', 'label' => 'Land: Sonstige Sportveranstaltung',
+        'kurz' => 'Sonstige Sportveranstaltungen mit Steiermark-Bezug. Reine Breitensportveranstaltungen fördern grundsätzlich die Dachverbände.',
+        'berechnung' => 'land', 'standard' => 500, 'min' => 100, 'max' => 5000, 'frist' => '31.12.', 'vorlauf_monate' => 3, 'nachtraeglich' => false,
+        'felder' => ['anzahl_personen', 'wettkampf'], 'feld_labels' => ['anzahl_personen' => 'Erwartete Teilnehmer:innen', 'wettkampf' => 'Veranstaltung (Name, Ort)'],
+        'regeln' => ['Standardförderung € 500,–, Bandbreite € 100,– bis € 5.000,–.', 'Antrag spätestens drei Monate vor Beginn.', 'Breitensport-Events primär über die SPORTUNION (Programm A „Veranstaltungen“).'],
+        'nachweise' => ['Projektbericht (Programm, Fotos, Teilnehmerzahlen)', 'Einnahmen-Ausgaben-Aufstellung'],
+        'beispiel' => 'z.B. Calisthenics- oder Skate-Contest mit überregionaler Beteiligung',
+    ],
+    'land_inklusion' => [
+        'bereich' => 'land', 'label' => 'Land: Behindertensport / Special Olympics',
+        'kurz' => 'Inklusiver Sport und behindertenspezifische Sportangebote von Vereinen; Miteinander von Menschen mit und ohne Behinderung.',
+        'berechnung' => 'ermessen', 'frist' => '31.10.', 'nachtraeglich' => false,
+        'felder' => ['anzahl_personen'], 'feld_labels' => ['anzahl_personen' => 'Teilnehmer:innen'],
+        'regeln' => ['Höhe nach Ermessen des Referats Sport.', 'Kombinierbar mit der SPORTUNION-Förderung „Soziale Maßnahme“ – andere Förderungen im Antrag angeben.'],
+        'nachweise' => ['Tätigkeitsbericht', 'Einnahmen-Ausgaben-Aufstellung'],
+        'beispiel' => 'z.B. inklusive Calisthenics-Gruppe',
+    ],
+    'land_einzelspitzensport' => [
+        'bereich' => 'land', 'label' => 'Land: Einzelspitzensportförderung',
+        'kurz' => 'Personenbezogene Leistungsförderung für steirische Spitzenaktive ab 17 Jahren mit Teilnahme an EM, WM, EYOF oder Olympischen Spielen.',
+        'berechnung' => 'ermessen', 'frist' => '21.10.', 'nachtraeglich' => true,
+        'felder' => ['wettkampf', 'platzierung'], 'feld_labels' => ['wettkampf' => 'Sportler:in und Wettkampf (EM/WM …)'],
+        'regeln' => [
+            'Wettkämpfe vom 15. Oktober des Vorjahres bis 14. Oktober; Antrag bis 21. Oktober, 23:59 Uhr.',
+            'Vollendetes 17. Lebensjahr; Ergebnislisten; positive Stellungnahme des Fachverbandspräsidenten.',
+        ],
+        'nachweise' => ['Ergebnislisten', 'Stellungnahme des Fachverbands'],
+        'beispiel' => '',
+    ],
 ];
 
 /**
@@ -330,6 +479,14 @@ const SU_CHECKS = [
     'vb_partner'         => ['kooperation' => 'Kooperationsvereinbarung mit der Partnereinrichtung unterschrieben', 'stundenliste' => 'Stundenliste mit Stempel und Unterschrift wird geführt', 'keine_vs' => 'Partner ist keine Volksschule (diese laufen über die TBE)'],
     'vb_ausbildung'      => ['vorab' => 'Vor Ausbildungsbeginn bekanntgegeben', 'rechnung_verein' => 'Verein übernimmt die Kosten, Rechnung lautet auf den Verein', 'qs_kurs' => 'Übungsleiter:in wird in einem qualitätsgesiegelten Kurs tätig', 'erstausbildung' => 'Es handelt sich um eine Erstausbildung'],
     'vb_fortbildung'     => ['ul_vorhanden' => 'Übungsleiter:innen-Ausbildung ist vorhanden', 'vorab' => 'Vor Beginn bekanntgegeben', 'rechnung_verein' => 'Verein übernimmt die Kosten, Rechnung lautet auf den Verein', 'qs_kurs' => 'Übungsleiter:in ist in einem qualitätsgesiegelten Kurs tätig'],
+    'land_betrieb'       => ['fachverband' => 'Verein ist Mitglied eines steirischen, bei Sport Austria anerkannten Landesfachverbands', 'budget' => 'Jahresbudget (Einnahmen/Ausgaben) liegt vor', 'vor_meisterschaft' => 'Antrag vor Meisterschaftsbeginn'],
+    'land_nachwuchs'     => ['fachverband' => 'Verein ist Mitglied eines steirischen, bei Sport Austria anerkannten Landesfachverbands', 'nachwuchs_doku' => 'Nachwuchsgruppen, Aktive und Schwerpunkte sind dokumentiert'],
+    'land_veranst_nachwuchs' => ['drei_monate' => 'Antrag mind. drei Monate vor Beginn', 'steiermark' => 'Veranstaltung findet in der Steiermark statt', 'budget' => 'Veranstaltungsbudget mit Einnahmen (Startgelder, Sponsoren) liegt vor'],
+    'land_veranst_oem'   => ['drei_monate' => 'Antrag mind. drei Monate vor Beginn', 'vergabe' => 'Vergabe durch den Fachverband liegt vor', 'budget' => 'Veranstaltungsbudget mit Einnahmen liegt vor'],
+    'land_veranst_leistung' => ['drei_monate' => 'Antrag mind. drei Monate vor Beginn', 'steiermark' => 'Veranstaltung findet in der Steiermark statt', 'budget' => 'Veranstaltungsbudget mit Einnahmen liegt vor'],
+    'land_veranst_sonstige' => ['drei_monate' => 'Antrag mind. drei Monate vor Beginn', 'steiermark' => 'Veranstaltung findet in der Steiermark statt', 'budget' => 'Veranstaltungsbudget mit Einnahmen liegt vor'],
+    'land_inklusion'     => ['konzept' => 'Konzept des inklusiven Angebots liegt vor'],
+    'land_einzelspitzensport' => ['alter' => 'Sportler:in hat das 17. Lebensjahr vollendet', 'ergebnis' => 'Ergebnisliste (EM/WM/EYOF/Olympia) liegt vor', 'stellungnahme' => 'Positive Stellungnahme des Fachverbandspräsidenten liegt vor'],
 ];
 
 const SU_STATUS = [
@@ -367,10 +524,27 @@ function suFoerderart(string $schluessel): array
     return SU_FOERDERARTEN[$schluessel] ?? ['bereich' => 'sonstiges', 'label' => $schluessel, 'kurz' => '', 'berechnung' => 'ermessen', 'frist' => '31.10.', 'nachtraeglich' => false, 'felder' => [], 'regeln' => [], 'nachweise' => [], 'beispiel' => ''];
 }
 
-/** Programm einer Förderart: „vereinsbonus“ oder „landesverband“. */
+/** Programm einer Förderart: „landesverband“ (A), „vereinsbonus“ (B) oder „land“ (C). */
 function suProgramm(string $foerderart): string
 {
-    return suFoerderart($foerderart)['bereich'] === 'vereinsbonus' ? 'vereinsbonus' : 'landesverband';
+    $bereich = suFoerderart($foerderart)['bereich'];
+    return in_array($bereich, ['vereinsbonus', 'land'], true) ? $bereich : 'landesverband';
+}
+
+/** Förderstelle, bei der eine Förderart eingereicht wird: „sportunion“ oder „land“. */
+function suStelle(string $foerderart): string
+{
+    return SU_PROGRAMME[suProgramm($foerderart)]['stelle'];
+}
+
+/** Höchstbetrag einer Land-Förderart: fester Maximalbetrag oder Prozentsatz des Budgets (Kostenaufstellung). */
+function suLandMax(array $art, string $kostenSumme): ?string
+{
+    if (isset($art['max'])) return moneyRound($art['max']);
+    if (!empty($art['max_prozent_kosten']) && bccomp($kostenSumme, '0', 2) > 0) {
+        return bcdiv(bcmul($kostenSumme, (string)$art['max_prozent_kosten'], 2), '100', 2);
+    }
+    return null;
 }
 
 /** Abgehakte Voraussetzungen einer Position (JSON-Spalte „checks“). */
@@ -425,6 +599,14 @@ function suRichtwert(array $pos, string $kostenSumme): array
 
         case 'fix':
             return ['betrag' => moneyRound($art['betrag']), 'erklaerung' => 'Fixbetrag.'];
+
+        case 'land':
+            $max    = suLandMax($art, $kostenSumme);
+            $betrag = moneyRound($art['standard']);
+            if ($max !== null && bccomp($betrag, $max, 2) > 0) $betrag = $max;
+            if (bccomp($kostenSumme, '0', 2) > 0 && bccomp($betrag, $luecke, 2) > 0) $betrag = $luecke;
+            $rahmen = moneyFormat($art['min']) . ' bis ' . (isset($art['max']) ? moneyFormat($art['max']) : 'max. ' . $art['max_prozent_kosten'] . ' % des Budgets' . ($max !== null ? ' (' . moneyFormat($max) . ')' : ''));
+            return ['betrag' => $betrag, 'erklaerung' => 'Standardförderung ' . moneyFormat($art['standard']) . ', Bandbreite ' . $rahmen . '; Zu-/Abschläge legt das Land fest.'];
 
         case 'deckel':
             $deckel = suDeckel($pos);
@@ -482,8 +664,27 @@ function suPruefePosition(array $antrag, array $pos, array $kosten, string $kost
     if (trim((string)$pos['beschreibung']) === '') {
         $m[] = ['typ' => 'fehler', 'text' => 'Beschreibung fehlt – die Richtlinien verlangen eine klare Beschreibung des Fördergegenstandes.'];
     }
-    if (in_array($art['berechnung'], ['rahmen', 'ermessen'], true) && empty($kosten)) {
-        $m[] = ['typ' => 'fehler', 'text' => 'Kostenaufstellung fehlt – die kostenmäßige Darstellung ist Pflicht.'];
+    $land = suProgramm($pos['foerderart']) === 'land';
+    if (in_array($art['berechnung'], ['rahmen', 'ermessen', 'land'], true) && empty($kosten)) {
+        $m[] = ['typ' => 'fehler', 'text' => $land
+            ? 'Kosten-/Budgetaufstellung fehlt – das Land verlangt eine Einnahmen-Ausgaben-Aufstellung' . (!empty($art['kosten_hinweis']) ? ' (' . $art['kosten_hinweis'] . ').' : '.')
+            : 'Kostenaufstellung fehlt – die kostenmäßige Darstellung ist Pflicht.'];
+    }
+    if ($art['berechnung'] === 'land') {
+        $max = suLandMax($art, $kostenSumme);
+        if ($max !== null && bccomp($beantragt, $max, 2) > 0) {
+            $m[] = ['typ' => 'fehler', 'text' => 'Beantragter Betrag über dem Höchstbetrag von ' . moneyFormat($max) . (isset($art['max']) ? '.' : ' (' . $art['max_prozent_kosten'] . ' % des Budgets).')];
+        }
+        if (bccomp($beantragt, '0', 2) > 0 && bccomp($beantragt, (string)$art['min'], 2) < 0) {
+            $m[] = ['typ' => 'info', 'text' => 'Betrag unter der Mindestförderung von ' . moneyFormat($art['min']) . ' – prüfen, ob sich der Antrag lohnt.'];
+        }
+    }
+    if ($land && bccomp($kostenSumme, '0', 2) > 0 && bccomp(moneySum([$beantragt, $pos['andere_foerderungen']]), $kostenSumme, 2) >= 0) {
+        $m[] = ['typ' => 'warnung', 'text' => 'Das Land fördert keine Leistungen, die zur Gänze aus Förderungen finanziert werden – Eigenmittel (Mitgliedsbeiträge, Startgelder, Sponsoren) ausweisen.'];
+    }
+    if (!empty($art['vorlauf_monate']) && $entwurf && !empty($pos['massnahme_von'])
+        && $pos['massnahme_von'] < date('Y-m-d', strtotime('+' . $art['vorlauf_monate'] . ' months'))) {
+        $m[] = ['typ' => 'warnung', 'text' => 'Veranstaltungsanträge müssen spätestens ' . $art['vorlauf_monate'] . ' Monate vor Beginn gestellt werden (spätestens ' . date('d.m.Y', strtotime('-' . $art['vorlauf_monate'] . ' months', strtotime($pos['massnahme_von']))) . ').'];
     }
     if ($art['berechnung'] === 'ausbildung' && empty($pos['ausbildungsstufe'])) {
         $m[] = ['typ' => 'fehler', 'text' => 'Bitte die Ausbildungsstufe wählen (bestimmt den Fixbetrag).'];
@@ -535,27 +736,28 @@ function suPruefePosition(array $antrag, array $pos, array $kosten, string $kost
             $m[] = ['typ' => 'info', 'text' => 'Betrag unter dem Grundbetrag von ' . moneyFormat($art['grund']) . ' – prüfen, ob sich das Ansuchen lohnt oder mit weiteren Anschaffungen gebündelt werden kann.'];
         }
     }
-    if (bccomp($kostenSumme, '0', 2) > 0 && in_array($art['berechnung'], ['rahmen', 'ermessen', 'deckel'], true)) {
+    if (bccomp($kostenSumme, '0', 2) > 0 && in_array($art['berechnung'], ['rahmen', 'ermessen', 'deckel', 'land'], true)) {
         $finanziert = moneySum([$pos['eigenmittel'], $pos['andere_foerderungen'], $beantragt]);
         $diff = bcsub($kostenSumme, $finanziert, 2);
         if (bccomp($diff, '0', 2) !== 0) {
             $m[] = ['typ' => 'warnung', 'text' => 'Finanzierungsplan nicht ausgeglichen: ' . (bccomp($diff, '0', 2) > 0 ? moneyFormat($diff) . ' ungedeckt' : moneyFormat(bcmul($diff, '-1', 2)) . ' überfinanziert') . ' – Eigenmittel anpassen.'];
         }
     }
-    if (bccomp($beantragt, (string)SU_FINANZIERUNGSPLAN_AB, 2) >= 0) {
+    if (!$land && bccomp($beantragt, (string)SU_FINANZIERUNGSPLAN_AB, 2) >= 0) {
         $m[] = ['typ' => 'info', 'text' => 'Ab ' . moneyFormat(SU_FINANZIERUNGSPLAN_AB) . ' ist ein Finanzierungsplan verpflichtend – er ist im PDF enthalten.'];
     }
 
-    // Kostenpositionen
+    // Kostenpositionen (das Land hat eine eigene, strengere Liste nicht förderbarer Kosten)
+    $ausschluss = $land ? SU_LAND_NICHT_FOERDERBAR + SU_NICHT_FOERDERBAR : SU_NICHT_FOERDERBAR;
     foreach ($kosten as $k) {
         $bez = mb_strtolower($k['bezeichnung']);
-        foreach (SU_NICHT_FOERDERBAR as $begriff => $grund) {
+        foreach ($ausschluss as $begriff => $grund) {
             if (str_contains($bez, $begriff)) {
-                $m[] = ['typ' => 'warnung', 'text' => '„' . $k['bezeichnung'] . '“: ' . $grund . ' werden laut Abrechnungsrichtlinien nicht anerkannt.'];
+                $m[] = ['typ' => 'warnung', 'text' => '„' . $k['bezeichnung'] . '“: ' . $grund . ' werden ' . ($land ? 'vom Land Steiermark' : 'laut Abrechnungsrichtlinien') . ' nicht anerkannt.'];
                 break;
             }
         }
-        if ((float)$k['einzelpreis'] > SU_ANLAGENVERZEICHNIS_AB) {
+        if (!$land && (float)$k['einzelpreis'] > SU_ANLAGENVERZEICHNIS_AB) {
             $m[] = ['typ' => 'info', 'text' => '„' . $k['bezeichnung'] . '“ kostet über ' . moneyFormat(SU_ANLAGENVERZEICHNIS_AB) . ' – ins Anlagenverzeichnis des Vereins aufnehmen.'];
         }
         if ($pos['foerderart'] === 'su_meisterschaften' && str_contains($bez, 'nächtigung') && (float)$k['einzelpreis'] > 60) {
@@ -573,6 +775,8 @@ function suPruefePosition(array $antrag, array $pos, array $kosten, string $kost
         'jugend'        => 'Kooperation Schule – Verein ausdrücklich erwünscht: Bezug zur Täglichen Bewegungseinheit und zu Partnerschulen herausstreichen.',
         'vb_ausbildung' => 'Ausbildungen können auch über die Landesverbandsförderung (Fixbetrag nach Abschluss) unterstützt werden – dieselbe Rechnung nicht doppelt abrechnen.',
         'ausbildung'    => 'Übungsleiter:innen-Ausbildungen sind auch über den Vereinsbonus (bis € 314,–, Antrag VOR Beginn) förderbar – dieselbe Rechnung nicht doppelt abrechnen.',
+        'land_betrieb'  => 'Reine Hobby-/Breitensportvereine fördert das Land nur ausnahmsweise – ohne Mitgliedschaft in einem Landesfachverband (z.B. Tischtennis) vorab mit dem Referat Sport klären.',
+        'land_nachwuchs' => 'Bei der SPORTUNION geförderte Nachwuchsprojekte (z.B. Jugendarbeit) im Land-Antrag als „andere Förderung“ angeben.',
     ];
     if (isset($hinweise[$pos['foerderart']])) $m[] = ['typ' => 'info', 'text' => $hinweise[$pos['foerderart']]];
 
@@ -580,9 +784,22 @@ function suPruefePosition(array $antrag, array $pos, array $kosten, string $kost
 }
 
 /** Prüfung auf Ebene des Ansuchens (Vertreter, Erklärungen, Gesamtbetrag, Vereinsbonus-Voraussetzungen). */
-function suPruefeAntrag(array $antrag, string $beantragtGesamt, int $anzahlPositionen, bool $mitVereinsbonus = false): array
+function suPruefeAntrag(array $antrag, string $beantragtGesamt, int $anzahlPositionen, bool $mitVereinsbonus = false, array $landPositionen = []): array
 {
     $m = [];
+    if ($landPositionen) {
+        $arten = array_column($landPositionen, 'foerderart');
+        if (count(array_intersect($arten, ['land_betrieb', 'land_nachwuchs'])) > 1 || count(array_keys($arten, 'land_betrieb')) > 1 || count(array_keys($arten, 'land_nachwuchs')) > 1) {
+            $m[] = ['typ' => 'info', 'text' => 'Land: Trainings-/Wettkampfbetrieb und Nachwuchsarbeit in EINEM Online-Antrag einbringen – pro Kalenderjahr ist nur ein Vereinsförderungsantrag möglich.'];
+        }
+        $landSumme = moneySum(array_column($landPositionen, 'beantragt'));
+        $stufe = bccomp($landSumme, (string)SU_LAND_BAGATELLGRENZE, 2) <= 0
+            ? 'bis ' . moneyFormat(SU_LAND_BAGATELLGRENZE) . ' gilt die Bagatellgrenze (kein Verwendungsnachweis, nur Stichproben)'
+            : (bccomp($landSumme, (string)SU_LAND_NACHWEIS_EINFACH, 2) <= 0
+                ? 'bis ' . moneyFormat(SU_LAND_NACHWEIS_EINFACH) . ' reichen Tätigkeits-/Projektbericht und Einnahmen-Ausgaben-Aufstellung'
+                : 'über ' . moneyFormat(SU_LAND_NACHWEIS_EINFACH) . ' zusätzlich Belegaufstellungen mit Originalrechnungen und Zahlungsnachweisen');
+        $m[] = ['typ' => 'info', 'text' => 'Land Steiermark: Antrag ausschließlich online (egov.stmk.gv.at), Förderungsvertrag binnen 1 Monat retournieren, Verwendungsnachweis grundsätzlich 2 Monate nach Ende; ' . $stufe . '.'];
+    }
     if ($anzahlPositionen === 0) $m[] = ['typ' => 'fehler', 'text' => 'Noch keine Fördergegenstände erfasst.'];
     if ($mitVereinsbonus) {
         if (empty($antrag['vb_fit_siegel'])) $m[] = ['typ' => 'fehler', 'text' => 'Vereinsbonus: Der Verein braucht mindestens ein aktives Fit-Sport-Austria-Qualitätssiegel.'];
@@ -592,10 +809,13 @@ function suPruefeAntrag(array $antrag, string $beantragtGesamt, int $anzahlPosit
     if (trim((string)$antrag['obmann_name']) === '' || trim((string)$antrag['vertreter2_name']) === '') {
         $m[] = ['typ' => 'fehler', 'text' => 'Statutarische Vertreter fehlen – Ansuchen stellen Obmann/Obfrau gemeinsam mit Kassier:in oder Schriftführer:in.'];
     }
+    // SPORTUNION-Erklärungen und Berichtspflicht betreffen nur die bei der SPORTUNION eingereichten Positionen
+    $mitSportunion = $anzahlPositionen > count($landPositionen);
     $offen = array_filter(array_keys(SU_ERKLAERUNGEN), fn($k) => empty($antrag[$k]));
-    if ($offen) $m[] = ['typ' => 'warnung', 'text' => count($offen) . ' von ' . count(SU_ERKLAERUNGEN) . ' Erklärungen noch nicht bestätigt (Voraussetzung für die Förderwürdigkeit).'];
-    if (empty($antrag['iban'])) $m[] = ['typ' => 'warnung', 'text' => 'Bankverbindung für die Auszahlung fehlt.'];
-    if (bccomp($beantragtGesamt, (string)SU_BERICHT_AB, 2) >= 0) {
+    if ($mitSportunion && $offen) $m[] = ['typ' => 'warnung', 'text' => count($offen) . ' von ' . count(SU_ERKLAERUNGEN) . ' SPORTUNION-Erklärungen noch nicht bestätigt (Voraussetzung für die Förderwürdigkeit).'];
+    if (empty($antrag['iban'])) $m[] = ['typ' => 'warnung', 'text' => 'Bankverbindung für die Auszahlung fehlt (Auszahlung nur auf ein Vereinskonto).'];
+    $beantragtSportunion = bcsub($beantragtGesamt, moneySum(array_column($landPositionen, 'beantragt')), 2);
+    if (bccomp($beantragtSportunion, (string)SU_BERICHT_AB, 2) >= 0) {
         $m[] = ['typ' => 'info', 'text' => 'Ab ' . moneyFormat(SU_BERICHT_AB) . ' Förderung ist bei der Abrechnung zusätzlich ein Bericht über die geförderte Maßnahme beizulegen.'];
     }
     return $m;

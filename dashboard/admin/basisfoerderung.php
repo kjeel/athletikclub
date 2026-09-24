@@ -112,7 +112,8 @@ $fristen = [
     [$y . '-02-28', 'PRAE-Jahresmeldung (pauschale Reiseaufwandsentschädigungen des Vorjahres) ans Finanzamt'],
     [$y . '-03-31', 'Einreichfrist Bausubventionen und Kostenvoranschläge für Lehrgänge/Kadertrainings · Vereinsbonus Sommersemester*'],
     [$y . '-09-30', 'Vereinsbonus: Anträge für Maßnahmen im Herbst*'],
-    [$y . '-10-31', 'Einreichfrist alle übrigen Förderungen · Abrechnung Bausubventionen'],
+    [$y . '-10-21', 'Land: Einzelspitzensportförderung (Wettkämpfe 15.10. Vorjahr – 14.10.)'],
+    [$y . '-10-31', 'SPORTUNION: Einreichfrist alle übrigen Förderungen · Abrechnung Bausubventionen · Land: letzter Tag für die Vereinsförderung (Antrag ab 1.1., vor Meisterschaftsbeginn)'],
     [$y . '-11-30', 'Späteste Abrechnung aller übrigen Subventionen (binnen 3 Monaten nach Zusage)'],
     [$y . '-12-31', 'Ende Förderzeitraum – Rechnungs- und Zahlungsdatum müssen im Kalenderjahr liegen'],
 ];
@@ -121,14 +122,14 @@ foreach ($fristen as $f) { if ($f[0] >= date('Y-m-d')) { $naechste_frist = $f; b
 
 $form = array_merge(['jahr' => $vorschlag_jahr, 'titel' => ''], $_POST);
 
-$page_title = 'Basisförderung SPORTUNION';
+$page_title = 'Basisförderung SPORTUNION & Land';
 $breadcrumb = 'Basisförderung';
 require_once ROOT_PATH . '/includes/dashboard-header.php';
 ?>
 
 <div class="dashboard-header">
-    <h1 class="dashboard-title">Basisförderung SPORTUNION Steiermark</h1>
-    <p class="dashboard-subtitle">Förderansuchen an den Landesverband zusammenstellen, prüfen und als PDF erzeugen – mit allen Förderarten, Sätzen und Fristen aus den Förderrichtlinien.</p>
+    <h1 class="dashboard-title">Basisförderung SPORTUNION &amp; Land Steiermark</h1>
+    <p class="dashboard-subtitle">Förderansuchen an die SPORTUNION Steiermark (Landesverbandsförderung und Vereinsbonus) und an das Land Steiermark (Sportförderung) zusammenstellen, prüfen und je Förderstelle als PDF erzeugen – mit allen Förderarten, Sätzen und Fristen aus den Richtlinien.</p>
 </div>
 
 <?php if (!empty($errors)): ?>
@@ -226,7 +227,8 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
             </tbody>
         </table>
     </div>
-    <p class="form-hint" style="padding: 0.75rem 1.25rem;">* Vereinsbonus-Fristen laut anderen SPORTUNION-Landesverbänden für 2026 – für die Steiermark beim Landesverband bestätigen. Anträge immer vor Beginn der Maßnahme.</p>
+    <p class="form-hint" style="padding: 0.75rem 1.25rem;">* Vereinsbonus-Fristen laut anderen SPORTUNION-Landesverbänden für 2026 – für die Steiermark beim Landesverband bestätigen. Anträge immer vor Beginn der Maßnahme.<br>
+    Land Steiermark: Veranstaltungsförderung spätestens drei Monate vor Beginn der Veranstaltung beantragen; Verwendungsnachweis grundsätzlich zwei Monate nach Ende.</p>
 </div>
 
 <!-- Förderkatalog -->
@@ -250,6 +252,13 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
                     Voraussetzungen: mind. ein aktives Fit-Sport-Austria-Qualitätssiegel, Beratungsgespräch vor der ersten Förderung, Antrag über die Vereinsdatenbank VOR Beginn der Maßnahme.
                     Abgerechnet wird nach den Richtlinien der Bundes-Sport GmbH, Leistungszeitraum ist das Kalenderjahr.
                 </p>
+            <?php elseif ($bereich === 'land'): ?>
+                <h3 style="font-family: 'Montserrat', sans-serif; font-size: 1rem; font-weight: 800; margin: 2rem 0 0.25rem;">C · Sportförderung Land Steiermark</h3>
+                <p class="form-hint" style="margin-bottom: 0.5rem;">
+                    Eigener Antrag beim Land (Abteilung 9, Referat Sport), ausschließlich online – das System erzeugt dafür ein eigenes PDF als Vorlage.
+                    Voraussetzung für die Vereinsförderung: Mitgliedschaft in einem steirischen, bei Sport Austria anerkannten Landesfachverband; reine Breitensportvereine fördert grundsätzlich der Dachverband.
+                    Keine Vollfinanzierung, kein Rechtsanspruch. Nicht förderbar u.a. Miete/Pacht, Betriebskosten, Versicherungen, Bekleidung, Verköstigung.
+                </p>
             <?php endif; ?>
             <h3 style="font-family: 'Montserrat', sans-serif; font-size: 0.85rem; font-weight: 800; text-transform: uppercase; margin: 1.25rem 0 0.5rem;"><?= e($bereich_label) ?></h3>
             <?php foreach (SU_FOERDERARTEN as $schluessel => $art): if ($art['bereich'] !== $bereich) continue; ?>
@@ -264,6 +273,7 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
                             <?php if ($art['berechnung'] === 'pro_person'): ?> · <?= moneyFormat($art['satz']) ?>/<?= moneyFormat($art['satz_uebernachtung']) ?> je Person<?php endif; ?>
                             <?php if ($art['berechnung'] === 'ermessen'): ?> · nach Ermessen<?php endif; ?>
                             <?php if ($art['berechnung'] === 'deckel'): ?> · max. <?= moneyFormat($art['max_je']) ?> je <?= e($art['je']) ?><?php endif; ?>
+                            <?php if ($art['berechnung'] === 'land'): ?> · Standard <?= moneyFormat($art['standard']) ?> (<?= moneyFormat($art['min']) ?> – <?= isset($art['max']) ? moneyFormat($art['max']) : 'max. ' . (int)$art['max_prozent_kosten'] . ' % Budget' ?>)<?php endif; ?>
                         </span>
                     </summary>
                     <p style="margin: 0.75rem 0 0.5rem;"><?= e($art['kurz']) ?><?= $art['beispiel'] ? ' <em>' . e($art['beispiel']) . '</em>' : '' ?></p>
@@ -283,9 +293,15 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
                         <li><a href="<?= e($url) ?>" target="_blank" rel="noopener"><?= e($label) ?></a></li>
                     <?php endforeach; ?>
                 </ul>
-                <h3 style="font-family: 'Montserrat', sans-serif; font-size: 0.85rem; font-weight: 800; text-transform: uppercase; margin: 1rem 0 0.5rem;">Abrechnungsformulare</h3>
+                <h3 style="font-family: 'Montserrat', sans-serif; font-size: 0.85rem; font-weight: 800; text-transform: uppercase; margin: 1rem 0 0.5rem;">Abrechnungsformulare SPORTUNION</h3>
                 <ul style="margin-left: 1.25rem;">
                     <?php foreach (SU_ABRECHNUNGSFORMULARE as $label => $url): ?>
+                        <li><a href="<?= e($url) ?>" target="_blank" rel="noopener"><?= e($label) ?></a></li>
+                    <?php endforeach; ?>
+                </ul>
+                <h3 style="font-family: 'Montserrat', sans-serif; font-size: 0.85rem; font-weight: 800; text-transform: uppercase; margin: 1rem 0 0.5rem;">Land Steiermark – Richtlinie, Antrag &amp; Vorlagen</h3>
+                <ul style="margin-left: 1.25rem;">
+                    <?php foreach (SU_LAND_QUELLEN + SU_LAND_FORMULARE as $label => $url): ?>
                         <li><a href="<?= e($url) ?>" target="_blank" rel="noopener"><?= e($label) ?></a></li>
                     <?php endforeach; ?>
                 </ul>

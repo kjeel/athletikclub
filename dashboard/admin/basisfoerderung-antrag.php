@@ -218,7 +218,7 @@ if ($positionen) {
 }
 
 $kosten_gesamt = []; $beantragt_gesamt = []; $zugesagt_gesamt = []; $pruefung = []; $mit_bau = false;
-$beantragt_programm = ['landesverband' => [], 'vereinsbonus' => []];
+$beantragt_programm = ['landesverband' => [], 'vereinsbonus' => [], 'land' => []];
 foreach ($positionen as &$p) {
     $p['kosten']      = $kosten_je_position[$p['id']] ?? [];
     $p['kostensumme'] = suKostenSumme($p['kosten']);
@@ -239,7 +239,9 @@ $zugesagt_gesamt  = $zugesagt_gesamt ? moneySum($zugesagt_gesamt) : null;
 $mit_vereinsbonus = !empty($beantragt_programm['vereinsbonus']);
 $beantragt_lv = moneySum($beantragt_programm['landesverband']);
 $beantragt_vb = moneySum($beantragt_programm['vereinsbonus']);
-foreach (array_reverse(suPruefeAntrag($antrag, $beantragt_gesamt, count($positionen), $mit_vereinsbonus)) as $mld) array_unshift($pruefung, $mld + ['bezug' => 'Ansuchen']);
+$beantragt_land = moneySum($beantragt_programm['land']);
+$land_positionen = array_values(array_filter($positionen, fn($p) => suProgramm($p['foerderart']) === 'land'));
+foreach (array_reverse(suPruefeAntrag($antrag, $beantragt_gesamt, count($positionen), $mit_vereinsbonus, $land_positionen)) as $mld) array_unshift($pruefung, $mld + ['bezug' => 'Ansuchen']);
 
 $anzahl_fehler   = count(array_filter($pruefung, fn($m) => $m['typ'] === 'fehler'));
 $anzahl_warnung  = count(array_filter($pruefung, fn($m) => $m['typ'] === 'warnung'));
@@ -300,12 +302,19 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
             Basisförderung &amp; Förderkatalog
         </a>
         <h1 class="dashboard-title"><?= e($antrag['titel']) ?> <span class="badge <?= $s['class'] ?>" style="vertical-align: middle;"><?= e($s['label']) ?></span></h1>
-        <p class="dashboard-subtitle">Förderansuchen an die SPORTUNION Steiermark · Förderzeitraum 01.01.–31.12.<?= (int)$antrag['jahr'] ?></p>
+        <p class="dashboard-subtitle">Förderansuchen an die SPORTUNION Steiermark<?= $land_positionen ? ' und das Land Steiermark' : '' ?> · Förderzeitraum 01.01.–31.12.<?= (int)$antrag['jahr'] ?></p>
     </div>
-    <a href="<?= APP_URL ?>/dashboard/admin/basisfoerderung-pdf.php?id=<?= $antrag_id ?>" target="_blank" class="btn btn-primary btn-sm">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        Förderantrag als PDF
-    </a>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <?php // Je Förderstelle ein eigenes PDF, weil SPORTUNION und Land getrennt eingereicht werden
+        foreach (SU_STELLEN as $stelle => $info):
+            if ($stelle === 'land' && !$land_positionen) continue;
+            if ($stelle === 'sportunion' && $land_positionen && count($land_positionen) === count($positionen)) continue; ?>
+            <a href="<?= APP_URL ?>/dashboard/admin/basisfoerderung-pdf.php?id=<?= $antrag_id ?>&amp;stelle=<?= $stelle ?>" target="_blank" class="btn btn-primary btn-sm">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                PDF <?= e($info['name']) ?>
+            </a>
+        <?php endforeach; ?>
+    </div>
 </div>
 
 <?php if (!empty($errors)): ?>
@@ -328,7 +337,7 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
     <div class="kpi-card" style="--kpi-color: #F59E0B;">
         <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
         <div class="kpi-value"><?= moneyFormat($beantragt_gesamt) ?></div>
-        <div class="kpi-label">Beantragt (Landesverband <?= moneyFormat($beantragt_lv) ?> · Vereinsbonus <?= moneyFormat($beantragt_vb) ?>)</div>
+        <div class="kpi-label">Beantragt (SPORTUNION <?= moneyFormat(moneySum([$beantragt_lv, $beantragt_vb])) ?> · Land <?= moneyFormat($beantragt_land) ?>)</div>
     </div>
     <div class="kpi-card" style="--kpi-color: #22C55E;">
         <div class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div>
@@ -767,6 +776,19 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
             <?= implode(' · ', $links) ?>
         </p>
         <p class="form-hint">Ansprechperson Abrechnung: Ina Werni, ina.werni@sportunion-steiermark.at, +43 316 32 44 30 71<?= $mit_vereinsbonus ? ' · Vereinsbonus: Abrechnung nach den Richtlinien der Bundes-Sport GmbH, Leistungs- und Abrechnungszeitraum ist das Kalenderjahr.' : '' ?></p>
+        <?php if ($land_positionen): ?>
+            <h4 class="su-abschnitt">Abrechnung Land Steiermark</h4>
+            <ul style="margin-left: 1.25rem; font-size: 0.9rem;">
+                <li>Förderungsvertrag binnen <strong>1 Monat</strong> unterschrieben an die Abteilung 9 retournieren – sonst verfällt die Förderung.</li>
+                <li>Verwendungsnachweis grundsätzlich <strong>2 Monate nach Ende</strong> der Maßnahme bzw. laut Förderungsvertrag, per E-Mail an sport@stmk.gv.at mit Geschäftszahl ABT09-…</li>
+                <li>Bis <?= moneyFormat(SU_LAND_BAGATELLGRENZE) ?>: Bagatellgrenze, kein Nachweis (Stichproben möglich) · bis <?= moneyFormat(SU_LAND_NACHWEIS_EINFACH) ?>: Tätigkeits-/Projektbericht + Einnahmen-Ausgaben-Aufstellung · darüber zusätzlich Belegaufstellungen.</li>
+                <li>Kassenbelege erst ab € 25,– brutto; Honorarnoten mit Leistungszeitraum und Steuervermerk; Eigenhonorare nur mit Leistungsverzeichnis.</li>
+            </ul>
+            <p class="form-hint">
+                <?php $links = []; foreach (SU_LAND_FORMULARE as $label => $url) $links[] = '<a href="' . e($url) . '" target="_blank" rel="noopener">' . e($label) . '</a>'; ?>
+                Vorlagen des Landes: <?= implode(' · ', $links) ?>
+            </p>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -851,6 +873,13 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
             text = '(' + personen + ' × ' + eur(satz) + ')';
         } else if (art.berechnung === 'fix') {
             richtwert = art.betrag; text = '(Fixbetrag)';
+        } else if (art.berechnung === 'land') {
+            const max = art.max !== undefined ? art.max : (art.max_prozent_kosten && kosten > 0 ? Math.round(kosten * art.max_prozent_kosten) / 100 : null);
+            richtwert = art.standard;
+            if (max !== null) richtwert = Math.min(richtwert, max);
+            if (kosten > 0) richtwert = Math.min(richtwert, luecke);
+            text = '(Standardförderung ' + eur(art.standard) + ', Bandbreite ' + eur(art.min) + ' – ' +
+                (art.max !== undefined ? eur(art.max) : art.max_prozent_kosten + ' % des Budgets' + (max !== null ? ' = ' + eur(max) : '')) + ')';
         } else if (art.berechnung === 'deckel') {
             const menge = art.menge_zaehlt ? Math.max(1, personen) : 1;
             const deckel = menge * art.max_je;
@@ -870,13 +899,19 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
             const max = (art.menge_zaehlt ? Math.max(1, personen) : 1) * art.max_je;
             if (beantragt > max) info += '<span style="color: var(--danger);">Über dem Höchstbetrag von ' + eur(max) + '!</span><br>';
         }
-        if (kosten > 0 && ['rahmen', 'ermessen', 'deckel'].includes(art.berechnung)) {
+        if (art.berechnung === 'land') {
+            const max = art.max !== undefined ? art.max : (art.max_prozent_kosten && kosten > 0 ? Math.round(kosten * art.max_prozent_kosten) / 100 : null);
+            if (max !== null && beantragt > max) info += '<span style="color: var(--danger);">Über dem Höchstbetrag von ' + eur(max) + '!</span><br>';
+            if (kosten > 0 && beantragt + andere >= kosten) info += '<span style="color: var(--danger);">Das Land fördert keine Vollfinanzierung – Eigenmittel ausweisen!</span><br>';
+            if (art.kosten_hinweis) info += 'Kostenaufstellung: ' + esc(art.kosten_hinweis) + '.<br>';
+        }
+        if (kosten > 0 && ['rahmen', 'ermessen', 'deckel', 'land'].includes(art.berechnung)) {
             const diff = Math.round((kosten - eigen - andere - beantragt) * 100) / 100;
             info = 'Finanzierung: Kosten ' + eur(kosten) + ' = Eigenmittel ' + eur(eigen) + ' + andere ' + eur(andere) + ' + SPORTUNION ' + eur(beantragt) +
                 (diff === 0 ? ' ✓ ausgeglichen' : (diff > 0 ? ' → ' + eur(diff) + ' ungedeckt' : ' → ' + eur(-diff) + ' überfinanziert'));
         }
         if (art.berechnung === 'rahmen' && beantragt > art.hoechst) info += (info ? '<br>' : '') + '<span style="color: var(--danger);">Über dem Höchstbetrag von ' + eur(art.hoechst) + '!</span>';
-        if (beantragt >= FP_AB) info += (info ? '<br>' : '') + 'Ab ' + eur(FP_AB) + ' ist ein Finanzierungsplan Pflicht – wird im PDF mitgedruckt.';
+        if (art.bereich !== 'land' && beantragt >= FP_AB) info += (info ? '<br>' : '') + 'Ab ' + eur(FP_AB) + ' ist ein Finanzierungsplan Pflicht – wird im PDF mitgedruckt.';
         document.getElementById('su-finanzierung').innerHTML = info;
     }
 
