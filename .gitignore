@@ -38,3 +38,6 @@ desktop.ini
 
 # Node (falls später verwendet)
 node_modules/
+
+# Composer-Abhängigkeiten (werden direkt auf dem Server installiert)
+vendor/

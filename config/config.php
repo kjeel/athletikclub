@@ -14,6 +14,8 @@ define('APP_ENV', 'production');
 // ----------------------------------------------------------------
 define('APP_NAME',    'Athletikclub Steiermark');
 define('APP_SHORT',   'AC Steiermark');
+define('VEREIN_ZVR',      '1545056798');
+define('VEREIN_ADRESSE',  'Sankt Georgen an der Stiefing 14, 8413 Sankt Georgen an der Stiefing');
 
 // APP_URL automatisch aus dem aktuellen Request ableiten, damit Assets
 // (CSS/JS) immer über das Protokoll geladen werden, mit dem die Seite

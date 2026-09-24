@@ -1,0 +1,9 @@
+{
+    "name": "athletikclub-steiermark/website",
+    "description": "Athletikclub Steiermark – Vereinsverwaltung",
+    "type": "project",
+    "require": {
+        "php": ">=8.1",
+        "tecnickcom/tcpdf": "^6.7"
+    }
+}

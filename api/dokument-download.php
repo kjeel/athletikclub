@@ -29,8 +29,8 @@ if (!$dok) {
 // Zugriffsprüfung
 $allowed = false;
 
-if (!empty($dok['foerderung_id'])) {
-    // Förderdokument: nur Admin
+if (!empty($dok['foerderung_id']) || !empty($dok['kooperation_id'])) {
+    // Förder- bzw. Kooperationsdokument: nur Admin
     $allowed = isAdmin();
 } elseif (!empty($dok['mitglied_id'])) {
     // Dokument im persönlichen Archiv eines Mitglieds: nur das Mitglied selbst + Trainer/Admin
