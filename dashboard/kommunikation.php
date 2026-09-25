@@ -202,7 +202,7 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
 $kurse_liste = kommKurse($db, $voll, 'kurs');
 $events_liste = kommKurse($db, $voll, 'event');
 $projekte_liste = $voll ? plattformProjekte($db, false) : [];
-$f = $_POST + ['gruppe' => $_GET['gruppe'] ?? '', 'betreff' => $vorlage_gewaehlt['betreff'] ?? '', 'text' => $vorlage_gewaehlt['text'] ?? '', 'kanal' => ['intern', 'email']];
+$f = $_POST + ['ref_event' => (int)($_GET['ref_event'] ?? 0), 'gruppe' => $_GET['gruppe'] ?? '', 'betreff' => $vorlage_gewaehlt['betreff'] ?? '', 'text' => $vorlage_gewaehlt['text'] ?? '', 'kanal' => ['intern', 'email']];
 if (!empty($_GET['kurs'])) { $f['gruppe'] = $f['gruppe'] ?: 'kurs'; $f['ref_kurs'] = (int)$_GET['kurs']; $f['ref_kurs_eltern'] = (int)$_GET['kurs']; }
 $kanal_label = ['intern' => 'Dashboard', 'email' => 'E-Mail', 'beide' => 'Dashboard + E-Mail'];
 ?>
