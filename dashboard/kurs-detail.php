@@ -155,9 +155,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $anmeldungen = [];
 if ($ist_eigentuemer) {
     $stmt = $db->prepare(
-        "SELECT ka.*, u.vorname, u.nachname, u.email, u.geburtsdatum,
+        "SELECT ka.*, u.vorname, u.nachname, u.email, mp.geburtsdatum,
                 ki.vorname AS kind_vorname, ki.nachname AS kind_nachname, ki.geburtsdatum AS kind_geburtsdatum, ki.hinweise AS kind_hinweise
-         FROM kurs_anmeldungen ka JOIN users u ON ka.user_id = u.id LEFT JOIN kinder ki ON ki.id = ka.kind_id
+         FROM kurs_anmeldungen ka JOIN users u ON ka.user_id = u.id LEFT JOIN mitglieder_profile mp ON mp.user_id = u.id LEFT JOIN kinder ki ON ki.id = ka.kind_id
          WHERE ka.kurs_id = ?
          ORDER BY CASE ka.status WHEN 'angemeldet' THEN 0 WHEN 'teilgenommen' THEN 1 WHEN 'warteliste' THEN 2 ELSE 3 END, ka.angemeldet_am ASC, ka.id ASC"
     );

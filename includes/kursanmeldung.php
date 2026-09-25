@@ -91,7 +91,7 @@ function kursAnmeldungFehler(PDO $db, array $kurs, array $user, ?array $kind, bo
 
     $name = $kind ? $kind['vorname'] : 'Du';
     if (!$kind && !array_key_exists('geburtsdatum', $user)) {
-        $stmt = $db->prepare('SELECT geburtsdatum FROM users WHERE id = ?');
+        $stmt = $db->prepare('SELECT geburtsdatum FROM mitglieder_profile WHERE user_id = ?');
         $stmt->execute([$user['id']]);
         $user['geburtsdatum'] = $stmt->fetchColumn() ?: null;
     }

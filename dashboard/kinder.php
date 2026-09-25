@@ -22,8 +22,8 @@ $team_bearbeiten = darf('kinder.bearbeiten');
 
 function kindLaden(PDO $db, int $id): ?array
 {
-    $stmt = $db->prepare('SELECT ki.*, u.vorname AS eltern_vorname, u.nachname AS eltern_nachname, u.email AS eltern_email, u.telefon AS eltern_telefon
-                          FROM kinder ki JOIN users u ON u.id = ki.elternteil_id WHERE ki.id = ? AND ki.organization_id = ?');
+    $stmt = $db->prepare('SELECT ki.*, u.vorname AS eltern_vorname, u.nachname AS eltern_nachname, u.email AS eltern_email, mp.telefon AS eltern_telefon
+                          FROM kinder ki JOIN users u ON u.id = ki.elternteil_id LEFT JOIN mitglieder_profile mp ON mp.user_id = u.id WHERE ki.id = ? AND ki.organization_id = ?');
     $stmt->execute([$id, currentOrgId()]);
     return $stmt->fetch() ?: null;
 }
