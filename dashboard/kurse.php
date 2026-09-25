@@ -6,6 +6,7 @@ define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/config/database.php';
 require_once ROOT_PATH . '/includes/auth.php';
+require_once ROOT_PATH . '/includes/kursanmeldung.php';
 
 requireLogin();
 
@@ -20,31 +21,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $kurs_id = (int)($_POST['kurs_id'] ?? 0);
     $action  = $_POST['action'] ?? '';
 
-    if ($kurs_id && $action === 'anmelden') {
-        $stmt = $db->prepare('SELECT max_teilnehmer FROM kurse WHERE id = ? AND organization_id = ?');
-        $stmt->execute([$kurs_id, currentOrgId()]);
-        $kurs = $stmt->fetch();
+    $stmt = $db->prepare('SELECT * FROM kurse WHERE id = ? AND organization_id = ?');
+    $stmt->execute([$kurs_id, currentOrgId()]);
+    $kurs = $stmt->fetch();
 
-        if ($kurs) {
-            $count_stmt = $db->prepare("SELECT COUNT(*) FROM kurs_anmeldungen WHERE kurs_id = ? AND status = 'angemeldet'");
-            $count_stmt->execute([$kurs_id]);
-            $belegt = (int)$count_stmt->fetchColumn();
-
-            $status = ($kurs['max_teilnehmer'] && $belegt >= $kurs['max_teilnehmer']) ? 'warteliste' : 'angemeldet';
-
-            $db->prepare(
-                'INSERT INTO kurs_anmeldungen (organization_id, kurs_id, user_id, status) VALUES (?, ?, ?, ?)
-                 ON DUPLICATE KEY UPDATE status = VALUES(status)'
-            )->execute([currentOrgId(), $kurs_id, $user['id'], $status]);
-
-            logActivity('kurs_anmeldung', "Kurs-ID: {$kurs_id}");
-            flashMessage('success', $status === 'warteliste' ? 'Du stehst auf der Warteliste.' : 'Anmeldung erfolgreich!');
+    // Schnellanmeldung nur für sich selbst; Kinder/Voraussetzungen laufen über die Kursseite
+    if ($kurs && $action === 'anmelden') {
+        if ($fehler = kursAnmeldungFehler($db, $kurs, $user, null, false)) {
+            flashMessage('error', $fehler);
+            redirect(APP_URL . '/dashboard/kurs-detail.php?id=' . $kurs_id);
         }
-    } elseif ($kurs_id && $action === 'abmelden') {
-        $db->prepare("UPDATE kurs_anmeldungen SET status = 'storniert' WHERE kurs_id = ? AND user_id = ?")
-           ->execute([$kurs_id, $user['id']]);
-        logActivity('kurs_abmeldung', "Kurs-ID: {$kurs_id}");
-        flashMessage('success', 'Du wurdest abgemeldet.');
+        $r = kursAnmelden($db, $kurs, (int)$user['id'], 0);
+        logActivity('kurs_anmeldung', "Kurs-ID: {$kurs_id}");
+        flashMessage('success', $r['status'] === 'warteliste' ? 'Der Kurs ist voll – du stehst auf der Warteliste (Platz ' . $r['position'] . ').' : 'Anmeldung erfolgreich!');
+    } elseif ($kurs && $action === 'abmelden') {
+        $a = meineKursAnmeldungen($db, $kurs_id, (int)$user['id'])[0] ?? null;
+        if ($a && in_array($a['status'], ['angemeldet', 'warteliste'], true)) {
+            kursStornieren($db, $kurs, $a);
+            logActivity('kurs_abmeldung', "Kurs-ID: {$kurs_id}");
+            flashMessage('success', 'Du wurdest abgemeldet.');
+        }
     }
 
     redirect(APP_URL . '/dashboard/kurse.php');
@@ -79,7 +75,8 @@ if ($filter_suche) {
 $stmt = $db->prepare(
     "SELECT k.*, u.vorname, u.nachname,
             (SELECT COUNT(*) FROM kurs_anmeldungen WHERE kurs_id = k.id AND status = 'angemeldet') AS belegt,
-            (SELECT status FROM kurs_anmeldungen WHERE kurs_id = k.id AND user_id = ?) AS meine_anmeldung
+            (SELECT COUNT(*) FROM kurs_anmeldungen WHERE kurs_id = k.id AND status = 'warteliste') AS warteliste,
+            (SELECT status FROM kurs_anmeldungen WHERE kurs_id = k.id AND user_id = ? AND kind_id = 0) AS meine_anmeldung
      FROM kurse k
      LEFT JOIN users u ON k.trainer_id = u.id
      WHERE {$where}
@@ -89,6 +86,7 @@ $stmt->execute(array_merge([$user['id']], $params));
 $kurse = $stmt->fetchAll();
 
 $sportarten = ['Calisthenics', 'Skateboarding', 'Tischtennis', 'Padel Tennis', 'Athletiktraining', 'Ausdauer'];
+$hat_kinder = (bool)meineKinder($db, (int)$user['id']);
 
 $page_title = 'Kurse';
 $breadcrumb = 'Kurse';
@@ -177,7 +175,9 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
                         </td>
                         <td><?= date('d.m.Y H:i', strtotime($kurs['start_datum'])) ?></td>
                         <td><?= $kurs['vorname'] ? e($kurs['vorname'] . ' ' . $kurs['nachname']) : 'k. A.' ?></td>
-                        <td><?= (int)$kurs['belegt'] ?><?= $kurs['max_teilnehmer'] ? ' / ' . (int)$kurs['max_teilnehmer'] : '' ?></td>
+                        <td><?= (int)$kurs['belegt'] ?><?= $kurs['max_teilnehmer'] ? ' / ' . (int)$kurs['max_teilnehmer'] : '' ?>
+                            <?php if ($kurs['max_teilnehmer'] && (int)$kurs['belegt'] >= (int)$kurs['max_teilnehmer']): ?><br><span class="badge badge-warning" style="margin-top: 4px;">voll<?= (int)$kurs['warteliste'] ? ' · ' . (int)$kurs['warteliste'] . ' warten' : '' ?></span><?php endif; ?>
+                        </td>
                         <td>
                             <?php
                             $status_map = [
@@ -191,6 +191,7 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
                         </td>
                         <td onclick="event.stopPropagation()">
                             <?php if (!isTrainer()): ?>
+                                <?php $geschlossen = kursAnmeldungGeschlossen($kurs); ?>
                                 <?php if ($kurs['meine_anmeldung'] === 'angemeldet'): ?>
                                     <form method="POST" style="display:inline;">
                                         <?= csrfField() ?>
@@ -200,6 +201,10 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
                                     </form>
                                 <?php elseif ($kurs['meine_anmeldung'] === 'warteliste'): ?>
                                     <span class="badge badge-info">Warteliste</span>
+                                <?php elseif ($geschlossen): ?>
+                                    <span class="badge badge-gray" title="<?= e($geschlossen) ?>">Anmeldung geschlossen</span>
+                                <?php elseif ($hat_kinder || trim((string)($kurs['voraussetzungen'] ?? '')) !== ''): ?>
+                                    <a href="<?= APP_URL ?>/dashboard/kurs-detail.php?id=<?= $kurs['id'] ?>" class="btn btn-primary btn-sm">Anmelden …</a>
                                 <?php else: ?>
                                     <form method="POST" style="display:inline;">
                                         <?= csrfField() ?>

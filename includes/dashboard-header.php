@@ -269,6 +269,10 @@ try {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="8" cy="15" r="1"/><circle cx="12" cy="15" r="1"/><circle cx="16" cy="15" r="1"/></svg>
                 Kalender
             </a>
+            <a href="<?= APP_URL ?>/dashboard/kinder.php" class="sidebar-link <?= strpos($current_path, '/dashboard/kinder') !== false ? 'active' : '' ?>">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="3"/><circle cx="17" cy="10" r="2"/><path d="M3 21v-2a5 5 0 0 1 10 0v2"/><path d="M14 21v-1a3 3 0 0 1 6 0v1"/></svg>
+                Kinder &amp; Einwilligungen
+            </a>
             <?php if ($ist_prae_empfaenger): ?>
             <a href="<?= APP_URL ?>/dashboard/prae-meine.php" class="sidebar-link <?= strpos($current_path, '/dashboard/prae-meine') !== false ? 'active' : '' ?>">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
@@ -342,6 +346,35 @@ try {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
                 Qualifikationen
             </a>
+            <?php if (darf('ressourcen.anzeigen')): ?>
+            <a href="<?= APP_URL ?>/dashboard/ressourcen.php" class="sidebar-link <?= strpos($current_path, '/dashboard/ressourcen') !== false ? 'active' : '' ?>">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                Ressourcen &amp; Material
+            </a>
+            <?php endif; ?>
+            <?php endif; ?>
+
+            <?php if (darfEines('partner.anzeigen', 'vertraege.anzeigen', 'foerderungen.anzeigen')): ?>
+            <!-- Organisation (rollenbasiert) -->
+            <span class="sidebar-section-label" style="margin-top: 0.75rem;">Organisation</span>
+            <?php if (darf('partner.anzeigen')): ?>
+            <a href="<?= APP_URL ?>/dashboard/admin/partner.php" class="sidebar-link <?= strpos($current_path, '/admin/partner') !== false ? 'active' : '' ?>">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg>
+                Partner &amp; CRM
+            </a>
+            <?php endif; ?>
+            <?php if (darf('vertraege.anzeigen')): ?>
+            <a href="<?= APP_URL ?>/dashboard/admin/vertraege.php" class="sidebar-link <?= strpos($current_path, '/admin/vertraege') !== false ? 'active' : '' ?>">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-4"/></svg>
+                Verträge
+            </a>
+            <?php endif; ?>
+            <?php if (!isAdmin() && darf('foerderungen.anzeigen')): ?>
+            <a href="<?= APP_URL ?>/dashboard/admin/foerderungen.php" class="sidebar-link <?= strpos($current_path, '/admin/foerderung') !== false ? 'active' : '' ?>">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"/></svg>
+                Fördermanagement
+            </a>
+            <?php endif; ?>
             <?php endif; ?>
 
             <?php if (isAdmin()): ?>

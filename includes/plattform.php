@@ -106,6 +106,27 @@ const BUCHUNG_KATEGORIEN = [
     'verpflegung' => 'Verpflegung', 'werbung' => 'Werbung / Druck', 'versicherung' => 'Versicherung', 'kursbeitrag' => 'Kursbeiträge',
     'foerderung' => 'Fördergelder', 'sponsoring' => 'Sponsoring', 'spende' => 'Spenden', 'mitgliedsbeitrag' => 'Mitgliedsbeiträge', 'sonstiges' => 'Sonstiges',
 ];
+/**
+ * Förder-Status in Ablaufreihenfolge. Die neuen Stufen (Vorbereitung … Abgerechnet) ergänzen
+ * die bisherigen Werte (geplant, beantragt, ausbezahlt), die für Altbestände erhalten bleiben.
+ */
+const FOERDER_STATUS = [
+    'geplant'       => ['label' => 'Geplant / Idee', 'class' => 'badge-gray'],
+    'vorbereitung'  => ['label' => 'Vorbereitung',   'class' => 'badge-gray'],
+    'eingereicht'   => ['label' => 'Eingereicht',    'class' => 'badge-info'],
+    'beantragt'     => ['label' => 'Beantragt',      'class' => 'badge-info'],
+    'in_pruefung'   => ['label' => 'In Prüfung',     'class' => 'badge-info'],
+    'bewilligt'     => ['label' => 'Bewilligt',      'class' => 'badge-success'],
+    'abgelehnt'     => ['label' => 'Abgelehnt',      'class' => 'badge-danger'],
+    'in_umsetzung'  => ['label' => 'In Umsetzung',   'class' => 'badge-success'],
+    'ausbezahlt'    => ['label' => 'Ausbezahlt',     'class' => 'badge-gold'],
+    'abgerechnet'   => ['label' => 'Abgerechnet',    'class' => 'badge-gold'],
+    'abgeschlossen' => ['label' => 'Abgeschlossen',  'class' => 'badge-navy'],
+];
+/** Status, in denen Fördergeld zugesagt ist (für Budget-/Finanz-KPIs). */
+const FOERDER_ZUGESAGT = ['bewilligt', 'in_umsetzung', 'ausbezahlt', 'abgerechnet', 'abgeschlossen'];
+/** Status „läuft noch / in Arbeit“ (Antragsphase). */
+const FOERDER_OFFEN = ['geplant', 'vorbereitung', 'eingereicht', 'beantragt', 'in_pruefung'];
 const EINWILLIGUNG_TYPEN = [
     'teilnahme'      => 'Teilnahme an den Vereinsangeboten',
     'datenschutz'    => 'Verarbeitung der Daten laut Datenschutzerklärung',
@@ -291,6 +312,18 @@ function plattformFaelligkeiten(PDO $db): void
             $frist = $v['kuendigung_bis'] && $v['kuendigung_bis'] <= $grenze ? 'Kündigungsfrist bis ' . date('d.m.Y', strtotime($v['kuendigung_bis'])) : 'Vertragsende ' . date('d.m.Y', strtotime($v['ende']));
             benachrichtigeAdmins($db, 'vertrag', "Vertrag „{$v['titel']}“: {$frist}", null, '/dashboard/admin/vertraege.php?id=' . $v['id'], "vertrag-{$v['id']}-" . ($v['kuendigung_bis'] ?? $v['ende']));
         }
+        // Partner-Wiedervorlage (heute fällig oder überfällig) → Betreuer:in, sonst Admins
+        $stmt = $db->prepare("SELECT id, name, naechster_kontakt, verantwortlich_id FROM partner_organisationen
+                              WHERE organization_id = ? AND status <> 'inaktiv' AND naechster_kontakt IS NOT NULL AND naechster_kontakt <= ?");
+        $stmt->execute([$org, $heute]);
+        foreach ($stmt->fetchAll() as $p) {
+            $titel = "Wiedervorlage: {$p['name']} kontaktieren";
+            $text  = 'Geplant für ' . date('d.m.Y', strtotime($p['naechster_kontakt']));
+            $link  = '/dashboard/admin/partner.php?id=' . $p['id'];
+            $key   = "partner-{$p['id']}-{$p['naechster_kontakt']}";
+            if ($p['verantwortlich_id']) benachrichtigen((int)$p['verantwortlich_id'], 'projekt', $titel, $text, $link, $key);
+            else benachrichtigeAdmins($db, 'projekt', $titel, $text, $link, $key);
+        }
         // Förderfristen (14 Tage)
         $stmt = $db->prepare("SELECT * FROM foerderungen WHERE organization_id = ? AND status NOT IN ('abgelehnt','abgeschlossen','abgerechnet')");
         $stmt->execute([$org]);
@@ -413,4 +446,30 @@ function qualStatus(?string $gueltig_bis): array
     if ($tage < 0) return ['code' => 'abgelaufen', 'label' => 'abgelaufen', 'class' => 'badge-danger', 'tage' => $tage];
     if ($tage <= QUAL_WARNTAGE) return ['code' => 'bald', 'label' => "läuft in {$tage} Tagen ab", 'class' => 'badge-warning', 'tage' => $tage];
     return ['code' => 'gueltig', 'label' => 'gültig', 'class' => 'badge-success', 'tage' => $tage];
+}
+
+/**
+ * Budget einer Förderung: bewilligt, verbrauchte Kosten (Ausgaben-Buchungen), zugeordnete
+ * Einnahmen, erhaltene Auszahlung und Restbudget – alles mit bcmath.
+ */
+function foerderBudget(PDO $db, array $f): array
+{
+    $b = ['bewilligt' => moneyRound($f['betrag_bewilligt'] ?? 0), 'verbraucht' => '0.00', 'einnahmen' => '0.00', 'offen' => '0.00',
+          'ausbezahlt' => moneyRound($f['betrag_ausbezahlt'] ?? 0), 'rest' => '0.00', 'quote' => 0.0, 'anzahl' => 0];
+    try {
+        $stmt = $db->prepare('SELECT art, betrag, status FROM buchungen WHERE foerderung_id = ?');
+        $stmt->execute([$f['id']]);
+        foreach ($stmt->fetchAll() as $r) {
+            if ($r['art'] === 'ausgabe') {
+                $b['verbraucht'] = bcadd($b['verbraucht'], moneyRound($r['betrag']), 2);
+                if ($r['status'] === 'offen') $b['offen'] = bcadd($b['offen'], moneyRound($r['betrag']), 2);
+                $b['anzahl']++;
+            } else {
+                $b['einnahmen'] = bcadd($b['einnahmen'], moneyRound($r['betrag']), 2);
+            }
+        }
+    } catch (Exception $e) {}
+    $b['rest'] = bcsub($b['bewilligt'], $b['verbraucht'], 2);
+    $b['quote'] = bccomp($b['bewilligt'], '0', 2) > 0 ? round((float)$b['verbraucht'] / (float)$b['bewilligt'] * 100, 1) : 0.0;
+    return $b;
 }

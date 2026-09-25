@@ -6,19 +6,13 @@ define('ROOT_PATH', dirname(dirname(__DIR__)));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/config/database.php';
 require_once ROOT_PATH . '/includes/auth.php';
+require_once ROOT_PATH . '/includes/plattform.php';
 
-requireAdmin();
+requireDarf('foerderungen.anzeigen');
 
 $db = getDB();
 
-$status_map = [
-    'geplant'       => ['label' => 'Geplant',       'class' => 'badge-gray'],
-    'beantragt'     => ['label' => 'Beantragt',     'class' => 'badge-info'],
-    'bewilligt'     => ['label' => 'Bewilligt',     'class' => 'badge-success'],
-    'abgelehnt'     => ['label' => 'Abgelehnt',     'class' => 'badge-danger'],
-    'ausbezahlt'    => ['label' => 'Ausbezahlt',    'class' => 'badge-gold'],
-    'abgeschlossen' => ['label' => 'Abgeschlossen', 'class' => 'badge-navy'],
-];
+$status_map = FOERDER_STATUS;
 
 // ----------------------------------------------------------------
 // Filter
@@ -34,7 +28,8 @@ if ($filter_status && isset($status_map[$filter_status])) {
     $params[] = $filter_status;
 }
 if ($filter_suche) {
-    $where .= ' AND (titel LIKE ? OR foerderstelle LIKE ?)';
+    $where .= ' AND (titel LIKE ? OR foerderstelle LIKE ? OR foerderprogramm LIKE ?)';
+    $params[] = '%' . $filter_suche . '%';
     $params[] = '%' . $filter_suche . '%';
     $params[] = '%' . $filter_suche . '%';
 }
@@ -44,18 +39,20 @@ $stmt = $db->prepare("SELECT * FROM foerderungen WHERE {$where} ORDER BY
     created_at DESC");
 $stmt->execute($params);
 $foerderungen = $stmt->fetchAll();
+foreach ($foerderungen as &$f) $f['budget'] = foerderBudget($db, $f);
+unset($f);
 
 // ----------------------------------------------------------------
 // KPIs (über alle Förderungen der Organisation, ungefiltert)
 // ----------------------------------------------------------------
-$stmt = $db->prepare('SELECT status, betrag_beantragt, betrag_bewilligt, einreichfrist, nachweisfrist FROM foerderungen WHERE organization_id = ?');
+$stmt = $db->prepare('SELECT status, betrag_beantragt, betrag_bewilligt, betrag_ausbezahlt, einreichfrist, nachweisfrist, abrechnungsfrist FROM foerderungen WHERE organization_id = ?');
 $stmt->execute([currentOrgId()]);
 $alle = $stmt->fetchAll();
 
 $offene_frist_bald = 0;
 $heute = new DateTime();
 foreach ($alle as $f) {
-    foreach ([$f['einreichfrist'], $f['nachweisfrist']] as $frist) {
+    foreach ([$f['einreichfrist'], $f['nachweisfrist'], $f['abrechnungsfrist']] as $frist) {
         if ($frist) {
             $diff = $heute->diff(new DateTime($frist))->days;
             $ist_zukunft = new DateTime($frist) >= $heute;
@@ -67,9 +64,10 @@ foreach ($alle as $f) {
     }
 }
 
-$summe_bewilligt  = array_sum(array_column(array_filter($alle, fn($f) => in_array($f['status'], ['bewilligt', 'ausbezahlt', 'abgeschlossen'], true)), 'betrag_bewilligt'));
-$summe_ausbezahlt = array_sum(array_column(array_filter($alle, fn($f) => in_array($f['status'], ['ausbezahlt', 'abgeschlossen'], true)), 'betrag_bewilligt'));
-$anzahl_laufend   = count(array_filter($alle, fn($f) => in_array($f['status'], ['geplant', 'beantragt'], true)));
+$summe_bewilligt  = array_sum(array_column(array_filter($alle, fn($f) => in_array($f['status'], FOERDER_ZUGESAGT, true)), 'betrag_bewilligt'));
+// Ausbezahlt: erfasster Auszahlungsbetrag, sonst (Altbestand) die bewilligte Summe bei Status ausbezahlt/abgeschlossen
+$summe_ausbezahlt = array_sum(array_map(fn($f) => $f['betrag_ausbezahlt'] !== null ? (float)$f['betrag_ausbezahlt'] : (in_array($f['status'], ['ausbezahlt', 'abgeschlossen'], true) ? (float)$f['betrag_bewilligt'] : 0), $alle));
+$anzahl_laufend   = count(array_filter($alle, fn($f) => in_array($f['status'], FOERDER_OFFEN, true)));
 
 $page_title = 'Fördermanagement';
 $breadcrumb = 'Fördermanagement';
@@ -81,10 +79,12 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
         <h1 class="dashboard-title">Fördermanagement</h1>
         <p class="dashboard-subtitle">Förderansuchen, Bewilligungen und Verwendungsnachweise im Überblick.</p>
     </div>
+    <?php if (darf('foerderungen.bearbeiten')): ?>
     <a href="<?= APP_URL ?>/dashboard/admin/foerderung-erstellen.php" class="btn btn-primary btn-sm">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Neue Förderung
     </a>
+    <?php endif; ?>
 </div>
 
 <div class="kpi-grid">
@@ -158,6 +158,7 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
                         <th>Förderstelle</th>
                         <th>Beantragt</th>
                         <th>Bewilligt</th>
+                        <th>Verbraucht / Rest</th>
                         <th>Status</th>
                         <th>Frist</th>
                         <th></th>
@@ -167,14 +168,17 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
                     <?php foreach ($foerderungen as $f): $s = $status_map[$f['status']] ?? ['label' => $f['status'], 'class' => 'badge-gray']; ?>
                     <tr>
                         <td class="text-primary"><?= e($f['titel']) ?></td>
-                        <td><?= e($f['foerderstelle']) ?></td>
+                        <td><?= e($f['foerderstelle']) ?><?php if (!empty($f['foerderprogramm'])): ?><br><span style="font-size: 0.75rem; color: var(--text-muted);"><?= e($f['foerderprogramm']) ?></span><?php endif; ?></td>
                         <td><?= $f['betrag_beantragt'] !== null ? number_format((float)$f['betrag_beantragt'], 2, ',', '.') . ' €' : '–' ?></td>
                         <td><?= $f['betrag_bewilligt'] !== null ? number_format((float)$f['betrag_bewilligt'], 2, ',', '.') . ' €' : '–' ?></td>
+                        <td><?php if ($f['budget']['anzahl'] || bccomp($f['budget']['bewilligt'], '0', 2) > 0): ?><?= moneyFormat($f['budget']['verbraucht']) ?><br><span style="font-size: 0.75rem; color: <?= bccomp($f['budget']['rest'], '0', 2) < 0 ? '#B91C1C' : 'var(--text-muted)' ?>;">Rest <?= moneyFormat($f['budget']['rest']) ?></span><?php else: ?>–<?php endif; ?></td>
                         <td><span class="badge <?= $s['class'] ?>"><?= e($s['label']) ?></span></td>
                         <td>
                             <?php if ($f['status'] === 'abgeschlossen' && $f['nachweisfrist']): ?>
                                 Nachweis: <?= date('d.m.Y', strtotime($f['nachweisfrist'])) ?>
-                            <?php elseif (in_array($f['status'], ['bewilligt', 'ausbezahlt'], true) && $f['nachweisfrist']): ?>
+                            <?php elseif (in_array($f['status'], ['bewilligt', 'in_umsetzung', 'ausbezahlt'], true) && !empty($f['abrechnungsfrist']) && (!$f['nachweisfrist'] || $f['abrechnungsfrist'] < $f['nachweisfrist'])): ?>
+                                Abrechnung bis <?= date('d.m.Y', strtotime($f['abrechnungsfrist'])) ?>
+                            <?php elseif (in_array($f['status'], ['bewilligt', 'in_umsetzung', 'ausbezahlt', 'abgerechnet'], true) && $f['nachweisfrist']): ?>
                                 Nachweis bis <?= date('d.m.Y', strtotime($f['nachweisfrist'])) ?>
                             <?php elseif ($f['einreichfrist']): ?>
                                 Einreichung bis <?= date('d.m.Y', strtotime($f['einreichfrist'])) ?>

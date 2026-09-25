@@ -6,18 +6,23 @@ define('ROOT_PATH', dirname(dirname(__DIR__)));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/config/database.php';
 require_once ROOT_PATH . '/includes/auth.php';
+require_once ROOT_PATH . '/includes/plattform.php';
 
-requireAdmin();
+requireDarf('foerderungen.bearbeiten');
 
 $db     = getDB();
 $user   = getCurrentUser();
 $errors = [];
+$projekte = plattformProjekte($db, false);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireCsrf();
 
     $titel             = trim($_POST['titel'] ?? '');
     $foerderstelle     = trim($_POST['foerderstelle'] ?? '');
+    $foerderprogramm   = mb_substr(trim($_POST['foerderprogramm'] ?? ''), 0, 200);
+    $projekt_id        = (int)($_POST['projekt_id'] ?? 0);
+    if ($projekt_id && !in_array($projekt_id, array_map(fn($p) => (int)$p['id'], $projekte), true)) $projekt_id = 0;
     $beschreibung      = trim($_POST['beschreibung'] ?? '');
     $betrag_beantragt  = trim($_POST['betrag_beantragt'] ?? '');
     $einreichfrist     = trim($_POST['einreichfrist'] ?? '');
@@ -39,17 +44,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $stmt = $db->prepare(
                 'INSERT INTO foerderungen
-                    (organization_id, titel, foerderstelle, beschreibung, betrag_beantragt, status,
+                    (organization_id, titel, foerderstelle, foerderprogramm, projekt_id, beschreibung, betrag_beantragt, status,
                      einreichfrist, nachweisfrist, ansprechpartner_name, ansprechpartner_email, ansprechpartner_telefon, erstellt_von)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
             );
             $stmt->execute([
                 currentOrgId(),
                 $titel,
                 $foerderstelle,
+                $foerderprogramm ?: null,
+                $projekt_id ?: null,
                 $beschreibung ?: null,
                 $betrag_beantragt !== '' ? (float)$betrag_beantragt : null,
-                'geplant',
+                'vorbereitung',
                 $einreichfrist ?: null,
                 $nachweisfrist ?: null,
                 $ansprechpartner_name ?: null,
@@ -58,6 +65,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $user['id'],
             ]);
             $neue_id = (int)$db->lastInsertId();
+            if ($projekt_id) $db->prepare('UPDATE projekte SET foerderung_id = ? WHERE id = ? AND foerderung_id IS NULL')->execute([$neue_id, $projekt_id]);
+            auditLog('erstellt', 'foerderungen', $neue_id, null, ['titel' => $titel, 'foerderstelle' => $foerderstelle, 'foerderprogramm' => $foerderprogramm ?: null, 'projekt_id' => $projekt_id ?: null], $titel);
 
             logActivity('foerderung_erstellt', "Förderung-ID: {$neue_id}, Titel: {$titel}");
             flashMessage('success', 'Förderung erfolgreich angelegt!');
@@ -102,6 +111,22 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
             <label class="form-label" for="foerderstelle">Förderstelle <span class="required">*</span></label>
             <input class="form-control <?= isset($errors['foerderstelle']) ? 'error' : '' ?>" type="text" id="foerderstelle" name="foerderstelle" value="<?= e($_POST['foerderstelle'] ?? '') ?>" required placeholder="z.B. Land Steiermark, Sportunion, Gemeinde …">
             <?php if (isset($errors['foerderstelle'])): ?><span class="form-error"><?= e($errors['foerderstelle']) ?></span><?php endif; ?>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label" for="foerderprogramm">Förderprogramm</label>
+                <input class="form-control" type="text" id="foerderprogramm" name="foerderprogramm" maxlength="200" value="<?= e($_POST['foerderprogramm'] ?? '') ?>" placeholder="z.B. Bewegungsland Steiermark">
+            </div>
+            <?php if ($projekte): ?>
+            <div class="form-group">
+                <label class="form-label" for="projekt_id">Projekt</label>
+                <select class="form-control" id="projekt_id" name="projekt_id">
+                    <option value="">– kein Projekt –</option>
+                    <?php foreach ($projekte as $p): ?><option value="<?= $p['id'] ?>" <?= (int)($_POST['projekt_id'] ?? $_GET['projekt'] ?? 0) === (int)$p['id'] ? 'selected' : '' ?>><?= e($p['name']) ?></option><?php endforeach; ?>
+                </select>
+            </div>
+            <?php endif; ?>
         </div>
 
         <div class="form-group">
