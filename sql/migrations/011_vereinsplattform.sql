@@ -465,12 +465,13 @@ CREATE TABLE IF NOT EXISTS `system_status` (
 -- 8. Erweiterungen bestehender Tabellen (nur hinzufügen)
 -- ----------------------------------------------------------------
 ALTER TABLE `kurse`
-  ADD COLUMN IF NOT EXISTS `anmeldeschluss`  DATE              NULL,
+  ADD COLUMN IF NOT EXISTS `anmeldeschluss`  DATETIME          NULL,
   ADD COLUMN IF NOT EXISTS `min_alter`       TINYINT UNSIGNED  NULL,
   ADD COLUMN IF NOT EXISTS `max_alter`       TINYINT UNSIGNED  NULL,
   ADD COLUMN IF NOT EXISTS `voraussetzungen` TEXT              NULL,
   ADD COLUMN IF NOT EXISTS `projekt_id`      INT UNSIGNED      NULL,
   ADD INDEX IF NOT EXISTS `idx_kurse_projekt` (`projekt_id`);
+ALTER TABLE `kurse` MODIFY COLUMN `anmeldeschluss` DATETIME NULL;
 
 -- Kinder anmelden: kind_id = 0 bedeutet „die angemeldete Person selbst“ (bisheriges Verhalten)
 ALTER TABLE `kurs_anmeldungen`
