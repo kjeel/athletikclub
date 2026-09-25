@@ -42,6 +42,7 @@ $top_kunden    = statTopKunden($daten, $von, $bis, 10);
 $reaktivierung = statReaktivierung($daten, $stichtag);
 $plan_stats    = statPlaene($daten, TP_ZIELE);
 $trainer_tab   = $vereinssicht ? statTrainerUebersicht($daten, $von, $bis) : [];
+$plattform     = statPlattform($db, $org_id, $von, $bis, $trainer_id);
 
 // Personengruppe für Alter/Wohnort/Interessen: Verein = aktive Mitglieder, Trainer:in = eigene Kund:innen
 if ($vereinssicht) {
@@ -528,6 +529,40 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
         <div class="stat-inhalt"><?= $balken($plan_stats['uebungen'], 10, '×') ?></div>
     </div>
 </div>
+<?php endif; ?>
+
+<!-- ============================================================ Einsätze & Anwesenheit (Einsatzplanung) -->
+<?php if ($plattform && $plattform['einheiten'] > 0): $pf = $plattform; ?>
+<h2 class="stat-abschnitt">Einsätze &amp; Anwesenheit</h2>
+<div class="kpi-grid stat-kpi-grid">
+    <?= $kpi($zahl($pf['durchgefuehrt']), 'Durchgeführte Einheiten', '#1F3556', null, $zahl($pf['geplant']) . ' geplant · ' . $zahl($pf['storniert']) . ' storniert (' . $prozent($pf['stornoquote']) . ')') ?>
+    <?= $kpi(number_format($pf['minuten'] / 60, 1, ',', '.') . ' h', 'Trainerstunden', '#C6A135', null, 'bestätigte Einsatzzeit') ?>
+    <?= $kpi(moneyFormat($pf['honorar']), 'Honorare', '#7C3AED', null, 'aus bestätigten Einheiten') ?>
+    <?= $kpi($prozent($pf['anwesenheitsquote']), 'Anwesenheitsquote', '#22C55E', null, $zahl(array_sum($pf['anw'])) . ' Einträge · ' . $zahl($pf['anw']['probetraining']) . ' Probetrainings') ?>
+    <?= $kpi($pf['tn_schnitt'] !== null ? number_format($pf['tn_schnitt'], 1, ',', '.') : '–', 'Ø Teilnehmende je Einheit', '#3B82F6', null, 'laut Bestätigung') ?>
+    <?= $kpi($zahl($pf['warteliste']), 'Aktuell auf Wartelisten', '#F59E0B', null, 'laufende Kurse') ?>
+</div>
+<div class="grid-2" style="align-items: start; margin-top: 1rem;">
+    <div class="table-card">
+        <div class="table-card-header"><h2 class="table-card-title">Einheiten nach Einsatzart</h2></div>
+        <div class="stat-inhalt"><?= $balken($pf['typen']) ?></div>
+    </div>
+    <div class="table-card">
+        <div class="table-card-header"><h2 class="table-card-title">Einheiten nach Projekt</h2></div>
+        <div class="stat-inhalt"><?= $balken($pf['projekte']) ?></div>
+    </div>
+</div>
+<?php if ($vereinssicht && $pf['trainer']): ?>
+<div class="table-card" style="margin-top: 1rem;">
+    <div class="table-card-header"><h2 class="table-card-title">Einsatzzeiten je Trainer:in</h2></div>
+    <div style="overflow-x: auto;"><table class="data-table">
+        <thead><tr><th>Trainer:in</th><th class="zahl">Einheiten</th><th class="zahl">Stunden</th><th class="zahl">Honorar</th></tr></thead>
+        <tbody><?php foreach ($pf['trainer'] as $name => $t): ?>
+            <tr><td class="text-primary"><?= e($name) ?></td><td class="zahl"><?= $zahl($t['einheiten']) ?></td><td class="zahl"><?= number_format($t['minuten'] / 60, 1, ',', '.') ?></td><td class="zahl"><?= moneyFormat($t['honorar']) ?></td></tr>
+        <?php endforeach; ?></tbody>
+    </table></div>
+</div>
+<?php endif; ?>
 <?php endif; ?>
 
 <h2 class="stat-abschnitt">Export</h2>

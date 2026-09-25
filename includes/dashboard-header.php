@@ -354,9 +354,15 @@ try {
             <?php endif; ?>
             <?php endif; ?>
 
-            <?php if (darfEines('partner.anzeigen', 'vertraege.anzeigen', 'foerderungen.anzeigen')): ?>
+            <?php if (darfEines('partner.anzeigen', 'vertraege.anzeigen', 'foerderungen.anzeigen', 'finanzen.anzeigen')): ?>
             <!-- Organisation (rollenbasiert) -->
             <span class="sidebar-section-label" style="margin-top: 0.75rem;">Organisation</span>
+            <?php if (darf('finanzen.anzeigen')): ?>
+            <a href="<?= APP_URL ?>/dashboard/admin/finanzen.php" class="sidebar-link <?= strpos($current_path, '/admin/finanzen') !== false ? 'active' : '' ?>">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                Finanzen
+            </a>
+            <?php endif; ?>
             <?php if (darf('partner.anzeigen')): ?>
             <a href="<?= APP_URL ?>/dashboard/admin/partner.php" class="sidebar-link <?= strpos($current_path, '/admin/partner') !== false ? 'active' : '' ?>">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg>

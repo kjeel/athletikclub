@@ -7,9 +7,14 @@ define('ROOT_PATH', dirname(__DIR__));
 $page_title = 'Übersicht';
 $breadcrumb = 'Dashboard';
 require_once ROOT_PATH . '/includes/dashboard-header.php';
+require_once ROOT_PATH . '/includes/handlungsbedarf.php';
 
 $db   = getDB();
 $user = getCurrentUser();
+
+// Dashboard 2.0: rollen-/rechtebasierter Handlungsbedarf und nächste Termine
+$handlungsbedarf = handlungsbedarf($db);
+$naechste_termine = meineNaechstenTermine($db);
 
 // ----------------------------------------------------------------
 // Daten je nach Rolle laden
@@ -97,7 +102,75 @@ try {
         Guten <?= date('H') < 12 ? 'Morgen' : (date('H') < 18 ? 'Tag' : 'Abend') ?>,
         <?= e($user['vorname']) ?> 👋
     </h1>
-    <p class="dashboard-subtitle"><?= date('l, d. F Y', strtotime('now')) ?></p>
+    <p class="dashboard-subtitle"><?= ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'][(int)date('w')] ?>, <?= date('j') ?>. <?= ['', 'Jänner', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'][(int)date('n')] ?> <?= date('Y') ?></p>
+</div>
+
+<style>
+.hb-karte { margin-bottom: 1.5rem; }
+.hb-liste { display: flex; flex-direction: column; }
+.hb-eintrag { display: grid; grid-template-columns: auto 1fr auto; gap: 0.85rem; align-items: center; padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--border-light); color: var(--text-primary); transition: background 0.15s; }
+.hb-eintrag:last-child { border-bottom: none; }
+.hb-eintrag:hover { background: var(--bg-muted); }
+.hb-punkt { width: 10px; height: 10px; border-radius: 50%; }
+.hb-kritisch .hb-punkt { background: #EF4444; box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.15); }
+.hb-warnung .hb-punkt { background: #F59E0B; box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.15); }
+.hb-info .hb-punkt { background: #3B82F6; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12); }
+.hb-text { font-size: 0.9rem; }
+.hb-bereich { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.hb-anzahl { font-weight: 700; font-size: 1rem; min-width: 2rem; text-align: right; }
+.hb-kritisch .hb-anzahl { color: #DC2626; }
+.hb-leer { padding: 1.25rem; display: flex; align-items: center; gap: 0.6rem; color: var(--text-secondary); font-size: 0.9rem; }
+.hb-termine { display: flex; flex-direction: column; }
+.hb-termin { display: grid; grid-template-columns: 3.4rem 1fr; gap: 0.75rem; padding: 0.7rem 1.25rem; border-bottom: 1px solid var(--border-light); color: var(--text-primary); }
+.hb-termin:last-child { border-bottom: none; }
+.hb-tag { text-align: center; line-height: 1.1; }
+.hb-tag strong { display: block; font-size: 1.15rem; }
+.hb-tag span { font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); }
+.hb-grid { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 1.5rem; align-items: start; margin-bottom: 1.5rem; }
+.hb-grid .hb-karte { margin-bottom: 0; }
+@media (max-width: 900px) { .hb-grid { grid-template-columns: 1fr; } }
+</style>
+
+<div class="<?= $naechste_termine ? 'hb-grid' : '' ?>">
+    <!-- Handlungsbedarf -->
+    <div class="table-card hb-karte">
+        <div class="table-card-header">
+            <h2 class="table-card-title">Handlungsbedarf</h2>
+            <?php $kritisch = count(array_filter($handlungsbedarf, fn($h) => $h['stufe'] === 'kritisch')); ?>
+            <?php if ($kritisch): ?><span class="badge badge-danger"><?= $kritisch ?> dringend</span><?php endif; ?>
+        </div>
+        <?php if (!$handlungsbedarf): ?>
+            <div class="hb-leer"><span class="badge badge-success">✓</span> Alles erledigt – aktuell ist nichts offen.</div>
+        <?php else: ?>
+            <div class="hb-liste">
+                <?php foreach ($handlungsbedarf as $h): ?>
+                <a class="hb-eintrag hb-<?= e($h['stufe']) ?>" href="<?= APP_URL . e($h['link']) ?>">
+                    <span class="hb-punkt" aria-hidden="true"></span>
+                    <span><span class="hb-text"><?= e($h['text']) ?></span><br><span class="hb-bereich"><?= e($h['bereich']) ?></span></span>
+                    <span class="hb-anzahl"><?= (int)$h['anzahl'] ?></span>
+                </a>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    </div>
+
+    <?php if ($naechste_termine): ?>
+    <!-- Nächste Termine (7 Tage) -->
+    <div class="table-card hb-karte">
+        <div class="table-card-header">
+            <h2 class="table-card-title"><?= isTrainer() ? 'Meine nächsten Einsätze' : 'Meine nächsten Termine' ?></h2>
+            <a href="<?= APP_URL ?>/dashboard/kalender.php?ansicht=woche" class="btn btn-ghost-light btn-sm">Kalender</a>
+        </div>
+        <div class="hb-termine">
+            <?php foreach ($naechste_termine as $t): ?>
+            <a class="hb-termin" href="<?= APP_URL ?>/dashboard/<?= $t['art'] === 'einsatz' ? 'einheit.php?id=' . (int)$t['id'] : 'kalender.php?ansicht=tag&datum=' . substr($t['start'], 0, 10) ?>">
+                <span class="hb-tag"><span><?= ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'][(int)date('w', strtotime($t['start']))] ?></span><strong><?= date('d.m.', strtotime($t['start'])) ?></strong></span>
+                <span><strong><?= e($t['titel']) ?></strong><br><span class="hb-bereich" style="text-transform: none; letter-spacing: 0;"><?= date('H:i', strtotime($t['start'])) ?>–<?= date('H:i', strtotime($t['ende'])) ?><?= $t['ort'] ? ' · ' . e($t['ort']) : '' ?></span></span>
+            </a>
+            <?php endforeach; ?>
+        </div>
+    </div>
+    <?php endif; ?>
 </div>
 
 <!-- KPI Cards -->

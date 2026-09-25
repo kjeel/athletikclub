@@ -15,6 +15,7 @@
  */
 
 require_once ROOT_PATH . '/includes/money.php';
+require_once ROOT_PATH . '/includes/plattform.php';
 
 const STAT_ZEITRAEUME = [
     '30t'     => 'Letzte 30 Tage',
@@ -681,4 +682,71 @@ function statMitgliederwachstum(array $mitglieder, string $von, string $bis): ar
     $summe = $vorher;
     foreach ($stand as $n) { $summe += $n; $kumuliert[] = $summe; }
     return ['labels' => array_values($achse['labels']), 'neu' => array_values($stand), 'gesamt' => $kumuliert];
+}
+
+/**
+ * Plattform-Kennzahlen (Migration 011): Einheiten, Trainerstunden, Honorare, Anwesenheit.
+ * Mit $trainer_id nur Einheiten, bei denen die Person eingeteilt ist. null = Tabellen fehlen.
+ */
+function statPlattform(PDO $db, int $org_id, string $von, string $bis, ?int $trainer_id = null): ?array
+{
+    try {
+        $sql = 'SELECT e.id, e.typ, e.status, e.projekt_id, p.name AS projekt_name FROM einheiten e LEFT JOIN projekte p ON p.id = e.projekt_id
+                WHERE e.organization_id = ? AND e.start BETWEEN ? AND ?';
+        $par = [$org_id, "$von 00:00:00", "$bis 23:59:59"];
+        if ($trainer_id) { $sql .= ' AND EXISTS (SELECT 1 FROM einheit_trainer et WHERE et.einheit_id = e.id AND et.user_id = ?)'; $par[] = $trainer_id; }
+        $stmt = $db->prepare($sql);
+        $stmt->execute($par);
+        $einheiten = $stmt->fetchAll();
+    } catch (Exception $e) {
+        return null;
+    }
+    $r = ['einheiten' => count($einheiten), 'durchgefuehrt' => 0, 'geplant' => 0, 'storniert' => 0, 'minuten' => 0, 'honorar' => '0.00',
+          'tn_summe' => 0, 'tn_einheiten' => 0, 'anw' => ['anwesend' => 0, 'abwesend' => 0, 'entschuldigt' => 0, 'probetraining' => 0],
+          'typen' => [], 'projekte' => [], 'trainer' => [], 'warteliste' => 0, 'anwesenheitsquote' => null, 'tn_schnitt' => null, 'stornoquote' => null];
+    foreach ($einheiten as $e) {
+        $r[$e['status']] = ($r[$e['status']] ?? 0) + 1;
+        if ($e['status'] === 'storniert') continue;
+        $typ = EINHEIT_TYPEN[$e['typ']]['label'] ?? $e['typ'];
+        $r['typen'][$typ] = ($r['typen'][$typ] ?? 0) + 1;
+        if ($e['projekt_name']) $r['projekte'][$e['projekt_name']] = ($r['projekte'][$e['projekt_name']] ?? 0) + 1;
+    }
+    if ($einheiten) {
+        $ids = implode(',', array_map(fn($e) => (int)$e['id'], $einheiten));
+        try {
+            $sql = "SELECT et.user_id, et.status, et.dauer_min, et.teilnehmer_anzahl, et.betrag, u.vorname, u.nachname FROM einheit_trainer et
+                    JOIN users u ON u.id = et.user_id WHERE et.einheit_id IN ($ids) AND et.status NOT IN ('geplant','storniert')";
+            foreach ($db->query($sql)->fetchAll() as $t) {
+                if ($trainer_id && (int)$t['user_id'] !== $trainer_id) continue;
+                $r['minuten'] += (int)$t['dauer_min'];
+                $r['honorar'] = bcadd($r['honorar'], moneyRound($t['betrag'] ?? 0), 2);
+                if ($t['teilnehmer_anzahl'] !== null) { $r['tn_summe'] += (int)$t['teilnehmer_anzahl']; $r['tn_einheiten']++; }
+                $name = trim($t['vorname'] . ' ' . $t['nachname']);
+                $r['trainer'][$name] ??= ['einheiten' => 0, 'minuten' => 0, 'honorar' => '0.00'];
+                $r['trainer'][$name]['einheiten']++;
+                $r['trainer'][$name]['minuten'] += (int)$t['dauer_min'];
+                $r['trainer'][$name]['honorar'] = bcadd($r['trainer'][$name]['honorar'], moneyRound($t['betrag'] ?? 0), 2);
+            }
+            foreach ($db->query("SELECT status, COUNT(*) AS n FROM anwesenheiten WHERE einheit_id IN ($ids) GROUP BY status")->fetchAll() as $a) {
+                $r['anw'][$a['status']] = (int)$a['n'];
+            }
+        } catch (Exception $e) {}
+    }
+    try {
+        $sql = "SELECT COUNT(*) FROM kurs_anmeldungen ka JOIN kurse k ON k.id = ka.kurs_id WHERE k.organization_id = ? AND ka.status = 'warteliste' AND k.status IN ('geplant','aktiv')";
+        $par = [$org_id];
+        if ($trainer_id) { $sql .= ' AND k.trainer_id = ?'; $par[] = $trainer_id; }
+        $stmt = $db->prepare($sql);
+        $stmt->execute($par);
+        $r['warteliste'] = (int)$stmt->fetchColumn();
+    } catch (Exception $e) {}
+
+    $erfasst = array_sum($r['anw']);
+    $r['anwesenheitsquote'] = statQuote($r['anw']['anwesend'] + $r['anw']['probetraining'], $erfasst);
+    $r['tn_schnitt'] = $r['tn_einheiten'] ? $r['tn_summe'] / $r['tn_einheiten'] : null;
+    $r['stornoquote'] = statQuote($r['storniert'], $r['einheiten']);
+    arsort($r['typen']);
+    arsort($r['projekte']);
+    uasort($r['trainer'], fn($a, $b) => $b['minuten'] <=> $a['minuten']);
+    return $r;
 }
