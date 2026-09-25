@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     $zurueck = $self . '&tab=' . ($_POST['tab'] ?? 'uebersicht');
     $braucht = ['stammdaten' => $bearbeiten, 'team_add' => $bearbeiten, 'team_remove' => $bearbeiten, 'kurs_zuordnen' => $bearbeiten, 'kurs_entfernen' => $bearbeiten,
-                'partner_add' => $bearbeiten, 'partner_remove' => $bearbeiten, 'foerderung' => $bearbeiten, 'buchung_neu' => $finanzen, 'buchung_loeschen' => $finanzen,
+                'partner_add' => $bearbeiten, 'partner_remove' => $bearbeiten, 'foerderung' => darfEines('foerderungen.bearbeiten', 'projekte.bearbeiten'), 'buchung_neu' => $finanzen, 'buchung_loeschen' => $finanzen,
                 'dokument' => $bearbeiten || $im_team, 'archivieren' => darf('projekte.loeschen')];
     if (empty($braucht[$action])) { flashMessage('error', 'Keine Berechtigung für diese Aktion.'); redirect($zurueck); }
 
@@ -75,7 +75,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             auditLog('geaendert', 'projekt_team', $id, ['user_id' => (int)($_POST['user_id'] ?? 0)], ['aktion' => 'entfernt']);
             break;
         case 'kurs_zuordnen':
-            $db->prepare('UPDATE kurse SET projekt_id = ? WHERE id = ? AND organization_id = ?')->execute([$id, (int)($_POST['kurs_id'] ?? 0), $org_id]);
+            // Ohne allgemeines Projektrecht nur Kurse ohne Projekt oder eigene Kurse zuordnen (nicht aus fremden Projekten „wegziehen“)
+            $db->prepare('UPDATE kurse SET projekt_id = ? WHERE id = ? AND organization_id = ?' . (darf('projekte.bearbeiten') ? '' : ' AND (projekt_id IS NULL OR trainer_id = ?)'))
+               ->execute(darf('projekte.bearbeiten') ? [$id, (int)($_POST['kurs_id'] ?? 0), $org_id] : [$id, (int)($_POST['kurs_id'] ?? 0), $org_id, $me]);
             break;
         case 'kurs_entfernen':
             $db->prepare('UPDATE kurse SET projekt_id = NULL WHERE id = ? AND projekt_id = ?')->execute([(int)($_POST['kurs_id'] ?? 0), $id]);
@@ -229,7 +231,7 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
     </div>
 </form>
 <?php if (darf('projekte.loeschen') && $p['status'] !== 'archiviert'): ?>
-<form method="POST" style="margin-top: 1rem;" onsubmit="return confirm('Projekt archivieren? Daten bleiben erhalten.')"><?= csrfField() ?><input type="hidden" name="action" value="archivieren"><button type="submit" class="btn btn-ghost-light btn-sm">Projekt archivieren</button></form>
+<form method="POST" style="margin-top: 1rem;" onsubmit="<?= bestaetigen('Projekt „' . $p['name'] . '“ archivieren? Alle Daten, Kosten und Förderzuordnungen bleiben erhalten.') ?>"><?= csrfField() ?><input type="hidden" name="action" value="archivieren"><button type="submit" class="btn btn-ghost-light btn-sm">Projekt archivieren</button></form>
 <?php endif; ?>
 <?php endif; ?>
 

@@ -9,6 +9,13 @@ RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
 RewriteRule ^(.*)$ https://%1%{REQUEST_URI} [L,R=301]
 
+# Interne Verzeichnisse und Projektdateien nie direkt ausliefern/ausführen
+# (Includes, Konfiguration, SQL, Bibliotheken, Dokumentation, Composer-Dateien, versteckte Dateien)
+RewriteRule ^(config|includes|sql|vendor|docs|keys|uploads|logs)(/|$) - [F,L]
+RewriteRule (^|/)(composer\.(json|lock)|[^/]+\.md|env)$ - [F,L]
+RewriteCond %{REQUEST_URI} !^/\.well-known/
+RewriteRule (^|/)\. - [F,L]
+
 # Sitemap für Suchmaschinen (wird von sitemap.php dynamisch erzeugt)
 RewriteRule ^sitemap\.xml$ sitemap.php [L]
 
@@ -57,14 +64,8 @@ Options -Indexes
     Deny from all
 </Files>
 
-# ============================================================
-# Upload-Verzeichnis: Kein PHP-Ausführen
-# ============================================================
-<IfModule mod_php7.c>
-    <Directory "uploads">
-        php_flag engine off
-    </Directory>
-</IfModule>
+# Upload-Verzeichnis: gesperrt über RewriteRule oben und uploads/.htaccess
+# (Dateien werden nur über geprüfte PHP-Skripte ausgeliefert, z.B. api/bild.php)
 
 # ============================================================
 # Security Headers
@@ -75,6 +76,8 @@ Options -Indexes
     Header always set X-XSS-Protection "1; mode=block"
     Header always set Referrer-Policy "strict-origin-when-cross-origin"
     Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+    # HTTPS wird oben erzwungen – Browser merken sich das 180 Tage (ohne Subdomains, ohne Preload)
+    Header always set Strict-Transport-Security "max-age=15552000"
 </IfModule>
 
 # ============================================================

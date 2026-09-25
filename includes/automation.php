@@ -324,9 +324,18 @@ const AUTOMATION_FUNKTIONEN = [
  */
 function automationLauf(PDO $db, bool $erzwingen = false, ?string $nur = null): ?array
 {
-    // Sperre gegen parallele Läufe (verfällt nach 10 Minuten, falls ein Lauf abbricht)
-    $sperre = systemStatus($db, 'automation_sperre_' . currentOrgId());
-    if ($sperre && strtotime($sperre) > time() - 600) return null;
+    // Sperre gegen parallele Läufe (Cron + Seitenaufruf): MySQL GET_LOCK ist atomar und wird bei
+    // Verbindungsabbruch automatisch frei; zusätzlich Zeitstempel für die Anzeige/andere Datenbanken.
+    $mysql = $db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql';
+    $lock = 'aci_automation_' . currentOrgId();
+    if ($mysql) {
+        $stmt = $db->prepare('SELECT GET_LOCK(?, 0)');
+        $stmt->execute([$lock]);
+        if ((int)$stmt->fetchColumn() !== 1) return null;
+    } else {
+        $sperre = systemStatus($db, 'automation_sperre_' . currentOrgId());
+        if ($sperre && strtotime($sperre) > time() - 600) return null;
+    }
     systemStatusSetzen($db, 'automation_sperre_' . currentOrgId(), date('Y-m-d H:i:s'));
     $erg = ['ausgefuehrt' => [], 'fehler' => []];
     try {
@@ -354,6 +363,7 @@ function automationLauf(PDO $db, bool $erzwingen = false, ?string $nur = null): 
         systemStatusSetzen($db, 'automation_letzter_lauf_' . currentOrgId(), date('Y-m-d H:i:s'));
     } finally {
         systemStatusSetzen($db, 'automation_sperre_' . currentOrgId(), '');
+        if ($mysql) $db->prepare('SELECT RELEASE_LOCK(?)')->execute([$lock]);
     }
     return $erg;
 }

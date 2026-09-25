@@ -38,9 +38,9 @@ $stmt = $db->prepare('SELECT * FROM umsatz_eintraege WHERE trainer_id = ? AND or
 $stmt->execute([$trainer_id, currentOrgId()]);
 $manuelle_eintraege = $stmt->fetchAll();
 
-$kursumsatz_summe = array_sum(array_column($kurs_umsatz, 'summe'));
-$manuell_summe    = array_sum(array_column($manuelle_eintraege, 'betrag'));
-$gesamt_summe     = $kursumsatz_summe + $manuell_summe;
+$kursumsatz_summe = moneySum(array_column($kurs_umsatz, 'summe'));
+$manuell_summe    = moneySum(array_column($manuelle_eintraege, 'betrag'));
+$gesamt_summe     = bcadd($kursumsatz_summe, $manuell_summe, 2);
 
 $page_title = 'Umsatz: ' . $trainer['vorname'] . ' ' . $trainer['nachname'];
 $breadcrumb = 'Umsatzübersicht';

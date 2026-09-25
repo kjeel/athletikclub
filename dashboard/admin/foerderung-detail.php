@@ -236,10 +236,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'delete_foerderung') {
-        $stmt = $db->prepare('SELECT COUNT(*) FROM buchungen WHERE foerderung_id = ?');
-        $stmt->execute([$foerderung_id]);
+        $stmt = $db->prepare('SELECT (SELECT COUNT(*) FROM buchungen WHERE foerderung_id = ?) + (SELECT COUNT(*) FROM dokumente WHERE foerderung_id = ?)');
+        $stmt->execute([$foerderung_id, $foerderung_id]);
         if ((int)$stmt->fetchColumn() > 0) {
-            flashMessage('error', 'Die Förderung hat verbuchte Kosten/Einnahmen und kann nicht gelöscht werden – bitte stattdessen auf „Abgeschlossen“ setzen.');
+            flashMessage('error', 'Die Förderung hat verbuchte Kosten/Einnahmen oder Dokumente und kann nicht gelöscht werden – bitte stattdessen auf „Abgeschlossen“ bzw. „Abgelehnt“ setzen.');
             redirect($self);
         }
         $db->prepare('DELETE FROM foerderungen WHERE id = ?')->execute([$foerderung_id]);
@@ -361,7 +361,7 @@ $ueberzogen = bccomp($budget['rest'], '0', 2) < 0;
 
             <?php if ($bearbeiten): ?>
             <div style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--border-light);">
-                <form method="POST" onsubmit="return confirm('Förderung inkl. aller Dokumente wirklich unwiderruflich löschen?')">
+                <form method="POST" onsubmit="return confirm(<?= e(json_encode('Förderung „' . $foerderung['titel'] . '“ wirklich endgültig löschen?', JSON_UNESCAPED_UNICODE)) ?>)">
                     <?= csrfField() ?>
                     <input type="hidden" name="action" value="delete_foerderung">
                     <button type="submit" class="btn btn-ghost-light btn-sm w-full" style="color: var(--danger);">Förderung löschen</button>

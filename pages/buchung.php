@@ -117,7 +117,7 @@ $termine = kursTermine($db, (int)$kurs['id'], 10);
                     <?php if ($storno_grund): ?>
                         <p class="form-hint"><?= e($storno_grund) ?></p>
                     <?php else: ?>
-                        <form method="POST" onsubmit="return confirm('Anmeldung wirklich stornieren?');"><?= csrfField() ?><input type="hidden" name="aktion" value="stornieren">
+                        <form method="POST" onsubmit="<?= bestaetigen('Anmeldung zu „' . $kurs['titel'] . '“ wirklich stornieren?') ?>"><?= csrfField() ?><input type="hidden" name="aktion" value="stornieren">
                             <button class="btn btn-ghost-light btn-sm" type="submit"><?= $a['status'] === 'warteliste' ? 'Von der Warteliste nehmen' : 'Anmeldung stornieren' ?></button></form>
                     <?php endif; ?>
                 </div>

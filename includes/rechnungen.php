@@ -103,6 +103,13 @@ function rechnungAusstellen(PDO $db, int $id, ?string $rechnungsdatum = null): ?
     $ziel = $r['faellig_am'] ?: date('Y-m-d', strtotime($datum . ' +' . max(0, (int)einstellung('rechnung_zahlungsziel', '14')) . ' days'));
     $db->beginTransaction();
     try {
+        $mysql = $db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql';
+        $stmt = $db->prepare('SELECT status FROM rechnungen WHERE id = ?' . ($mysql ? ' FOR UPDATE' : ''));
+        $stmt->execute([$id]);
+        if ($stmt->fetchColumn() !== 'entwurf') {
+            $db->rollBack();
+            return 'Die Rechnung wurde inzwischen bereits ausgestellt.';
+        }
         $jahr = (int)substr($datum, 0, 4);
         $nr = naechsteNummer($db, 'rechnung', $jahr);
         $nummer = preg_replace('/[^A-Za-z0-9-]/', '', einstellung('rechnung_prefix', 'RE')) . '-' . $jahr . '-' . str_pad((string)$nr, 4, '0', STR_PAD_LEFT);
@@ -158,6 +165,10 @@ function zahlungErfassen(PDO $db, array $r, string $betrag, string $datum, strin
     if (!in_array($r['status'], ['offen', 'bezahlt'], true) || $r['typ'] !== 'rechnung') return ['fehler' => 'Zahlungen nur für ausgestellte Rechnungen.'];
     $betrag = moneyRound($betrag);
     if (bccomp($betrag, '0', 2) <= 0) return ['fehler' => 'Der Betrag muss größer als 0 sein.'];
+    $noch_offen = rechnungOffenBetrag($db, $r);
+    if (bccomp($betrag, $noch_offen, 2) > 0) {
+        return ['fehler' => 'Der Betrag übersteigt den offenen Betrag von ' . moneyFormat($noch_offen) . '. Eine Überzahlung bitte als Rückzahlung bzw. Gutschrift gesondert behandeln.'];
+    }
     $anmeldungen = rechnungAnmeldungen($db, $r);
     $buchung_id = null;
     $db->beginTransaction();
@@ -195,13 +206,18 @@ function zahlungLoeschen(PDO $db, array $r, int $zahlung_id): bool
     $z = $stmt->fetch();
     if (!$z || $r['status'] === 'storniert') return false;
     $db->beginTransaction();
-    $db->prepare('DELETE FROM zahlungen WHERE id = ?')->execute([$z['id']]);
-    if ($z['buchung_id']) $db->prepare('DELETE FROM buchungen WHERE id = ?')->execute([$z['buchung_id']]);
-    if ($r['status'] === 'bezahlt' && bccomp(rechnungOffenBetrag($db, $r), '0', 2) > 0) {
-        $db->prepare("UPDATE rechnungen SET status = 'offen' WHERE id = ?")->execute([$r['id']]);
-        foreach (rechnungAnmeldungen($db, $r) as $aid) $db->prepare('UPDATE kurs_anmeldungen SET bezahlt = 0, bezahlt_am = NULL WHERE id = ?')->execute([$aid]);
+    try {
+        $db->prepare('DELETE FROM zahlungen WHERE id = ?')->execute([$z['id']]);
+        if ($z['buchung_id']) $db->prepare('DELETE FROM buchungen WHERE id = ?')->execute([$z['buchung_id']]);
+        if ($r['status'] === 'bezahlt' && bccomp(rechnungOffenBetrag($db, $r), '0', 2) > 0) {
+            $db->prepare("UPDATE rechnungen SET status = 'offen' WHERE id = ?")->execute([$r['id']]);
+            foreach (rechnungAnmeldungen($db, $r) as $aid) $db->prepare('UPDATE kurs_anmeldungen SET bezahlt = 0, bezahlt_am = NULL WHERE id = ?')->execute([$aid]);
+        }
+        $db->commit();
+    } catch (Throwable $e) {
+        if ($db->inTransaction()) $db->rollBack();
+        throw $e;
     }
-    $db->commit();
     auditLog('geloescht', 'zahlungen', (int)$z['id'], $z, null, 'Zahlung zurückgenommen ' . $r['nummer']);
     return true;
 }

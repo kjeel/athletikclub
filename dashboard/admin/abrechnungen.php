@@ -49,20 +49,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'abrec
         redirect(APP_URL . '/dashboard/admin/abrechnungen.php');
     }
 
+    // Stichzeitpunkt: Was danach bezahlt/erfasst wird, gehört in die nächste Abrechnung (kein Markieren ohne Betrag)
+    $stichtag = date('Y-m-d H:i:s');
     $stmt = $db->prepare(
         "SELECT k.id, k.titel, k.start_datum, k.preis,
                 COUNT(ka.id) AS bezahlte_teilnehmer,
                 (COUNT(ka.id) * k.preis) AS summe
          FROM kurse k
-         JOIN kurs_anmeldungen ka ON ka.kurs_id = k.id AND ka.bezahlt = 1 AND ka.abgerechnet_id IS NULL
+         JOIN kurs_anmeldungen ka ON ka.kurs_id = k.id AND ka.bezahlt = 1 AND ka.abgerechnet_id IS NULL AND (ka.bezahlt_am IS NULL OR ka.bezahlt_am <= ?)
          WHERE k.trainer_id = ? AND k.organization_id = ?
          GROUP BY k.id"
     );
-    $stmt->execute([$trainer_id, $org_id]);
+    $stmt->execute([$stichtag, $trainer_id, $org_id]);
     $kurs_positionen = $stmt->fetchAll();
 
-    $stmt = $db->prepare('SELECT * FROM umsatz_eintraege WHERE trainer_id = ? AND organization_id = ? AND abgerechnet_id IS NULL');
-    $stmt->execute([$trainer_id, $org_id]);
+    $stmt = $db->prepare('SELECT * FROM umsatz_eintraege WHERE trainer_id = ? AND organization_id = ? AND abgerechnet_id IS NULL AND created_at <= ?');
+    $stmt->execute([$trainer_id, $org_id, $stichtag]);
     $manuelle_positionen = $stmt->fetchAll();
 
     if (empty($kurs_positionen) && empty($manuelle_positionen)) {
@@ -107,17 +109,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'abrec
         $db->prepare(
             "UPDATE kurs_anmeldungen ka JOIN kurse k ON k.id = ka.kurs_id
              SET ka.abgerechnet_id = ?
-             WHERE k.trainer_id = ? AND k.organization_id = ? AND ka.bezahlt = 1 AND ka.abgerechnet_id IS NULL"
-        )->execute([$abrechnung_id, $trainer_id, $org_id]);
+             WHERE k.trainer_id = ? AND k.organization_id = ? AND ka.bezahlt = 1 AND ka.abgerechnet_id IS NULL AND (ka.bezahlt_am IS NULL OR ka.bezahlt_am <= ?)"
+        )->execute([$abrechnung_id, $trainer_id, $org_id, $stichtag]);
 
         $db->prepare(
-            'UPDATE umsatz_eintraege SET abgerechnet_id = ? WHERE trainer_id = ? AND organization_id = ? AND abgerechnet_id IS NULL'
-        )->execute([$abrechnung_id, $trainer_id, $org_id]);
+            'UPDATE umsatz_eintraege SET abgerechnet_id = ? WHERE trainer_id = ? AND organization_id = ? AND abgerechnet_id IS NULL AND created_at <= ?'
+        )->execute([$abrechnung_id, $trainer_id, $org_id, $stichtag]);
 
         $db->commit();
 
         logActivity('abrechnung_erstellt', "Trainer-ID: {$trainer_id}, Abrechnung-ID: {$abrechnung_id}, Betrag: {$provisionsbetrag}");
-        flashMessage('success', 'Abrechnung für ' . $trainer['vorname'] . ' ' . $trainer['nachname'] . ' erstellt.');
+        $stmt = $db->prepare("SELECT DISTINCT k.titel FROM einheit_trainer et JOIN einheiten e ON e.id = et.einheit_id JOIN kurse k ON k.id = e.kurs_id
+                              WHERE et.user_id = ? AND et.betrag > 0 AND k.id IN (SELECT kurs_id FROM kurs_anmeldungen WHERE abgerechnet_id = ?)");
+        $stmt->execute([$trainer_id, $abrechnung_id]);
+        $doppelt = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        flashMessage($doppelt ? 'warning' : 'success', 'Abrechnung für ' . $trainer['vorname'] . ' ' . $trainer['nachname'] . ' erstellt.'
+            . ($doppelt ? ' Achtung: Für ' . implode(', ', $doppelt) . ' gibt es zusätzlich Honorare aus Trainerabrechnungen – bitte prüfen, dass nicht doppelt ausbezahlt wird.' : ''));
     } catch (Exception $e) {
         $db->rollBack();
         flashMessage('error', 'Abrechnung konnte nicht erstellt werden.');

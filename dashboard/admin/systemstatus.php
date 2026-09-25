@@ -43,6 +43,10 @@ if ($treiber === 'mysql') {
     $r = $abfrage('SELECT SUM(data_length + index_length) AS b FROM information_schema.tables WHERE table_schema = DATABASE()');
     $db_groesse = $r ? (int)$r[0]['b'] : null;
 }
+// Zeitabgleich: NOW() der Datenbank vs. PHP (Europe/Vienna) – Abweichung verfälscht Fristen und Rate-Limits
+$db_zeit = null;
+try { $db_zeit = (string)$db->query($treiber === 'mysql' ? 'SELECT NOW()' : "SELECT datetime('now', 'localtime')")->fetchColumn(); } catch (Exception $e) {}
+$zeit_abweichung = $db_zeit ? abs(strtotime($db_zeit) - time()) : null;
 $dateien = array_map('basename', glob(ROOT_PATH . '/sql/migrations/*.sql') ?: []);
 sort($dateien);
 $eingespielt = array_column($abfrage('SELECT filename, executed_at FROM migrations ORDER BY id') ?? [], 'executed_at', 'filename');
@@ -128,6 +132,7 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
         <ul class="sy-liste">
             <li><span><?= $ampel(true) ?>Verbindung</span><span>OK (<?= e($treiber) ?> <?= e($db_version) ?>)</span></li>
             <li><span>Größe</span><span><?= $groesse($db_groesse) ?></span></li>
+            <li><span><?= $ampel($zeit_abweichung !== null && $zeit_abweichung < 120, $zeit_abweichung === null) ?>Uhrzeit DB / PHP</span><span><?= $db_zeit ? date('H:i', strtotime($db_zeit)) . ' / ' . date('H:i') . ' (' . e(date_default_timezone_get()) . ')' : 'unbekannt' ?></span></li>
             <li><span><?= $ampel(!$fehlend, true) ?>Migrationen</span><span><?= count($dateien) - count($fehlend) ?> / <?= count($dateien) ?> eingespielt</span></li>
             <?php if ($eingespielt): ?><li><span>Letzte Migration</span><span><?= e((string)array_key_last($eingespielt)) ?></span></li><?php endif; ?>
         </ul>

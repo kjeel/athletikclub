@@ -175,7 +175,7 @@ $rname = fn($r) => $rollen_info[$r['code']][0] ?? $r['name'];
                         <?php foreach ($hat as $rid => $_): $r = $rollen_by_id[$rid] ?? null; if (!$r) continue; ?>
                             <span class="badge <?= in_array($r['code'], ADMIN_ROLLEN, true) ? 'badge-gold' : ($r['code'] === 'CUSTOMER' ? 'badge-gray' : 'badge-navy') ?> ro-chip"><?= e($rname($r)) ?>
                             <?php if ($darf_rolle($r) && !((int)$u['id'] === $me && in_array($r['code'], ADMIN_ROLLEN, true))): ?>
-                                <form method="POST" style="display: inline;" onsubmit="return confirm('Rolle entziehen?');"><?= csrfField() ?><input type="hidden" name="action" value="entziehen"><input type="hidden" name="user_id" value="<?= $u['id'] ?>"><input type="hidden" name="role_id" value="<?= $rid ?>"><input type="hidden" name="suche" value="<?= e($suche) ?>"><button type="submit" aria-label="Rolle entziehen" title="Entziehen">✕</button></form>
+                                <form method="POST" style="display: inline;" onsubmit="<?= bestaetigen('Rolle „' . $rname($r) . '“ wirklich von ' . $u['vorname'] . ' ' . $u['nachname'] . ' entziehen?') ?>"><?= csrfField() ?><input type="hidden" name="action" value="entziehen"><input type="hidden" name="user_id" value="<?= $u['id'] ?>"><input type="hidden" name="role_id" value="<?= $rid ?>"><input type="hidden" name="suche" value="<?= e($suche) ?>"><button type="submit" aria-label="Rolle entziehen" title="Entziehen">✕</button></form>
                             <?php endif; ?></span>
                         <?php endforeach; ?>
                         <?php if (!$hat): ?><span class="ro-mini">keine</span><?php endif; ?>

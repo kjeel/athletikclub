@@ -6,12 +6,14 @@ define('ROOT_PATH', dirname(__DIR__));
 $page_title       = 'Trainer*in werden';
 $meta_description = 'Trainiere selbstständig beim Athletikclub Steiermark. Infrastruktur, Kundenbasis und rechtlicher Rahmen sind inklusive, du bringst deine Expertise mit.';
 require_once ROOT_PATH . '/includes/header.php';
+require_once ROOT_PATH . '/includes/kommunikation.php';
 
 $success = false;
 $errors  = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireCsrf();
+    $spam = formularSpamPruefen('trainer_bewerbung');
 
     $vorname       = trim($_POST['vorname'] ?? '');
     $nachname      = trim($_POST['nachname'] ?? '');
@@ -24,7 +26,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors['email'] = 'Bitte gib eine gültige E-Mail-Adresse ein.';
     if (empty($nachricht) || mb_strlen($nachricht) < 10) $errors['nachricht'] = 'Bitte schreib uns kurz von dir und deinen Vorstellungen.';
 
-    if (empty($errors)) {
+    if ($spam === 'limit') $errors['general'] = 'Zu viele Anfragen in kurzer Zeit. Bitte versuche es in einer Stunde erneut oder schreib uns direkt per E-Mail.';
+    if ($spam === 'honeypot') {
+        $success = true;
+    } elseif (empty($errors)) {
         try {
             $betreff = 'Trainer-Anbindung' . ($qualifikation !== '' ? ': ' . $qualifikation : '');
             $name    = $vorname . ' ' . $nachname;
@@ -43,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $mail_body  = "Neue Trainer-Anbindungsanfrage über die Website:\n\n";
             $mail_body .= "Name: {$name}\nE-Mail: {$email}\nQualifikation/Schwerpunkt: {$qualifikation}\n\nNachricht:\n{$nachricht}";
-            @mail(MAIL_ADMIN, "Neue Trainer-Anfrage: {$name}", $mail_body, 'From: ' . MAIL_FROM);
+            mailSenden(getDB(), (verein()['email'] ?: MAIL_ADMIN), "Neue Trainer-Anfrage: {$name}", $mail_body, null, 'trainer_bewerbung', $email);
             $success = true;
         } catch (Exception $e) {
             $errors['general'] = 'Fehler beim Senden. Bitte versuche es später erneut.';
@@ -278,6 +283,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     <form method="POST" action="" data-validate novalidate>
                         <?= csrfField() ?>
+                        <?= formularHoneypot() ?>
 
                         <div class="form-row">
                             <div class="form-group">

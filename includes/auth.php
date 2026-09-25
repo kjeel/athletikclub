@@ -160,7 +160,8 @@ function requireCsrf(): void
 {
     if (!verifyCsrf()) {
         http_response_code(403);
-        die('Ungültige Anfrage (CSRF).');
+        securityLog('csrf_ungueltig', ($_SERVER['REQUEST_METHOD'] ?? '') . ' ' . parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH));
+        die('Das Formular ist abgelaufen oder ungültig. Bitte lade die Seite neu und versuche es noch einmal.');
     }
 }
 
@@ -187,13 +188,23 @@ function generateToken(int $length = 32): string
     return bin2hex(random_bytes($length));
 }
 
+/**
+ * Einmal-Tokens (Passwort setzen/zurücksetzen, E-Mail bestätigen) werden nur als SHA-256-Hash gespeichert;
+ * der Link enthält das Token selbst. Ein Datenbank-Auszug erlaubt so keine Kontoübernahme.
+ */
+function tokenHash(string $token): string
+{
+    return hash('sha256', $token);
+}
+
 // ----------------------------------------------------------------
 // Hilfsfunktionen
 // ----------------------------------------------------------------
 
-function e(string $str): string
+/** HTML-Escaping; akzeptiert auch null/Zahlen (leere DB-Felder dürfen keinen Seitenabbruch auslösen). */
+function e($str): string
 {
-    return htmlspecialchars($str, ENT_QUOTES, 'UTF-8');
+    return htmlspecialchars((string)$str, ENT_QUOTES, 'UTF-8');
 }
 
 function redirect(string $url): void
@@ -237,3 +248,111 @@ function logActivity(string $aktion, ?string $details = null): void
         // Logging-Fehler still ignorieren
     }
 }
+
+/**
+ * Sicherheitsrelevante Ereignisse (fehlgeschlagene CSRF-Prüfung, Zugriff ohne Recht …):
+ * Aktivitätsprotokoll mit Präfix „security:“ plus Server-Log. Keine Passwörter/Tokens übergeben.
+ */
+function securityLog(string $ereignis, ?string $details = null): void
+{
+    logActivity('security:' . $ereignis, $details !== null ? mb_substr($details, 0, 250) : null);
+    error_log('[SECURITY] ' . $ereignis . ($details ? ' – ' . $details : '') . ' | user=' . (getCurrentUserId() ?? '-') . ' ip=' . ($_SERVER['REMOTE_ADDR'] ?? '-'));
+}
+
+/**
+ * onsubmit-/onclick-Attribut für eine konkrete Rückfrage (sicher für HTML-Attribut und JavaScript kodiert).
+ * Beispiel: <form onsubmit="<?= bestaetigen('Kurs „' . $kurs['titel'] . '“ wirklich absagen?') ?>">
+ */
+function bestaetigen(string $frage): string
+{
+    return 'return confirm(' . htmlspecialchars(json_encode($frage, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP), ENT_QUOTES, 'UTF-8') . ')';
+}
+
+// ----------------------------------------------------------------
+// Öffentliche Formulare: Spam-Schutz
+// ----------------------------------------------------------------
+const FORMULAR_MAX_PRO_STUNDE = 5;
+
+/** Unsichtbares Feld, das nur Bots ausfüllen (Name identisch mit dem Kursportal). */
+function formularHoneypot(): string
+{
+    return '<div style="position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden;" aria-hidden="true">'
+         . '<label>Website <input type="text" name="firma_web" tabindex="-1" autocomplete="off"></label></div>';
+}
+
+/**
+ * Prüft ein abgeschicktes öffentliches Formular: 'honeypot' (Bot – so tun, als wäre alles ok),
+ * 'limit' (zu viele Versuche dieser IP in der letzten Stunde) oder null. Jeder echte Versuch wird gezählt.
+ */
+function formularSpamPruefen(string $aktion, int $max = FORMULAR_MAX_PRO_STUNDE): ?string
+{
+    if (trim((string)($_POST['firma_web'] ?? '')) !== '') {
+        securityLog('honeypot', $aktion);
+        return 'honeypot';
+    }
+    try {
+        $stmt = getDB()->prepare('SELECT COUNT(*) FROM aktivitaets_log WHERE aktion = ? AND ip_adresse = ? AND created_at > ?');
+        $stmt->execute([$aktion, $_SERVER['REMOTE_ADDR'] ?? '', date('Y-m-d H:i:s', time() - 3600)]);
+        if ((int)$stmt->fetchColumn() >= $max) {
+            securityLog('rate_limit', $aktion);
+            return 'limit';
+        }
+    } catch (Throwable $e) {}
+    logActivity($aktion);
+    return null;
+}
+
+// ----------------------------------------------------------------
+// Session-Prüfung bei jedem Aufruf
+// ----------------------------------------------------------------
+const SESSION_LEERLAUF_SEK = 4 * 3600;   // Abmeldung nach 4 Stunden Inaktivität
+const SESSION_PRUEF_SEK    = 60;         // Konto-Status höchstens 1× pro Minute nachladen
+
+/**
+ * Meldet ab, wenn die Sitzung zu lange inaktiv war oder das Konto inzwischen deaktiviert wurde,
+ * und übernimmt Rollenänderungen sofort (statt erst beim nächsten Login).
+ */
+function sessionPruefen(): void
+{
+    if (PHP_SAPI === 'cli' || !isLoggedIn()) return;
+    $jetzt = time();
+    $letzte = (int)($_SESSION['last_activity'] ?? $_SESSION['login_time'] ?? $jetzt);
+    if ($jetzt - $letzte > SESSION_LEERLAUF_SEK) {
+        logoutUser();
+        session_start();
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        flashMessage('info', 'Du wurdest nach längerer Inaktivität abgemeldet. Bitte melde dich erneut an.');
+        return;
+    }
+    $_SESSION['last_activity'] = $jetzt;
+    if ($jetzt - (int)($_SESSION['konto_geprueft'] ?? 0) < SESSION_PRUEF_SEK) return;
+    try {
+        $stmt = getDB()->prepare('SELECT aktiv, rolle, organization_id FROM users WHERE id = ?');
+        $stmt->execute([getCurrentUserId()]);
+        $u = $stmt->fetch();
+    } catch (Throwable $e) {
+        return; // Datenbank kurz nicht erreichbar: Sitzung nicht beenden
+    }
+    if (!$u || !(int)$u['aktiv']) {
+        logoutUser();
+        session_start();
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        flashMessage('error', 'Dein Konto ist nicht (mehr) aktiv.');
+        return;
+    }
+    if ($u['rolle'] !== ($_SESSION['user_role'] ?? null)) {
+        $_SESSION['user_role'] = $u['rolle'];
+        unset($_SESSION['berechtigungen']);
+    }
+    $_SESSION['organization_id'] = (int)($u['organization_id'] ?? 1);
+    $_SESSION['konto_geprueft'] = $jetzt;
+}
+// Datenbank-Sitzung auf dieselbe Zeitzone wie PHP (Europe/Vienna inkl. Sommerzeit) stellen, damit
+// NOW()/CURRENT_TIMESTAMP und in PHP berechnete Zeitfenster (Login-Sperre, Rate-Limits, Fristen) übereinstimmen.
+try {
+    if (getDB()->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql') getDB()->exec("SET time_zone = '" . date('P') . "'");
+} catch (Throwable $e) {
+    error_log('[WARNING] Zeitzone der Datenbank konnte nicht gesetzt werden: ' . $e->getMessage());
+}
+
+sessionPruefen();

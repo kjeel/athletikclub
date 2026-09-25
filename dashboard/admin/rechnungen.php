@@ -367,7 +367,7 @@ $st_anzeige = fn($r) => RECHNUNG_STATUS[rechnungAnzeigeStatus($r)] ?? ['label' =
                 <form method="POST" style="padding: 0.9rem 1.25rem;"><?= csrfField() ?><input type="hidden" name="action" value="mahnung_vorbereiten"><input type="hidden" name="id" value="<?= $r['id'] ?>"><button class="btn btn-ghost-light btn-sm">Nächste Mahnstufe vorbereiten</button></form>
                 <?php elseif (!$mahnungen): ?><p class="re-mini" style="padding: 1rem 1.25rem;">Keine Mahnungen.</p><?php endif; ?>
             </div>
-            <form method="POST" class="table-card" style="margin-top: 1.5rem; padding: 1.25rem;" onsubmit="return confirm('Rechnung stornieren? Es wird eine Stornorechnung erstellt.');"><?= csrfField() ?><input type="hidden" name="action" value="stornieren"><input type="hidden" name="id" value="<?= $r['id'] ?>">
+            <form method="POST" class="table-card" style="margin-top: 1.5rem; padding: 1.25rem;" onsubmit="<?= bestaetigen('Rechnung ' . $r['nummer'] . ' an ' . $r['empf_name'] . ' wirklich stornieren? Es wird eine Stornorechnung erstellt – die Rechnung selbst bleibt unverändert erhalten.') ?>"><?= csrfField() ?><input type="hidden" name="action" value="stornieren"><input type="hidden" name="id" value="<?= $r['id'] ?>">
                 <h2 class="table-card-title" style="margin-bottom: 0.75rem;">Stornieren</h2>
                 <div class="form-group"><label class="form-label">Grund</label><input class="form-control" name="grund" maxlength="200" required placeholder="z.B. falscher Betrag, Kursabsage"></div>
                 <button class="btn btn-ghost-light btn-sm">Stornorechnung erstellen</button>

@@ -7,6 +7,8 @@ define('ROOT_PATH', dirname(dirname(__DIR__)));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/config/database.php';
 require_once ROOT_PATH . '/includes/auth.php';
+require_once ROOT_PATH . '/includes/kommunikation.php';
+require_once ROOT_PATH . '/includes/plattform.php';
 
 requireAdmin();
 
@@ -56,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
                 'INSERT INTO users (organization_id, vorname, nachname, email, passwort_hash, rolle, email_verified, reset_token, reset_token_exp)
                  VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)'
             );
-            $stmt->execute([$org_id, $vorname, $nachname, $email, $placeholder_hash, $rolle, $token, $exp]);
+            $stmt->execute([$org_id, $vorname, $nachname, $email, $placeholder_hash, $rolle, tokenHash($token), $exp]);
             $new_user_id = (int)$db->lastInsertId();
 
             if ($rolle === 'mitglied') {
@@ -81,9 +83,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
                      . "Lege dein Passwort über folgenden Link fest (gültig für 7 Tage):\n"
                      . $invite_link . "\n\n"
                      . "Sportliche Grüße,\nDas Athletikclub-Steiermark-Team";
-            @mail($email, $subject, $message, 'From: ' . MAIL_FROM_NAME . ' <' . MAIL_FROM . '>');
+            mailSenden(getDB(), $email, $subject, $message, null, 'konto_einladung');
 
             logActivity('nutzer_angelegt', "Neuer {$rolle}: {$email}");
+            auditLog('erstellt', 'users', $new_user_id, null, ['rolle' => $rolle, 'email' => $email], 'Konto angelegt');
         } catch (Exception $e) {
             $errors['general'] = 'Nutzer konnte nicht angelegt werden. Bitte versuche es später erneut.';
         }
@@ -97,9 +100,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'toggl
     requireCsrf();
     $toggle_id = (int)($_POST['user_id'] ?? 0);
     if ($toggle_id && $toggle_id !== getCurrentUserId()) {
-        $db->prepare('UPDATE users SET aktiv = NOT aktiv WHERE id = ? AND organization_id = ?')
-           ->execute([$toggle_id, currentOrgId()]);
-        logActivity('nutzer_status_geaendert', "User-ID: {$toggle_id}");
+        $stmt = $db->prepare('SELECT id, vorname, nachname, aktiv FROM users WHERE id = ? AND organization_id = ?');
+        $stmt->execute([$toggle_id, currentOrgId()]);
+        if ($ziel = $stmt->fetch()) {
+            $db->prepare('UPDATE users SET aktiv = ? WHERE id = ?')->execute([(int)$ziel['aktiv'] ? 0 : 1, $toggle_id]);
+            logActivity('nutzer_status_geaendert', "User-ID: {$toggle_id}");
+            auditLog('status', 'users', $toggle_id, ['aktiv' => (int)$ziel['aktiv']], ['aktiv' => (int)$ziel['aktiv'] ? 0 : 1],
+                     ((int)$ziel['aktiv'] ? 'Konto deaktiviert: ' : 'Konto aktiviert: ') . $ziel['vorname'] . ' ' . $ziel['nachname']);
+            flashMessage('success', $ziel['vorname'] . ' ' . $ziel['nachname'] . ((int)$ziel['aktiv'] ? ' wurde deaktiviert.' : ' wurde aktiviert.'));
+        }
+    }
+    redirect(APP_URL . '/dashboard/admin/nutzerverwaltung.php');
+}
+
+// ----------------------------------------------------------------
+// Grundrolle ändern (Mitglied / Trainer / Admin) – steuert den Zugang zu Trainer- und Adminbereichen
+// ----------------------------------------------------------------
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'rolle_aendern') {
+    requireCsrf();
+    $ziel_id = (int)($_POST['user_id'] ?? 0);
+    $neu = $_POST['rolle'] ?? '';
+    $stmt = $db->prepare('SELECT id, vorname, nachname, rolle FROM users WHERE id = ? AND organization_id = ?');
+    $stmt->execute([$ziel_id, currentOrgId()]);
+    $ziel = $stmt->fetch();
+    if (!$ziel || !in_array($neu, ['mitglied', 'trainer', 'admin'], true)) {
+        flashMessage('error', 'Ungültige Auswahl.');
+    } elseif ($ziel_id === getCurrentUserId()) {
+        flashMessage('error', 'Die eigene Rolle kann nicht geändert werden – so bleibt immer mindestens ein Admin erhalten.');
+    } elseif ($neu !== $ziel['rolle']) {
+        $db->beginTransaction();
+        $db->prepare('UPDATE users SET rolle = ? WHERE id = ?')->execute([$neu, $ziel_id]);
+        // Basis-RBAC-Rolle mitziehen, sonst behält z.B. ein herabgestufter Admin seine Rechte über ORGANIZATION_ADMIN
+        $basis = ['admin' => 'ORGANIZATION_ADMIN', 'trainer' => 'TRAINER', 'mitglied' => 'CUSTOMER'];
+        $db->prepare('DELETE FROM user_roles WHERE user_id = ? AND organization_id = ? AND role_id IN (SELECT id FROM roles WHERE code IN (?, ?, ?))')
+           ->execute([$ziel_id, currentOrgId(), ...array_values($basis)]);
+        $db->prepare('INSERT INTO user_roles (user_id, role_id, organization_id) SELECT ?, id, ? FROM roles WHERE code = ?')->execute([$ziel_id, currentOrgId(), $basis[$neu]]);
+        $db->commit();
+        auditLog('geaendert', 'users', $ziel_id, ['rolle' => $ziel['rolle']], ['rolle' => $neu], 'Grundrolle von ' . $ziel['vorname'] . ' ' . $ziel['nachname']);
+        benachrichtigen($ziel_id, 'system', 'Deine Rolle wurde geändert: ' . ucfirst($neu), null, '/dashboard/index.php');
+        flashMessage('success', 'Rolle von ' . $ziel['vorname'] . ' ' . $ziel['nachname'] . ' ist jetzt „' . ucfirst($neu) . '“ (wirkt spätestens nach einer Minute).');
     }
     redirect(APP_URL . '/dashboard/admin/nutzerverwaltung.php');
 }
@@ -205,7 +244,19 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
                 <tr>
                     <td class="text-primary"><?= e($u['vorname'] . ' ' . $u['nachname']) ?></td>
                     <td><?= e($u['email']) ?></td>
-                    <td><span class="role-badge role-<?= e($u['rolle']) ?>"><?= ucfirst(e($u['rolle'])) ?></span></td>
+                    <td>
+                        <?php if ((int)$u['id'] === getCurrentUserId()): ?>
+                            <span class="role-badge role-<?= e($u['rolle']) ?>"><?= ucfirst(e($u['rolle'])) ?></span>
+                        <?php else: ?>
+                        <form method="POST" style="display: flex; gap: 0.35rem; align-items: center;" onsubmit="<?= bestaetigen('Grundrolle von ' . $u['vorname'] . ' ' . $u['nachname'] . ' wirklich ändern?') ?>">
+                            <?= csrfField() ?><input type="hidden" name="action" value="rolle_aendern"><input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
+                            <label class="sr-only" for="rolle-<?= (int)$u['id'] ?>">Rolle von <?= e($u['vorname'] . ' ' . $u['nachname']) ?></label>
+                            <select class="form-control" id="rolle-<?= (int)$u['id'] ?>" name="rolle" style="padding: 0.3rem 0.5rem; min-width: 110px;" onchange="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()">
+                                <?php foreach (['mitglied' => 'Mitglied', 'trainer' => 'Trainer', 'admin' => 'Admin'] as $rk => $rl): ?><option value="<?= $rk ?>" <?= $u['rolle'] === $rk ? 'selected' : '' ?>><?= $rl ?></option><?php endforeach; ?>
+                            </select>
+                        </form>
+                        <?php endif; ?>
+                    </td>
                     <td>
                         <?php if (!$u['aktiv']): ?>
                             <span class="badge badge-danger">Inaktiv</span>
@@ -218,7 +269,7 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
                     <td><?= date('d.m.Y', strtotime($u['created_at'])) ?></td>
                     <td>
                         <?php if ((int)$u['id'] !== getCurrentUserId()): ?>
-                        <form method="POST" action="" style="display:inline;">
+                        <form method="POST" action="" style="display:inline;"<?= $u['aktiv'] ? ' onsubmit="' . bestaetigen($u['vorname'] . ' ' . $u['nachname'] . ' wirklich deaktivieren? Die Person kann sich danach nicht mehr anmelden; alle Daten bleiben erhalten.') . '"' : '' ?>>
                             <?= csrfField() ?>
                             <input type="hidden" name="action" value="toggle_aktiv">
                             <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">

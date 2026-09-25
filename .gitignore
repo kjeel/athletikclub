@@ -41,3 +41,6 @@ node_modules/
 
 # Composer-Abhängigkeiten (werden direkt auf dem Server installiert)
 vendor/
+
+# Server-Fehlerprotokoll
+logs/

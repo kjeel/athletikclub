@@ -44,8 +44,14 @@ function checkinErfassen(PDO $db, array $anmeldung, array $einheit): array
     if ($vorher && $vorher['status'] === 'anwesend') return ['neu' => false, 'zeit' => date('H:i', strtotime($vorher['erfasst_am']))];
     $kind = (int)$anmeldung['kind_id'] > 0;
     $db->prepare('DELETE FROM anwesenheiten WHERE einheit_id = ? AND teilnehmer_key = ?')->execute([$einheit['id'], $key]);
-    $db->prepare("INSERT INTO anwesenheiten (einheit_id, teilnehmer_key, user_id, kind_id, status, erfasst_von, erfasst_am) VALUES (?, ?, ?, ?, 'anwesend', ?, ?)")
-       ->execute([$einheit['id'], $key, $kind ? null : (int)$anmeldung['user_id'], $kind ? (int)$anmeldung['kind_id'] : null, getCurrentUserId(), date('Y-m-d H:i:s')]);
+    try {
+        $db->prepare("INSERT INTO anwesenheiten (einheit_id, teilnehmer_key, user_id, kind_id, status, erfasst_von, erfasst_am) VALUES (?, ?, ?, ?, 'anwesend', ?, ?)")
+           ->execute([$einheit['id'], $key, $kind ? null : (int)$anmeldung['user_id'], $kind ? (int)$anmeldung['kind_id'] : null, getCurrentUserId(), date('Y-m-d H:i:s')]);
+    } catch (PDOException $e) {
+        // Gleichzeitiger zweiter Scan derselben Person: der andere Scan hat bereits eingecheckt
+        if ((string)$e->getCode() === '23000') return ['neu' => false, 'zeit' => date('H:i')];
+        throw $e;
+    }
     $db->prepare('UPDATE kurs_anmeldungen SET eingecheckt_am = ? WHERE id = ?')->execute([date('Y-m-d H:i:s'), $anmeldung['id']]);
     auditLog('erstellt', 'anwesenheiten', (int)$einheit['id'], null, ['teilnehmer' => $key, 'status' => 'anwesend', 'quelle' => 'Check-in']);
     return ['neu' => true, 'zeit' => date('H:i')];

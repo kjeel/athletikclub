@@ -367,7 +367,7 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
 </form>
 
 <?php if ($einheit && $einheit['status'] === 'geplant'): ?>
-<form method="POST" class="table-card" style="margin-top: 1.25rem;" onsubmit="return confirm('Wirklich ausführen?')">
+<form method="POST" class="table-card" style="margin-top: 1.25rem;" onsubmit="<?= bestaetigen('Einheit „' . $einheit['titel'] . '“ am ' . date('d.m.Y', strtotime($einheit['start'])) . ' wirklich absagen bzw. entfernen? Eingeteilte Trainer:innen werden benachrichtigt.') ?>">
     <?= csrfField() ?>
     <div class="table-card-header"><h2 class="table-card-title">Absagen oder löschen</h2></div>
     <div style="padding: 1.25rem; display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">

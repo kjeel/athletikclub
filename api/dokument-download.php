@@ -17,8 +17,8 @@ if (!$id) {
 }
 
 $db = getDB();
-$stmt = $db->prepare('SELECT * FROM dokumente WHERE id = ?');
-$stmt->execute([$id]);
+$stmt = $db->prepare('SELECT * FROM dokumente WHERE id = ? AND organization_id = ?');
+$stmt->execute([$id, currentOrgId()]);
 $dok = $stmt->fetch();
 
 if (!$dok) {
@@ -77,13 +77,19 @@ if (!empty($dok['qualifikation_id'])) {
 }
 
 if (!$allowed) {
+    securityLog('download_verweigert', 'Dok-ID ' . $id);
     http_response_code(403);
     die('Kein Zugriff.');
 }
 
-$file = UPLOAD_PATH . '/' . $dok['datei_pfad'];
+// Pfad muss im Upload-Verzeichnis liegen (Schutz vor manipulierten Pfaden)
+$basis = realpath(UPLOAD_PATH);
+$file = realpath(UPLOAD_PATH . '/' . $dok['datei_pfad']);
+if (!$file || !$basis || strpos($file, $basis . DIRECTORY_SEPARATOR) !== 0) {
+    $file = false;
+}
 
-if (!file_exists($file)) {
+if (!$file || !is_file($file)) {
     http_response_code(404);
     die('Datei nicht gefunden.');
 }
@@ -92,14 +98,17 @@ if (!file_exists($file)) {
 $db->prepare('UPDATE dokumente SET downloads = downloads + 1 WHERE id = ?')->execute([$id]);
 logActivity('dokument_download', "Dok-ID: {$id}, Datei: {$dok['datei_name']}");
 
-// Sicherer Download
-$filename = $dok['datei_name'];
-header('Content-Type: application/pdf');
-header('Content-Disposition: attachment; filename="' . addslashes($filename) . '"');
+// Sicherer Download: Typ nur aus Positivliste, Dateiname ohne Steuerzeichen/Anführungszeichen
+$typen = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+$typ = in_array($dok['mime_type'] ?? '', $typen, true) ? $dok['mime_type'] : 'application/octet-stream';
+$filename = trim(preg_replace('/[\x00-\x1F\x7F"\\\\\/]+/', '_', (string)$dok['datei_name'])) ?: 'dokument';
+$ascii = preg_replace('/[^A-Za-z0-9._-]+/', '_', iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $filename) ?: 'dokument');
+header('Content-Type: ' . $typ);
+header('X-Content-Type-Options: nosniff');
+header('Content-Disposition: attachment; filename="' . $ascii . '"; filename*=UTF-8\'\'' . rawurlencode($filename));
 header('Content-Length: ' . filesize($file));
 header('Cache-Control: private, max-age=0, must-revalidate');
 header('Pragma: public');
-ob_clean();
-flush();
+if (ob_get_level()) ob_end_clean();
 readfile($file);
 exit;

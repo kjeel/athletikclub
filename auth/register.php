@@ -6,6 +6,7 @@ define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/config/database.php';
 require_once ROOT_PATH . '/includes/auth.php';
+require_once ROOT_PATH . '/includes/kommunikation.php';
 
 // Bereits eingeloggt → Dashboard
 if (isLoggedIn()) {
@@ -71,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'INSERT INTO users (organization_id, vorname, nachname, email, passwort_hash, rolle, email_verified, verify_token)
                  VALUES (1, ?, ?, ?, ?, ?, 0, ?)'
             );
-            $stmt->execute([$vorname, $nachname, $email, $password_hash, 'mitglied', $verify_token]);
+            $stmt->execute([$vorname, $nachname, $email, $password_hash, 'mitglied', tokenHash($verify_token)]);
             $user_id = (int)$db->lastInsertId();
 
             // Mitglieder-Profil automatisch anlegen; Login erst nach Freigabe durch Admin
@@ -96,19 +97,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         . "Du bekommst eine E-Mail, sobald du dich anmelden kannst.\n\n"
                         . "Sportliche Grüße,\nDas Athletikclub-Steiermark-Team";
             $headers = 'From: ' . MAIL_FROM_NAME . ' <' . MAIL_FROM . '>';
-            @mail($email, $subject, $message, $headers);
+            mailSenden(getDB(), $email, $subject, $message, null, 'registrierung');
 
             // Admin über neue Registrierung informieren, damit sie freigegeben werden kann
-            @mail(
-                MAIL_ADMIN,
-                'Neue Registrierung wartet auf Freigabe: ' . preg_replace('/[\r\n]+/', ' ', "{$vorname} {$nachname}"),
-                "Neue Registrierung auf " . APP_URL . ":\n\n"
+            mailSenden(getDB(), (verein()['email'] ?: MAIL_ADMIN), 'Neue Registrierung wartet auf Freigabe: ' . preg_replace('/[\r\n]+/', ' ', "{$vorname} {$nachname}"), "Neue Registrierung auf " . APP_URL . ":\n\n"
                 . "Name:   {$vorname} {$nachname}\n"
                 . "E-Mail: {$email}\n\n"
                 . "Freigeben in der Mitgliederverwaltung:\n"
-                . APP_URL . "/dashboard/mitglieder.php?status=ausstehend\n",
-                $headers
-            );
+                . APP_URL . "/dashboard/mitglieder.php?status=ausstehend\n", null, 'registrierung');
 
             logActivity('registrierung', "Neues Mitglied: {$email}");
 

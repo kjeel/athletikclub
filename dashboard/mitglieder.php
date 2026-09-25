@@ -6,6 +6,7 @@ define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/config/database.php';
 require_once ROOT_PATH . '/includes/auth.php';
+require_once ROOT_PATH . '/includes/kommunikation.php';
 
 requireTrainer();
 
@@ -46,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
                 'INSERT INTO users (organization_id, vorname, nachname, email, passwort_hash, rolle, email_verified, reset_token, reset_token_exp)
                  VALUES (?, ?, ?, ?, ?, \'mitglied\', 0, ?, ?)'
             );
-            $stmt->execute([$org_id, $vorname, $nachname, $email, $placeholder_hash, $token, $exp]);
+            $stmt->execute([$org_id, $vorname, $nachname, $email, $placeholder_hash, tokenHash($token), $exp]);
             $new_user_id = (int)$db->lastInsertId();
 
             $db->prepare('INSERT INTO mitglieder_profile (organization_id, user_id, mitglied_seit, mitgliedsstatus) VALUES (?, ?, NOW(), \'aktiv\')')
@@ -65,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
                      . "Lege dein Passwort über folgenden Link fest (gültig für 7 Tage):\n"
                      . $invite_link . "\n\n"
                      . "Sportliche Grüße,\nDas Athletikclub-Steiermark-Team";
-            @mail($email, $subject, $message, 'From: ' . MAIL_FROM_NAME . ' <' . MAIL_FROM . '>');
+            mailSenden(getDB(), $email, $subject, $message, null, 'konto');
 
             logActivity('mitglied_angelegt', "Von Trainer/Admin, neues Mitglied: {$email}");
         } catch (Exception $e) {
@@ -116,15 +117,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'freig
         $db->prepare("UPDATE mitglieder_profile SET mitgliedsstatus = 'aktiv' WHERE user_id = ?")
            ->execute([$mitglied_user_id]);
 
-        @mail(
-            $freizugeben['email'],
-            'Dein Konto ist freigeschaltet: ' . APP_NAME,
-            "Hallo {$freizugeben['vorname']},\n\n"
+        mailSenden(getDB(), $freizugeben['email'], 'Dein Konto ist freigeschaltet: ' . APP_NAME, "Hallo {$freizugeben['vorname']},\n\n"
             . "dein Konto beim Athletikclub Steiermark wurde freigeschaltet. Du kannst dich jetzt anmelden:\n"
             . APP_URL . "/auth/login.php\n\n"
-            . "Sportliche Grüße,\nDas Athletikclub-Steiermark-Team",
-            'From: ' . MAIL_FROM_NAME . ' <' . MAIL_FROM . '>'
-        );
+            . "Sportliche Grüße,\nDas Athletikclub-Steiermark-Team", null, 'konto');
 
         logActivity('mitglied_freigegeben', "User-ID: {$mitglied_user_id}");
         flashMessage('success', $freizugeben['vorname'] . ' wurde freigegeben und per E-Mail informiert.');

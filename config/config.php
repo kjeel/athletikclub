@@ -92,9 +92,36 @@ if (APP_ENV === 'development') {
     ini_set('display_startup_errors', 1);
     error_reporting(E_ALL);
 } else {
+    // Produktion: nichts anzeigen, aber alles protokollieren (logs/ ist per .htaccess gesperrt)
     ini_set('display_errors', 0);
-    error_reporting(0);
+    ini_set('display_startup_errors', 0);
+    ini_set('log_errors', 1);
+    error_reporting(E_ALL & ~E_DEPRECATED);
+    $_logdir = dirname(__DIR__) . '/logs';
+    if (!is_dir($_logdir)) @mkdir($_logdir, 0750, true);
+    if (is_dir($_logdir) && is_writable($_logdir)) {
+        if (!is_file($_logdir . '/.htaccess')) @file_put_contents($_logdir . '/.htaccess', "Require all denied\nDeny from all\n");
+        ini_set('error_log', $_logdir . '/php-error.log');
+    }
+    unset($_logdir);
 }
+
+/**
+ * Nicht abgefangene Fehler: technische Details nur ins Log, Benutzer sehen eine neutrale Meldung
+ * (keine SQLSTATE-Texte, Pfade oder Stacktraces im Browser).
+ */
+set_exception_handler(function (Throwable $e): void {
+    error_log('[ERROR] ' . get_class($e) . ': ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine()
+              . ' | ' . ($_SERVER['REQUEST_METHOD'] ?? 'CLI') . ' ' . ($_SERVER['REQUEST_URI'] ?? ''));
+    if (PHP_SAPI === 'cli') { fwrite(STDERR, "Fehler: " . $e->getMessage() . "\n"); exit(1); }
+    if (APP_ENV === 'development') { echo '<pre>' . htmlspecialchars((string)$e) . '</pre>'; return; }
+    if (!headers_sent()) { http_response_code(500); header('Content-Type: text/html; charset=utf-8'); }
+    echo '<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Fehler</title></head>'
+       . '<body style="font-family: system-ui, sans-serif; background: #F4F6F9; color: #1F3556; display: flex; min-height: 100vh; align-items: center; justify-content: center; margin: 0; padding: 1rem;">'
+       . '<div style="max-width: 440px; background: #fff; border-radius: 14px; padding: 2rem; box-shadow: 0 10px 30px rgba(0,0,0,.08); text-align: center;">'
+       . '<h1 style="font-size: 1.25rem;">Es ist ein Fehler aufgetreten.</h1><p style="color: #555;">Bitte versuche es in ein paar Minuten erneut. Der Fehler wurde protokolliert.</p>'
+       . '<p><a href="/" style="color: #C6A135; font-weight: 600;">Zur Startseite</a></p></div></body></html>';
+});
 
 // ----------------------------------------------------------------
 // Zeitzone

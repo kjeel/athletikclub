@@ -6,12 +6,14 @@ define('ROOT_PATH', dirname(__DIR__));
 $page_title       = 'Kontakt';
 $meta_description = 'Kontaktiere den Athletikclub Steiermark, wir sind für dich da.';
 require_once ROOT_PATH . '/includes/header.php';
+require_once ROOT_PATH . '/includes/kommunikation.php';
 
 $success = false;
 $errors  = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireCsrf();
+    $spam = formularSpamPruefen('kontakt_formular');
 
     $name      = trim($_POST['name'] ?? '');
     $email     = trim($_POST['email'] ?? '');
@@ -22,7 +24,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors['email'] = 'Bitte gib eine gültige E-Mail-Adresse ein.';
     if (empty($nachricht) || mb_strlen($nachricht) < 10) $errors['nachricht'] = 'Bitte schreibe mindestens 10 Zeichen.';
 
-    if (empty($errors)) {
+    if ($spam === 'limit') $errors['general'] = 'Zu viele Anfragen in kurzer Zeit. Bitte versuche es in einer Stunde erneut oder schreib uns direkt per E-Mail.';
+    if ($spam === 'honeypot') {
+        $success = true;
+    } elseif (empty($errors)) {
         try {
             $db = getDB();
             $db->prepare('INSERT INTO kontakt_anfragen (organization_id, name, email, betreff, nachricht) VALUES (?, ?, ?, ?, ?)')
@@ -30,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $mail_body  = "Neue Kontaktanfrage über die Website:\n\n";
             $mail_body .= "Name: {$name}\nE-Mail: {$email}\nBetreff: {$betreff}\n\nNachricht:\n{$nachricht}";
-            @mail(MAIL_ADMIN, "Neue Kontaktanfrage: {$betreff}", $mail_body, 'From: ' . MAIL_FROM);
+            mailSenden(getDB(), (verein()['email'] ?: MAIL_ADMIN), "Neue Kontaktanfrage: {$betreff}", $mail_body, null, 'kontakt', $email);
             $success = true;
         } catch (Exception $e) {
             $errors['general'] = 'Fehler beim Senden. Bitte versuche es später erneut.';
@@ -120,6 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     <form method="POST" action="" data-validate novalidate>
                         <?= csrfField() ?>
+                        <?= formularHoneypot() ?>
 
                         <div class="form-row">
                             <div class="form-group">

@@ -11,6 +11,7 @@ require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/config/database.php';
 require_once ROOT_PATH . '/includes/auth.php';
 require_once ROOT_PATH . '/includes/leistung.php';
+require_once ROOT_PATH . '/includes/plattform.php';
 
 requireTrainer();
 
@@ -48,7 +49,8 @@ if (isset($_GET['download'])) {
     foreach (['von' => '>=', 'bis' => '<='] as $feld => $op) {
         if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET[$feld] ?? '')) { $where .= " AND s.datum {$op} ?"; $params[] = $_GET[$feld]; }
     }
-    if (!empty($_GET['meine'])) { $where .= ' AND s.trainer_id = ?'; $params[] = getCurrentUserId(); }
+    // Personenbezogener Export aller Mitglieder nur mit Recht „export.personen“, sonst nur eigene Testungen
+    if (!empty($_GET['meine']) || !darf('export.personen')) { $where .= ' AND s.trainer_id = ?'; $params[] = getCurrentUserId(); }
 
     $stmt = $db->prepare("SELECT s.id, s.mitglied_id, s.trainer_id, s.datum, m.vorname, m.nachname, mp.geburtsdatum
                           FROM ld_sitzungen s JOIN users m ON m.id = s.mitglied_id LEFT JOIN mitglieder_profile mp ON mp.user_id = m.id
@@ -180,7 +182,7 @@ code.ld-var { font-size: 0.8rem; background: var(--bg-muted); padding: 1px 5px; 
                         <?php endforeach; ?>
                     </div>
                 </div>
-                <label class="ld-option"><input type="checkbox" name="meine" value="1"> <span>Nur meine Testungen</span></label>
+                <?php if (darf('export.personen')): ?><label class="ld-option"><input type="checkbox" name="meine" value="1"> <span>Nur meine Testungen</span></label><?php else: ?><span class="ld-option" style="color: var(--text-muted);">Export umfasst deine eigenen Testungen.</span><?php endif; ?>
                 <label class="ld-option"><input type="checkbox" name="klarnamen" value="1"> <span>Mit Vor- und Nachnamen exportieren <span style="color: var(--text-muted); font-size: 0.78rem;">(Standard: pseudonymisiert mit fester ID, z.B. P0012)</span></span></label>
                 <button type="submit" class="btn btn-navy" style="margin-top: 1rem;">CSV herunterladen</button>
             </form>

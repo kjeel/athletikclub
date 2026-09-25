@@ -25,7 +25,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $kategorie = $_POST['kategorie'] ?? 'kraft';
         $video     = trim($_POST['video_url'] ?? '');
         if ($name === '') $errors['name'] = 'Bitte einen Namen angeben.';
-        if ($video !== '' && !filter_var($video, FILTER_VALIDATE_URL)) $errors['video_url'] = 'Die Video-Adresse ist ungültig.';
+        // Nur http(s): FILTER_VALIDATE_URL allein akzeptiert auch „javascript://…“-Links
+        if ($video !== '' && (!preg_match('#^https?://#i', $video) || !filter_var($video, FILTER_VALIDATE_URL))) $errors['video_url'] = 'Bitte eine Video-Adresse mit https:// angeben.';
         $stmt = $db->prepare('SELECT id FROM uebungen WHERE organization_id = ? AND name = ? AND id <> ?');
         $stmt->execute([$org_id, $name, $id]);
         if ($stmt->fetch()) $errors['name'] = 'Eine Übung mit diesem Namen gibt es bereits.';
@@ -48,7 +49,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'loeschen') {
         // Bestehende Pläne behalten den Übungsnamen (Verweis wird nur gelöst)
-        $db->prepare('DELETE FROM uebungen WHERE id = ? AND organization_id = ?')->execute([(int)($_POST['id'] ?? 0), $org_id]);
+        // Löschen wie in der Oberfläche: nur eigene Übungen, Admin alle
+        $stmt = $db->prepare('DELETE FROM uebungen WHERE id = ? AND organization_id = ?' . (isAdmin() ? '' : ' AND erstellt_von = ?'));
+        $stmt->execute(isAdmin() ? [(int)($_POST['id'] ?? 0), $org_id] : [(int)($_POST['id'] ?? 0), $org_id, (int)getCurrentUserId()]);
+        if (!$stmt->rowCount()) { flashMessage('error', 'Diese Übung kannst du nicht löschen.'); redirect(APP_URL . '/dashboard/uebungen.php'); }
         flashMessage('success', 'Übung gelöscht. In bestehenden Plänen bleibt sie mit Namen erhalten.');
         redirect(APP_URL . '/dashboard/uebungen.php');
     }
@@ -112,7 +116,7 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
                 <?php foreach ($uebungen as $u): ?>
                 <tr>
                     <td>
-                        <div class="text-primary"><?= e($u['name']) ?><?php if ($u['video_url']): ?> <a href="<?= e($u['video_url']) ?>" target="_blank" rel="noopener" style="font-size: 0.75rem;">▶ Video</a><?php endif; ?></div>
+                        <div class="text-primary"><?= e($u['name']) ?><?php if (preg_match('#^https?://#i', (string)$u['video_url'])): ?> <a href="<?= e($u['video_url']) ?>" target="_blank" rel="noopener" style="font-size: 0.75rem;">▶ Video</a><?php endif; ?></div>
                         <?php if ($u['beschreibung']): ?><div style="font-size: 0.75rem; color: var(--text-muted); max-width: 420px;"><?= e($u['beschreibung']) ?></div><?php endif; ?>
                     </td>
                     <td><span class="badge badge-gray"><?= e(UEBUNG_KATEGORIEN[$u['kategorie']] ?? '') ?></span></td>

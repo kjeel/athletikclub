@@ -139,7 +139,7 @@ function onboardingKontoAnlegen(PDO $db, array $o): array
     } else {
         $token = bin2hex(random_bytes(32));
         $db->prepare("INSERT INTO users (organization_id, vorname, nachname, email, passwort_hash, rolle, email_verified, reset_token, reset_token_exp) VALUES (?, ?, ?, ?, ?, 'trainer', 0, ?, ?)")
-           ->execute([currentOrgId(), $o['vorname'], $o['nachname'], strtolower($o['email']), password_hash(bin2hex(random_bytes(16)), PASSWORD_BCRYPT), $token, date('Y-m-d H:i:s', strtotime('+7 days'))]);
+           ->execute([currentOrgId(), $o['vorname'], $o['nachname'], strtolower($o['email']), password_hash(bin2hex(random_bytes(16)), PASSWORD_BCRYPT), tokenHash($token), date('Y-m-d H:i:s', strtotime('+7 days'))]);
         $uid = (int)$db->lastInsertId();
         $link = APP_URL . '/auth/passwort-reset.php?token=' . $token;
     }

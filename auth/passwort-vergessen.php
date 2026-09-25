@@ -6,6 +6,7 @@ define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/config/database.php';
 require_once ROOT_PATH . '/includes/auth.php';
+require_once ROOT_PATH . '/includes/kommunikation.php';
 
 if (isLoggedIn()) redirect(APP_URL . '/dashboard/index.php');
 
@@ -41,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $token = generateToken(32);
                 $exp   = date('Y-m-d H:i:s', strtotime('+2 hours'));
                 $db->prepare('UPDATE users SET reset_token = ?, reset_token_exp = ? WHERE id = ?')
-                   ->execute([$token, $exp, $user['id']]);
+                   ->execute([tokenHash($token), $exp, $user['id']]);
 
                 $reset_url = APP_URL . '/auth/passwort-reset.php?token=' . $token;
                 $subject   = 'Passwort zurücksetzen bei ' . APP_NAME;
@@ -50,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                            . $reset_url . "\n\n"
                            . "Falls du dies nicht angefordert hast, ignoriere diese E-Mail.\n\n"
                            . "Sportliche Grüße,\nDas Athletikclub-Steiermark-Team";
-                @mail($email, $subject, $message, 'From: ' . MAIL_FROM_NAME . ' <' . MAIL_FROM . '>');
+                mailSenden(getDB(), $email, $subject, $message, null, 'passwort_reset');
             }
 
             // Immer success anzeigen (verhindert E-Mail-Enumeration)

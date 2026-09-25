@@ -498,7 +498,7 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
                         <td>
                             <div class="text-primary">
                                 <?= e($u['uebung_name']) ?>
-                                <?php if ($u['video_url']): ?> <a href="<?= e($u['video_url']) ?>" target="_blank" rel="noopener" style="font-size: 0.75rem;">▶ Video</a><?php endif; ?>
+                                <?php if (preg_match('#^https?://#i', (string)$u['video_url'])): ?> <a href="<?= e($u['video_url']) ?>" target="_blank" rel="noopener" style="font-size: 0.75rem;">▶ Video</a><?php endif; ?>
                             </div>
                             <?php if ($u['notiz']): ?><div style="font-size: 0.75rem;"><?= e($u['notiz']) ?></div><?php endif; ?>
                             <?php if ($u['beschreibung']): ?><details style="font-size: 0.75rem; color: var(--text-muted);"><summary>Ausführung</summary><?= e($u['beschreibung']) ?></details><?php endif; ?>

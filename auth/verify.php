@@ -14,8 +14,8 @@ $msg    = 'Ungültiger oder abgelaufener Bestätigungslink.';
 if (!empty($token) && mb_strlen($token) === 64) {
     try {
         $db   = getDB();
-        $stmt = $db->prepare('SELECT id, vorname, email_verified FROM users WHERE verify_token = ? LIMIT 1');
-        $stmt->execute([$token]);
+        $stmt = $db->prepare('SELECT id, vorname, email_verified FROM users WHERE (verify_token = ? OR verify_token = ?) LIMIT 1');
+        $stmt->execute([tokenHash($token), $token]);
         $user = $stmt->fetch();
 
         if ($user) {

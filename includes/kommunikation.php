@@ -56,7 +56,7 @@ function mailKonfiguriert(): bool
  * E-Mail (Klartext, UTF-8) senden und protokollieren. Kopfzeilen werden gegen
  * Header-Injection bereinigt. Liefert true bei Übergabe an den Mailserver.
  */
-function mailSenden(PDO $db, string $email, string $betreff, string $text, ?int $user_id = null, ?string $bezug = null): bool
+function mailSenden(PDO $db, string $email, string $betreff, string $text, ?int $user_id = null, ?string $bezug = null, ?string $antwort_an = null): bool
 {
     $email = trim($email);
     $betreff = trim(preg_replace('/[\r\n]+/', ' ', $betreff));
@@ -73,7 +73,7 @@ function mailSenden(PDO $db, string $email, string $betreff, string $text, ?int 
         $absender = einstellung('mail_absender', MAIL_FROM);
         $name = preg_replace('/[\r\n"<>]+/', '', einstellung('mail_absender_name', MAIL_FROM_NAME));
         $kopf = 'From: ' . mb_encode_mimeheader($name, 'UTF-8') . ' <' . $absender . ">\r\n"
-              . 'Reply-To: ' . (verein()['email'] ?: $absender) . "\r\n"
+              . 'Reply-To: ' . ($antwort_an && filter_var($antwort_an, FILTER_VALIDATE_EMAIL) ? $antwort_an : (verein()['email'] ?: $absender)) . "\r\n"
               . "MIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit";
         $ok = @mail($email, mb_encode_mimeheader($betreff, 'UTF-8'), str_replace("\n", "\r\n", str_replace("\r\n", "\n", $text)), $kopf);
         if (!$ok) {

@@ -73,6 +73,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'abmelden') {
         $meine = meineKursAnmeldungen($db, $kurs_id, (int)$user['id']);
         $a = $meine[$kind_id] ?? null;
+        // Gleiche Stornofrist wie im öffentlichen Buchungsportal (Kursleitung/Admin darf jederzeit)
+        if ($a && !$ist_eigentuemer && ($grund = kursStornoGesperrt($kurs, $a))) {
+            flashMessage('error', $grund);
+            redirect($zurueck);
+        }
         if ($a && in_array($a['status'], ['angemeldet', 'angefragt', 'warteliste'], true)) {
             kursStornieren($db, $kurs, $a);
             logActivity('kurs_abmeldung', "Kurs-ID: {$kurs_id}" . ($kind_id ? ", Kind-ID: {$kind_id}" : ''));
@@ -340,7 +345,7 @@ $anmeldbar = array_filter($personen, fn($name, $kid) => !isset($meine[$kid]) || 
         </div>
         <div style="padding: 1.25rem;">
             <label class="form-label">Kurs-Status ändern</label>
-            <form method="POST" style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem;">
+            <form method="POST" style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem;" onsubmit="if (this.status.value !== 'abgesagt') return true; <?= bestaetigen('Kurs „' . $kurs['titel'] . '“ wirklich absagen? Alle Angemeldeten und die Warteliste werden per Nachricht informiert.') ?>">
                 <?= csrfField() ?>
                 <input type="hidden" name="action" value="status_aendern">
                 <select name="status" class="form-control" style="flex: 1; min-width: 160px;">

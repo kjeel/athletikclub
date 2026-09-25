@@ -14,7 +14,8 @@ $db = getDB();
 // Kursumsatz pro Trainer
 $stmt = $db->prepare(
     "SELECT u.id, u.vorname, u.nachname,
-            COALESCE(SUM(k.preis), 0) AS kursumsatz,
+            -- nur bezahlte Anmeldungen zählen (LEFT JOIN liefert sonst für Kurse ohne Zahlung den Preis einmal mit)
+            COALESCE(SUM(CASE WHEN ka.id IS NOT NULL THEN k.preis ELSE 0 END), 0) AS kursumsatz,
             COUNT(ka.id) AS bezahlte_anmeldungen
      FROM users u
      LEFT JOIN kurse k ON k.trainer_id = u.id AND k.organization_id = u.organization_id
@@ -37,26 +38,26 @@ $stmt = $db->prepare(
 $stmt->execute([currentOrgId()]);
 $manuell_pro_trainer = [];
 foreach ($stmt->fetchAll() as $row) {
-    $manuell_pro_trainer[$row['trainer_id']] = (float)$row['manuell'];
+    $manuell_pro_trainer[$row['trainer_id']] = moneyRound($row['manuell']);
 }
 
 // Zusammenführen
 $trainer_gesamt = [];
 foreach ($kursumsatz_pro_trainer as $id => $row) {
-    $kurs_summe = (float)$row['kursumsatz'];
-    $manuell    = $manuell_pro_trainer[$id] ?? 0.0;
+    $kurs_summe = moneyRound($row['kursumsatz']);
+    $manuell    = $manuell_pro_trainer[$id] ?? '0.00';
     $trainer_gesamt[] = [
         'id'         => $id,
         'name'       => $row['vorname'] . ' ' . $row['nachname'],
         'kursumsatz' => $kurs_summe,
         'manuell'    => $manuell,
-        'gesamt'     => $kurs_summe + $manuell,
+        'gesamt'     => bcadd($kurs_summe, $manuell, 2),
         'anmeldungen'=> (int)$row['bezahlte_anmeldungen'],
     ];
 }
-usort($trainer_gesamt, fn($a, $b) => $b['gesamt'] <=> $a['gesamt']);
+usort($trainer_gesamt, fn($a, $b) => bccomp($b['gesamt'], $a['gesamt'], 2));
 
-$gesamtumsatz_verein = array_sum(array_column($trainer_gesamt, 'gesamt'));
+$gesamtumsatz_verein = moneySum(array_column($trainer_gesamt, 'gesamt'));
 
 // Fördermittel (eigene Kategorie, ausbezahlte Förderungen)
 $stmt = $db->prepare(
@@ -66,7 +67,8 @@ $stmt = $db->prepare(
 );
 $stmt->execute([currentOrgId()]);
 $foerderungen_ausbezahlt = $stmt->fetchAll();
-$summe_foerdermittel = array_sum(array_column($foerderungen_ausbezahlt, 'betrag_bewilligt'));
+// Tatsächlich ausbezahlter Betrag (Altbestand ohne Auszahlungsbetrag: bewilligter Betrag)
+$summe_foerdermittel = moneySum(array_map(fn($f) => $f['betrag_ausbezahlt'] ?? $f['betrag_bewilligt'] ?? '0', $foerderungen_ausbezahlt));
 
 $page_title = 'Umsatzübersicht';
 $breadcrumb = 'Umsatzübersicht';
@@ -154,7 +156,7 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
                     <tr>
                         <td class="text-primary"><?= e($f['titel']) ?></td>
                         <td><?= e($f['foerderstelle']) ?></td>
-                        <td style="font-weight: 700;"><?= number_format((float)$f['betrag_bewilligt'], 2, ',', '.') ?> €</td>
+                        <td style="font-weight: 700;"><?= number_format((float)($f['betrag_ausbezahlt'] ?? $f['betrag_bewilligt']), 2, ',', '.') ?> €</td>
                         <td><?= $f['ausbezahlt_am'] ? date('d.m.Y', strtotime($f['ausbezahlt_am'])) : '–' ?></td>
                         <td><a href="<?= APP_URL ?>/dashboard/admin/foerderung-detail.php?id=<?= $f['id'] ?>" class="btn btn-ghost-light btn-sm">Details</a></td>
                     </tr>

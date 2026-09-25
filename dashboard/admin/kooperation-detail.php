@@ -183,6 +183,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'delete_kooperation') {
+        $stmt = $db->prepare('SELECT (SELECT COUNT(*) FROM kooperations_perioden WHERE kooperation_id = ?) + (SELECT COUNT(*) FROM dokumente WHERE kooperation_id = ?)');
+        $stmt->execute([$kooperation_id, $kooperation_id]);
+        if ((int)$stmt->fetchColumn() > 0) {
+            flashMessage('error', 'Die Kooperation hat bereits Perioden bzw. Dokumente und wird deshalb nicht gelöscht – bitte stattdessen den Status auf „Beendet“ setzen. So bleiben Abrechnungen und Nachweise erhalten.');
+            redirect(APP_URL . '/dashboard/admin/kooperation-detail.php?id=' . $kooperation_id);
+        }
         $db->prepare('DELETE FROM kooperationen WHERE id = ?')->execute([$kooperation_id]);
         logActivity('kooperation_geloescht', "Kooperation-ID: {$kooperation_id}, Gemeinde: {$kooperation['gemeinde_name']}");
         flashMessage('success', 'Kooperation gelöscht.');
@@ -253,7 +259,7 @@ $s = $status_map[$kooperation['status']] ?? ['label' => $kooperation['status'], 
             <p class="form-hint">Ausdrucken, von Verein, Dachverband und Gemeinde unterschreiben/stempeln lassen, dann als Scan unten im Ordner hochladen.</p>
 
             <div style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--border-light);">
-                <form method="POST" onsubmit="return confirm('Kooperation inkl. aller Perioden und Dokumente wirklich unwiderruflich löschen?')">
+                <form method="POST" onsubmit="return confirm(<?= e(json_encode('Kooperation mit „' . $kooperation['gemeinde_name'] . '“ wirklich endgültig löschen? (Nur möglich, solange noch keine Perioden oder Dokumente angelegt sind.)', JSON_UNESCAPED_UNICODE)) ?>)">
                     <?= csrfField() ?>
                     <input type="hidden" name="action" value="delete_kooperation">
                     <button type="submit" class="btn btn-ghost-light btn-sm w-full" style="color: var(--danger);">Kooperation löschen</button>
