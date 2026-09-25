@@ -73,9 +73,13 @@ function berichtAuswahl(PDO $db, string $param): array
     $liste = [];
     switch ($param) {
         case 'kurs':
-            $stmt = $db->prepare("SELECT id, titel, start_datum, trainer_id, projekt_id FROM kurse WHERE organization_id = ? AND status <> 'abgesagt' ORDER BY start_datum DESC LIMIT 400");
+            // Rechteprüfung direkt in SQL (statt einer Abfrage je Kurs): alle Kurse mit Leserecht, sonst eigene bzw. aus geleiteten Projekten
+            $alle = darfEines('kinder.anzeigen', 'kalender.bearbeiten');
+            $stmt = $db->prepare("SELECT id, titel, start_datum FROM kurse WHERE organization_id = ? AND status <> 'abgesagt'"
+                                 . ($alle ? '' : " AND (trainer_id = $me OR projekt_id IN (SELECT id FROM projekte WHERE leitung_id = $me))")
+                                 . ' ORDER BY start_datum DESC LIMIT 400');
             $stmt->execute([$org]);
-            foreach ($stmt->fetchAll() as $k) if (berichtKursDarf($db, $k)) $liste[$k['id']] = $k['titel'] . ' (' . date('d.m.Y', strtotime($k['start_datum'])) . ')';
+            foreach ($stmt->fetchAll() as $k) $liste[$k['id']] = $k['titel'] . ' (' . date('d.m.Y', strtotime($k['start_datum'])) . ')';
             break;
         case 'event':
             $stmt = $db->prepare("SELECT id, titel, start_datum FROM kurse WHERE organization_id = ? AND art = 'event' ORDER BY start_datum DESC LIMIT 200");

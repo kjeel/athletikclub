@@ -297,6 +297,10 @@ CREATE TABLE IF NOT EXISTS `automation_log` (
 -- ----------------------------------------------------------------
 ALTER TABLE `aktivitaets_log` ADD INDEX IF NOT EXISTS `idx_log_aktion_zeit` (`aktion`, `created_at`);
 ALTER TABLE `einheit_trainer` ADD INDEX IF NOT EXISTS `idx_et_einheit_status` (`einheit_id`, `status`);
+-- Management-Kennzahlen (bezahlte Kursbeiträge je Zeitraum), Trainer-Zähler im Menü und „Heute“, Aufgabenlisten
+ALTER TABLE `kurs_anmeldungen` ADD INDEX IF NOT EXISTS `idx_ka_bezahlt` (`bezahlt`, `bezahlt_am`);
+ALTER TABLE `einheit_trainer` ADD INDEX IF NOT EXISTS `idx_et_user_status` (`user_id`, `status`);
+ALTER TABLE `aufgaben` ADD INDEX IF NOT EXISTS `idx_aufg_verantwortlich` (`verantwortlich_id`, `status`);
 
 -- ----------------------------------------------------------------
 -- 8. Standardwerte: Onboarding-Checkliste, Nachrichtenvorlagen

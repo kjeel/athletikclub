@@ -266,4 +266,13 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
     </form>
 </div>
 
+<!-- Datenschutz: Selbstauskunft -->
+<div class="form-card" style="margin-top: 1.5rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
+    <div>
+        <h2 style="font-family: 'Montserrat', sans-serif; font-size: 1rem; font-weight: 800; text-transform: uppercase; margin-bottom: 0.35rem;">Meine Daten</h2>
+        <p style="font-size: 0.88rem; color: var(--text-secondary); margin: 0;">Alle zu dir gespeicherten Daten ansehen und herunterladen (DSGVO-Auskunft).</p>
+    </div>
+    <a href="<?= APP_URL ?>/dashboard/meine-daten.php" class="btn btn-ghost-light btn-sm">Datenauskunft</a>
+</div>
+
 <?php require_once ROOT_PATH . '/includes/dashboard-footer.php'; ?>

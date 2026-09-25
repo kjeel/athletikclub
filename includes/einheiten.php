@@ -303,6 +303,14 @@ function trainerAbrechnungAktualisieren(PDO $db, int $user_id, int $jahr, int $m
     if ($ta && $ta['status'] !== 'entwurf') return $ta;
 
     $zeilen = array_filter(trainerEinheitenMonat($db, $user_id, $jahr, $monat), fn($z) => $z['abrechnung_id'] === null || ($ta && (int)$z['abrechnung_id'] === (int)$ta['id']));
+    // Nachträge: Einheiten früherer Monate, die erst nach Einreichung jener Monatsabrechnung bestätigt wurden
+    // (je Monat gibt es nur eine Abrechnung) – sie werden in die nächste offene Abrechnung übernommen.
+    $stmt = $db->prepare("SELECT et.* FROM einheit_trainer et JOIN einheiten e ON e.id = et.einheit_id
+                          JOIN trainer_abrechnungen ta ON ta.user_id = et.user_id AND ta.organization_id = e.organization_id AND ta.status <> 'entwurf'
+                           AND ta.jahr = SUBSTR(COALESCE(et.ist_start, e.start), 1, 4) AND ta.monat = SUBSTR(COALESCE(et.ist_start, e.start), 6, 2)
+                          WHERE et.user_id = ? AND e.organization_id = ? AND et.status = 'durchgefuehrt' AND et.abrechnung_id IS NULL AND COALESCE(et.ist_start, e.start) < ?");
+    $stmt->execute([$user_id, currentOrgId(), sprintf('%04d-%02d-01 00:00:00', $jahr, $monat)]);
+    foreach ($stmt->fetchAll() as $n) $zeilen[] = $n;
     if (!$zeilen) {
         if ($ta) $db->prepare('DELETE FROM trainer_abrechnungen WHERE id = ?')->execute([$ta['id']]);
         return null;

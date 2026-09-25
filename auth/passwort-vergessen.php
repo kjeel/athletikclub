@@ -22,9 +22,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         try {
             $db   = getDB();
-            $stmt = $db->prepare('SELECT id FROM users WHERE email = ? AND aktiv = 1 LIMIT 1');
-            $stmt->execute([$email]);
-            $user = $stmt->fetch();
+            // Schutz vor Mail-Flut: höchstens 3 Anforderungen je E-Mail und 10 je IP pro Stunde (Antwort bleibt gleich)
+            $stmt = $db->prepare("SELECT SUM(CASE WHEN details = ? THEN 1 ELSE 0 END) AS je_mail, SUM(CASE WHEN ip_adresse = ? THEN 1 ELSE 0 END) AS je_ip
+                                  FROM aktivitaets_log WHERE aktion = 'passwort_reset_angefordert' AND created_at > ?");
+            $stmt->execute([$email, $_SERVER['REMOTE_ADDR'] ?? '', date('Y-m-d H:i:s', strtotime('-1 hour'))]);
+            $limit = $stmt->fetch();
+            $gedrosselt = (int)($limit['je_mail'] ?? 0) >= 3 || (int)($limit['je_ip'] ?? 0) >= 10;
+            logActivity('passwort_reset_angefordert', $email);
+
+            $user = false;
+            if (!$gedrosselt) {
+                $stmt = $db->prepare('SELECT id FROM users WHERE email = ? AND aktiv = 1 LIMIT 1');
+                $stmt->execute([$email]);
+                $user = $stmt->fetch();
+            }
 
             if ($user) {
                 $token = generateToken(32);
