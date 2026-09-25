@@ -363,7 +363,7 @@ $filter_query = http_build_query(array_filter(['jahr' => $jahr, 'art' => $f_art,
     </table></div>
     <?php endif; ?>
     <?php if ($darf_buchen): ?>
-    <form method="POST" enctype="multipart/form-data" class="fi-inline"><?= csrfField() ?><input type="hidden" name="action" value="buchen">
+    <form method="POST" enctype="multipart/form-data" class="fi-inline" id="buchung-neu"><?= csrfField() ?><input type="hidden" name="action" value="buchen">
         <div class="form-group"><label class="form-label">Datum</label><input class="form-control" type="date" name="datum" value="<?= $jahr == date('Y') ? date('Y-m-d') : "$jahr-12-31" ?>"></div>
         <div class="form-group"><label class="form-label">Art</label><select class="form-control" name="art"><option value="ausgabe">Ausgabe</option><option value="einnahme">Einnahme</option></select></div>
         <div class="form-group" style="flex: 1; min-width: 200px;"><label class="form-label">Beschreibung</label><input class="form-control" name="beschreibung" maxlength="255" required></div>
