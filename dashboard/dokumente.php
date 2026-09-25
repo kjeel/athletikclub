@@ -6,6 +6,7 @@ define('ROOT_PATH', dirname(__DIR__));
 $page_title = 'Dokumente';
 $breadcrumb = 'Dokumente';
 require_once ROOT_PATH . '/includes/dashboard-header.php';
+require_once ROOT_PATH . '/includes/upload.php';
 
 $db   = getDB();
 $user = getCurrentUser();
@@ -40,14 +41,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $errors[] = 'Bitte wähle eine PDF-Datei aus.';
     } elseif ($_FILES['pdf_file']['size'] > MAX_PDF_SIZE) {
         $errors[] = 'Datei zu groß (max. 10 MB).';
-    } elseif (!in_array($_FILES['pdf_file']['type'], ALLOWED_PDF_TYPES, true)) {
-        $errors[] = 'Nur PDF-Dateien sind erlaubt.';
+    } elseif ($pdf_fehler = pdfUploadFehler($_FILES['pdf_file'])) {
+        $errors[] = $pdf_fehler;
     }
 
     if (empty($errors)) {
         $original_name = basename($_FILES['pdf_file']['name']);
         $safe_name     = preg_replace('/[^a-zA-Z0-9_\-.]/', '_', $original_name);
-        $unique_name   = date('Ymd_His') . '_' . $safe_name;
+        $unique_name   = pdfSpeichername();
         $dest          = PDF_PATH . '/' . $unique_name;
 
         if (move_uploaded_file($_FILES['pdf_file']['tmp_name'], $dest)) {

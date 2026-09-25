@@ -368,15 +368,12 @@ function plattformFaelligkeiten(PDO $db): void
  */
 function plattformPdfUpload(PDO $db, array $datei, string $titel, string $kategorie, array $zuordnung = [], string $sichtbar = 'admin'): array
 {
-    if (($datei['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) return ['fehler' => 'Bitte eine PDF-Datei auswählen.'];
-    if ($datei['size'] > MAX_PDF_SIZE) return ['fehler' => 'Die Datei ist zu groß (max. 10 MB).'];
-    $kopf = (string)file_get_contents($datei['tmp_name'], false, null, 0, 5);
-    $mime = function_exists('finfo_open') ? (string)finfo_file(finfo_open(FILEINFO_MIME_TYPE), $datei['tmp_name']) : 'application/pdf';
-    if ($kopf !== '%PDF-' || !in_array($mime, ['application/pdf', 'application/x-pdf'], true)) return ['fehler' => 'Nur echte PDF-Dateien sind erlaubt.'];
+    require_once ROOT_PATH . '/includes/upload.php';
+    if ($fehler = pdfUploadFehler($datei)) return ['fehler' => $fehler];
 
     if (!is_dir(PDF_PATH)) mkdir(PDF_PATH, 0755, true);
     $original = basename((string)$datei['name']);
-    $name = date('Ymd_His') . '_' . bin2hex(random_bytes(6)) . '.pdf';
+    $name = pdfSpeichername();
     if (!move_uploaded_file($datei['tmp_name'], PDF_PATH . '/' . $name)) return ['fehler' => 'Die Datei konnte nicht gespeichert werden.'];
 
     $spalten = ['organization_id', 'titel', 'datei_name', 'datei_pfad', 'datei_groesse', 'mime_type', 'kategorie', 'sichtbar_fuer', 'hochgeladen_von'];

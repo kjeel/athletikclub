@@ -29,6 +29,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors['password'] = 'Bitte gib dein Passwort ein.';
     }
 
+    // Schutz vor Passwort-Raten: max. 5 Fehlversuche je E-Mail bzw. 20 je IP in 15 Minuten
+    if (empty($errors)) {
+        try {
+            $stmt = getDB()->prepare("SELECT SUM(details = ?) AS je_mail, COUNT(*) AS je_ip FROM aktivitaets_log
+                                      WHERE aktion = 'login_fehlgeschlagen' AND created_at > ? AND (ip_adresse = ? OR details = ?)");
+            $stmt->execute([$email, date('Y-m-d H:i:s', time() - 900), $_SERVER['REMOTE_ADDR'] ?? '', $email]);
+            $fehl = $stmt->fetch();
+            if ((int)($fehl['je_mail'] ?? 0) >= 5 || (int)($fehl['je_ip'] ?? 0) >= 20) {
+                $errors['general'] = 'Zu viele fehlgeschlagene Anmeldeversuche. Bitte warte 15 Minuten oder setze dein Passwort zurück.';
+            }
+        } catch (Exception $e) {}
+    }
+
     if (empty($errors)) {
         try {
             $db   = getDB();
@@ -37,6 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $user = $stmt->fetch();
 
             if (!$user || !verifyPassword($password, $user['passwort_hash'])) {
+                logActivity('login_fehlgeschlagen', $email);
                 $errors['general'] = 'E-Mail oder Passwort ist falsch.';
             } elseif (!$user['aktiv']) {
                 $errors['general'] = 'Dein Konto wurde deaktiviert. Bitte kontaktiere uns.';
@@ -56,7 +70,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 logActivity('login', "Login: {$email}");
 
-                $redirect = $_SESSION['redirect_after_login'] ?? (APP_URL . '/dashboard/index.php');
+                // Nur interne Pfade zulassen (kein Open Redirect über "//fremde-domain" o.ä.)
+                $ziel = (string)($_SESSION['redirect_after_login'] ?? '');
+                $redirect = preg_match('#^/(?![/\\\\])[^\s]*$#', $ziel) ? $ziel : APP_URL . '/dashboard/index.php';
                 unset($_SESSION['redirect_after_login']);
                 redirect($redirect);
             }

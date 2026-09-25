@@ -354,7 +354,7 @@ try {
             <?php endif; ?>
             <?php endif; ?>
 
-            <?php if (darfEines('partner.anzeigen', 'vertraege.anzeigen', 'foerderungen.anzeigen', 'finanzen.anzeigen')): ?>
+            <?php if (darfEines('partner.anzeigen', 'vertraege.anzeigen', 'foerderungen.anzeigen', 'finanzen.anzeigen', 'rollen.bearbeiten', 'audit.anzeigen') || (!isTrainer() && darf('ressourcen.anzeigen'))): ?>
             <!-- Organisation (rollenbasiert) -->
             <span class="sidebar-section-label" style="margin-top: 0.75rem;">Organisation</span>
             <?php if (darf('finanzen.anzeigen')): ?>
@@ -379,6 +379,24 @@ try {
             <a href="<?= APP_URL ?>/dashboard/admin/foerderungen.php" class="sidebar-link <?= strpos($current_path, '/admin/foerderung') !== false ? 'active' : '' ?>">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"/></svg>
                 Fördermanagement
+            </a>
+            <?php endif; ?>
+            <?php if (!isTrainer() && darf('ressourcen.anzeigen')): ?>
+            <a href="<?= APP_URL ?>/dashboard/ressourcen.php" class="sidebar-link <?= strpos($current_path, '/dashboard/ressourcen') !== false ? 'active' : '' ?>">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                Ressourcen &amp; Material
+            </a>
+            <?php endif; ?>
+            <?php if (darf('rollen.bearbeiten')): ?>
+            <a href="<?= APP_URL ?>/dashboard/admin/rollen.php" class="sidebar-link <?= strpos($current_path, '/admin/rollen') !== false ? 'active' : '' ?>">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                Rollen &amp; Rechte
+            </a>
+            <?php endif; ?>
+            <?php if (darf('audit.anzeigen')): ?>
+            <a href="<?= APP_URL ?>/dashboard/admin/audit.php" class="sidebar-link <?= strpos($current_path, '/admin/audit') !== false ? 'active' : '' ?>">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+                Audit-Log
             </a>
             <?php endif; ?>
             <?php endif; ?>

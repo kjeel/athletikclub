@@ -76,6 +76,8 @@ define('MAIL_ADMIN',     'office@athletikclub-steiermark.at');
 if (session_status() === PHP_SESSION_NONE) {
     ini_set('session.cookie_httponly', 1);
     ini_set('session.use_strict_mode', 1);
+    ini_set('session.use_only_cookies', 1);
+    ini_set('session.cookie_samesite', 'Lax');
     if (APP_ENV === 'production' && str_starts_with(APP_URL, 'https://')) {
         ini_set('session.cookie_secure', 1);
     }
