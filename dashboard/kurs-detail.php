@@ -355,6 +355,16 @@ $anmeldbar = array_filter($personen, fn($name, $kid) => !isset($meine[$kid]) || 
                 <a href="<?= APP_URL ?>/dashboard/kommunikation.php?kurs=<?= $kurs_id ?>" class="btn btn-ghost-light btn-sm">Nachricht an Teilnehmende</a>
                 <?php if (!empty($kurs['oeffentlich'])): ?><a href="<?= e(kursOeffentlichLink($kurs_id)) ?>" target="_blank" rel="noopener" class="btn btn-ghost-light btn-sm">Öffentliche Seite</a><?php endif; ?>
             </div>
+            <?php if ((float)$kurs['preis'] > 0 && darf('rechnungen.bearbeiten')): ?>
+            <form method="POST" action="<?= APP_URL ?>/dashboard/admin/rechnungen.php" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-light);"><?= csrfField() ?>
+                <input type="hidden" name="action" value="aus_kurs"><input type="hidden" name="kurs_id" value="<?= $kurs_id ?>">
+                <label class="form-label">Rechnungen für unbezahlte Anmeldungen</label>
+                <?php if (darf('rechnungen.ausstellen')): ?><label class="form-check" style="margin-bottom: 0.3rem;"><input type="checkbox" name="ausstellen" value="1"><span class="form-check-label">direkt ausstellen</span></label>
+                <label class="form-check" style="margin-bottom: 0.6rem;"><input type="checkbox" name="senden" value="1"><span class="form-check-label">und per E-Mail senden</span></label><?php endif; ?>
+                <button class="btn btn-navy btn-sm" type="submit">Rechnungen erzeugen</button>
+                <p class="form-hint">Ohne „direkt ausstellen“ entstehen Entwürfe zur Prüfung. Je Anmeldung nur eine Rechnung.</p>
+            </form>
+            <?php endif; ?>
             <?php if ($warteliste && !$voll): ?>
             <form method="POST" style="margin-top: 1rem;"><?= csrfField() ?><input type="hidden" name="action" value="nachruecken">
                 <button type="submit" class="btn btn-primary btn-sm">Freie Plätze an die Warteliste vergeben</button></form>

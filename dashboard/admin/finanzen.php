@@ -11,6 +11,7 @@ require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/config/database.php';
 require_once ROOT_PATH . '/includes/auth.php';
 require_once ROOT_PATH . '/includes/plattform.php';
+require_once ROOT_PATH . '/includes/rechnungen.php';
 
 requireDarf('finanzen.anzeigen');
 
@@ -157,6 +158,7 @@ try {
     $stmt = $db->prepare("SELECT COALESCE(SUM(betrag), 0) FROM trainer_abrechnungen WHERE organization_id = ? AND status IN ('eingereicht','geprueft','freigegeben')");
     $stmt->execute([$org_id]);
     $offene_honorare = moneyRound($stmt->fetchColumn() ?: 0);
+    $offene_rechnungen = rechnungenOffenSumme($db);
 } catch (Exception $e) {}
 
 // Fördermittel (bewilligt im Jahr bzw. laufend)
@@ -269,7 +271,7 @@ $filter_query = http_build_query(array_filter(['jahr' => $jahr, 'art' => $f_art,
 <div class="kpi-grid">
     <div class="kpi-card" style="--kpi-color: #F59E0B;"><div class="kpi-value" style="font-size: 1.35rem;"><?= moneyFormat($offene_kursbeitraege) ?></div><div class="kpi-label">Offene Kursbeiträge (Forderungen)</div></div>
     <div class="kpi-card" style="--kpi-color: #EF4444;"><div class="kpi-value" style="font-size: 1.35rem;"><?= moneyFormat($offene_honorare) ?></div><div class="kpi-label">Offene Trainerabrechnungen</div></div>
-    <div class="kpi-card" style="--kpi-color: #7C3AED;"><div class="kpi-value" style="font-size: 1.35rem;"><?= moneyFormat($offen_buchungen) ?></div><div class="kpi-label">Unbezahlte Ausgaben (Buchungen)</div></div>
+    <div class="kpi-card" style="--kpi-color: #7C3AED;"><div class="kpi-value" style="font-size: 1.35rem;"><?= moneyFormat($offene_rechnungen['offen'] ?? '0') ?></div><div class="kpi-label">Offene Rechnungen<?= !empty($offene_rechnungen['anzahl_ueberfaellig']) ? ' · ' . (int)$offene_rechnungen['anzahl_ueberfaellig'] . ' überfällig' : '' ?> · unbezahlte Ausgaben <?= moneyFormat($offen_buchungen) ?></div></div>
     <div class="kpi-card" style="--kpi-color: #0EA5E9;"><div class="kpi-value" style="font-size: 1.35rem;"><?= moneyFormat($foerder['beantragt']) ?></div><div class="kpi-label">Förderungen beantragt/in Arbeit<?= bccomp($prae_ausbezahlt, '0', 2) > 0 ? ' · PRAE ' . moneyFormat($prae_ausbezahlt) : '' ?></div></div>
 </div>
 

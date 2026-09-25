@@ -112,6 +112,22 @@ function handlungsbedarf(PDO $db): array
         $n = $zahl("SELECT COUNT(*) FROM trainer_abrechnungen WHERE organization_id = ? AND status = 'freigegeben'", [$org]);
         $add('info', 'Freigegebene Abrechnungen auszahlen', $n, '/dashboard/admin/trainerabrechnungen.php', 'Abrechnung');
     }
+    if (darf('rechnungen.anzeigen')) {
+        $n = $zahl("SELECT COUNT(*) FROM rechnungen WHERE organization_id = ? AND status = 'offen' AND typ = 'rechnung' AND faellig_am < ?", [$org, $heute]);
+        $add('warnung', 'Überfällige Rechnungen', $n, '/dashboard/admin/rechnungen.php?status=ueberfaellig', 'Rechnungen');
+        $n = $zahl("SELECT COUNT(*) FROM mahnungen m JOIN rechnungen r ON r.id = m.rechnung_id WHERE r.organization_id = ? AND m.status = 'vorbereitet'", [$org]);
+        $add('warnung', 'Vorbereitete Mahnungen prüfen und senden', $n, '/dashboard/admin/rechnungen.php?status=ueberfaellig', 'Rechnungen');
+        $n = $zahl("SELECT COUNT(*) FROM rechnungen WHERE organization_id = ? AND status = 'entwurf'", [$org]);
+        $add('info', 'Rechnungsentwürfe zur Prüfung', $n, '/dashboard/admin/rechnungen.php?status=entwurf', 'Rechnungen');
+    }
+    if (darf('onboarding.anzeigen')) {
+        $n = $zahl("SELECT COUNT(*) FROM onboarding WHERE organization_id = ? AND status = 'bewerbung'", [$org]);
+        $add('info', 'Neue Trainer-Bewerbungen', $n, '/dashboard/admin/onboarding.php', 'Onboarding');
+    }
+    if (darf('automatisierungen.bearbeiten')) {
+        $n = $zahl("SELECT COUNT(*) FROM automationen WHERE organization_id = ? AND aktiv = 1 AND letzter_status = 'fehler'", [$org]);
+        $add('kritisch', 'Automatisierungen mit Fehler', $n, '/dashboard/admin/automatisierungen.php', 'System');
+    }
     if (darf('kalender.bearbeiten')) {
         $n = $zahl("SELECT COUNT(*) FROM einheiten e WHERE e.organization_id = ? AND e.status = 'geplant' AND e.start BETWEEN ? AND ?
                     AND NOT EXISTS (SELECT 1 FROM einheit_trainer et WHERE et.einheit_id = e.id AND et.status <> 'storniert')",
