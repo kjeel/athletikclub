@@ -12,6 +12,13 @@ RewriteRule ^(.*)$ https://%1%{REQUEST_URI} [L,R=301]
 # Sitemap für Suchmaschinen (wird von sitemap.php dynamisch erzeugt)
 RewriteRule ^sitemap\.xml$ sitemap.php [L]
 
+# Öffentliches Kurs- und Eventportal, Buchungsverwaltung, QR-Check-in, Rechnungsansicht
+RewriteRule ^kurse/?$ pages/kurse.php [L,QSA]
+RewriteRule ^kurse/([0-9]+)/?$ pages/kurs.php?id=$1 [L,QSA]
+RewriteRule ^buchung/([a-f0-9]{32})/?$ pages/buchung.php?t=$1 [L,QSA]
+RewriteRule ^checkin/([a-f0-9]{32})/?$ dashboard/checkin.php?c=$1 [L,QSA]
+RewriteRule ^rechnung/([a-f0-9]{32})/?$ pages/rechnung.php?t=$1 [L,QSA]
+
 # ============================================================
 # URL-Rewriting (saubere URLs ohne .php-Endung)
 # ============================================================

@@ -74,7 +74,7 @@ if ($filter_suche) {
 
 $stmt = $db->prepare(
     "SELECT k.*, u.vorname, u.nachname,
-            (SELECT COUNT(*) FROM kurs_anmeldungen WHERE kurs_id = k.id AND status = 'angemeldet') AS belegt,
+            (SELECT COUNT(*) FROM kurs_anmeldungen WHERE kurs_id = k.id AND status IN ('angemeldet','angefragt')) AS belegt,
             (SELECT COUNT(*) FROM kurs_anmeldungen WHERE kurs_id = k.id AND status = 'warteliste') AS warteliste,
             (SELECT status FROM kurs_anmeldungen WHERE kurs_id = k.id AND user_id = ? AND kind_id = 0) AS meine_anmeldung
      FROM kurse k

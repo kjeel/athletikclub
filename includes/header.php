@@ -180,7 +180,7 @@ $canonical_url = SITE_URL . $canonical_path;
                         <li><a href="<?= APP_URL ?>/pages/partner.php">Partner*innen</a></li>
                     </ul>
                 </li>
-                <li><a href="<?= APP_URL ?>/pages/leistung.php" class="nav-link">Leistung</a></li>
+                <li><a href="<?= APP_URL ?>/kurse" class="nav-link <?= str_starts_with($current_path, '/kurse') || str_contains($current_path, '/pages/kurs') ? 'active' : '' ?>">Kurse</a></li>
                 <li><a href="<?= APP_URL ?>/pages/trainer-werden.php" class="nav-link">Trainer*in werden</a></li>
                 <li><a href="<?= APP_URL ?>/pages/mitglied-werden.php" class="nav-link">Mitglied werden</a></li>
                 <li><a href="<?= APP_URL ?>/pages/kontakt.php" class="nav-link">Kontakt</a></li>
@@ -249,7 +249,7 @@ $canonical_url = SITE_URL . $canonical_path;
                 <li><a href="<?= APP_URL ?>/pages/partner.php">Partner*innen</a></li>
             </ul>
         </li>
-        <li><a href="<?= APP_URL ?>/pages/leistung.php">Leistung</a></li>
+        <li><a href="<?= APP_URL ?>/kurse">Kurse &amp; Events</a></li>
         <li><a href="<?= APP_URL ?>/pages/trainer-werden.php">Trainer*in werden</a></li>
         <li><a href="<?= APP_URL ?>/pages/mitglied-werden.php">Mitglied werden</a></li>
         <li><a href="<?= APP_URL ?>/pages/kontakt.php">Kontakt</a></li>

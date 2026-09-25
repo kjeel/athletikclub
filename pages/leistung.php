@@ -3,6 +3,10 @@
  * Athletikclub Steiermark – Leistungsangebot (Platzhalter, bis das Angebot online ist)
  */
 define('ROOT_PATH', dirname(__DIR__));
+// Das Leistungsangebot ist jetzt das Kurs- und Eventportal
+require_once ROOT_PATH . '/config/config.php';
+header('Location: ' . APP_URL . '/kurse', true, 301);
+exit;
 $page_title       = 'Leistung';
 $meta_description = 'Das Leistungsangebot des Athletikclub Steiermark wird in Kürze verfügbar sein.';
 // Platzhalter nicht in Suchmaschinen aufnehmen

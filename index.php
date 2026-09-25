@@ -12,14 +12,27 @@ require_once ROOT_PATH . '/includes/header.php';
 $upcoming_kurse = [];
 try {
     $db = getDB();
-    $stmt = $db->query(
-        "SELECT k.*, u.vorname, u.nachname
-         FROM kurse k
-         LEFT JOIN users u ON k.trainer_id = u.id
-         WHERE k.status IN ('geplant','aktiv') AND k.start_datum >= NOW()
-         ORDER BY k.start_datum ASC
-         LIMIT 3"
-    );
+    try {
+        // Nur im Kursportal freigegebene Angebote öffentlich zeigen
+        $stmt = $db->query(
+            "SELECT k.*, u.vorname, u.nachname
+             FROM kurse k
+             LEFT JOIN users u ON k.trainer_id = u.id
+             WHERE k.status IN ('geplant','aktiv') AND k.oeffentlich = 1 AND k.end_datum >= NOW()
+             ORDER BY k.start_datum ASC
+             LIMIT 3"
+        );
+    } catch (Exception $e) {
+        // Migration 012 noch nicht eingespielt
+        $stmt = $db->query(
+            "SELECT k.*, u.vorname, u.nachname
+             FROM kurse k
+             LEFT JOIN users u ON k.trainer_id = u.id
+             WHERE k.status IN ('geplant','aktiv') AND k.start_datum >= NOW()
+             ORDER BY k.start_datum ASC
+             LIMIT 3"
+        );
+    }
     $upcoming_kurse = $stmt->fetchAll();
 } catch (Exception $e) {
     // DB noch nicht eingerichtet – ignorieren
@@ -461,7 +474,7 @@ try {
                 <span class="section-label reveal">Trainingsangebot</span>
                 <h2 class="section-title reveal reveal-delay-1">Nächste Kurse</h2>
             </div>
-            <a href="/pages/leistung.php" class="btn btn-ghost-light reveal">Alle Kurse ansehen</a>
+            <a href="/kurse" class="btn btn-ghost-light reveal">Alle Kurse ansehen</a>
         </div>
 
         <div class="grid-3">
@@ -484,7 +497,7 @@ try {
                             </span>
                             <?php endif; ?>
                         </div>
-                        <h3 class="card-title"><?= htmlspecialchars($kurs['titel']) ?></h3>
+                        <h3 class="card-title"><?php if (isset($kurs['oeffentlich']) && $kurs['oeffentlich']): ?><a href="<?= APP_URL ?>/kurse/<?= (int)$kurs['id'] ?>" style="color: inherit;"><?= htmlspecialchars($kurs['titel']) ?></a><?php else: ?><?= htmlspecialchars($kurs['titel']) ?><?php endif; ?></h3>
                         <?php if ($kurs['sportart']): ?>
                             <span class="badge badge-gold" style="margin-bottom: 0.75rem;"><?= htmlspecialchars($kurs['sportart']) ?></span>
                         <?php endif; ?>

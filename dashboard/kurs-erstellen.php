@@ -8,6 +8,7 @@ require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/config/database.php';
 require_once ROOT_PATH . '/includes/auth.php';
 require_once ROOT_PATH . '/includes/kursanmeldung.php';
+require_once ROOT_PATH . '/includes/upload.php';
 
 requireTrainer();
 
@@ -67,6 +68,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $max_alter       = trim($_POST['max_alter'] ?? '');
     $voraussetzungen = trim($_POST['voraussetzungen'] ?? '');
     $projekt_id      = (int)($_POST['projekt_id'] ?? 0);
+    $kurzbeschreibung = mb_substr(trim($_POST['kurzbeschreibung'] ?? ''), 0, 300);
+    $storno_frist    = trim($_POST['storno_frist_std'] ?? '');
+    if ($storno_frist !== '' && (!ctype_digit($storno_frist) || (int)$storno_frist > 720)) $errors['storno_frist_std'] = 'Bitte 0–720 Stunden angeben.';
+    $bild_neu = null;
+    if (!empty($_FILES['bild']['name'])) {
+        $r = bildUpload($_FILES['bild'], 'kurse');
+        if (isset($r['fehler'])) $errors['bild'] = $r['fehler']; else $bild_neu = $r['datei'];
+    }
     if ($kurs) {
         $trainer_id = isAdmin() && !empty($_POST['trainer_id']) ? (int)$_POST['trainer_id'] : (int)$kurs['trainer_id'];
     } else {
@@ -115,7 +124,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'max_alter'       => $max_alter !== '' ? (int)$max_alter : null,
             'voraussetzungen' => $voraussetzungen ?: null,
             'projekt_id'      => $projekt_id ?: null,
+            'oeffentlich'     => !empty($_POST['oeffentlich']) ? 1 : 0,
+            'art'             => ($_POST['art'] ?? '') === 'event' ? 'event' : 'kurs',
+            'kurzbeschreibung' => $kurzbeschreibung ?: null,
+            'storno_frist_std' => $storno_frist !== '' ? (int)$storno_frist : null,
         ];
+        if ($bild_neu) $werte['bild'] = $bild_neu;
+        elseif (!empty($_POST['bild_entfernen'])) $werte['bild'] = null;
         try {
             if ($kurs) {
                 $sets = implode(', ', array_map(fn($k) => "$k = ?", array_keys($werte)));
@@ -159,8 +174,9 @@ $f = $_SERVER['REQUEST_METHOD'] === 'POST' ? $_POST : ($kurs ? [
     'start_datum' => $dtl($kurs['start_datum']), 'end_datum' => $dtl($kurs['end_datum']), 'max_teilnehmer' => $kurs['max_teilnehmer'],
     'preis' => $kurs['preis'], 'trainer_id' => $kurs['trainer_id'], 'anmeldeschluss' => $dtl($kurs['anmeldeschluss'] ?? null),
     'min_alter' => $kurs['min_alter'] ?? '', 'max_alter' => $kurs['max_alter'] ?? '', 'voraussetzungen' => $kurs['voraussetzungen'] ?? '',
-    'projekt_id' => $kurs['projekt_id'] ?? '',
-] : ['preis' => '0', 'projekt_id' => (int)($_GET['projekt'] ?? 0)]);
+    'projekt_id' => $kurs['projekt_id'] ?? '', 'oeffentlich' => $kurs['oeffentlich'] ?? 0, 'art' => $kurs['art'] ?? 'kurs',
+    'kurzbeschreibung' => $kurs['kurzbeschreibung'] ?? '', 'storno_frist_std' => $kurs['storno_frist_std'] ?? '',
+] : ['preis' => '0', 'projekt_id' => (int)($_GET['projekt'] ?? 0), 'oeffentlich' => 1, 'art' => ($_GET['art'] ?? '') === 'event' ? 'event' : 'kurs']);
 $fw = fn($k, $d = '') => (string)($f[$k] ?? $d);
 
 $sportarten = ['Calisthenics', 'Skateboarding', 'Tischtennis', 'Padel Tennis', 'Athletiktraining', 'Ausdauer', 'Sonstiges'];
@@ -189,13 +205,32 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
 <?php endif; ?>
 
 <div class="form-card" style="max-width: 720px;">
-    <form method="POST" action="" data-validate novalidate>
+    <form method="POST" action="" enctype="multipart/form-data" data-validate novalidate>
         <?= csrfField() ?>
 
         <div class="form-group">
             <label class="form-label" for="titel">Titel <span class="required">*</span></label>
             <input class="form-control <?= isset($errors['titel']) ? 'error' : '' ?>" type="text" id="titel" name="titel" value="<?= e($fw('titel')) ?>" required placeholder="z.B. Calisthenics Grundkurs">
             <?php if (isset($errors['titel'])): ?><span class="form-error"><?= e($errors['titel']) ?></span><?php endif; ?>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label" for="art">Art</label>
+                <select class="form-control" id="art" name="art">
+                    <option value="kurs" <?= $fw('art', 'kurs') === 'kurs' ? 'selected' : '' ?>>Kurs / Training</option>
+                    <option value="event" <?= $fw('art') === 'event' ? 'selected' : '' ?>>Event / Veranstaltung</option>
+                </select>
+            </div>
+            <div class="form-group" style="display: flex; align-items: flex-end;">
+                <label class="form-check"><input type="checkbox" name="oeffentlich" value="1" <?= $fw('oeffentlich') ? 'checked' : '' ?>>
+                    <span class="form-check-label">Im öffentlichen Kursportal anzeigen und online buchbar</span></label>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="kurzbeschreibung">Kurzbeschreibung (für die Übersicht)</label>
+            <input class="form-control" type="text" id="kurzbeschreibung" name="kurzbeschreibung" maxlength="300" value="<?= e($fw('kurzbeschreibung')) ?>" placeholder="Ein Satz, der neugierig macht">
         </div>
 
         <div class="form-group">
@@ -260,6 +295,21 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
                     <input class="form-control <?= isset($errors['max_alter']) ? 'error' : '' ?>" type="number" min="0" max="120" name="max_alter" value="<?= e($fw('max_alter')) ?>" placeholder="bis" aria-label="Höchstalter">
                 </div>
                 <?php foreach (['min_alter', 'max_alter'] as $k): if (isset($errors[$k])): ?><span class="form-error"><?= e($errors[$k]) ?></span><?php endif; endforeach; ?>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label" for="bild">Bild</label>
+                <input class="form-control <?= isset($errors['bild']) ? 'error' : '' ?>" type="file" id="bild" name="bild" accept="image/jpeg,image/png,image/webp">
+                <?php if (isset($errors['bild'])): ?><span class="form-error"><?= e($errors['bild']) ?></span><?php endif; ?>
+                <?php if (!empty($kurs['bild'])): ?><label class="form-check" style="margin-top: 0.4rem;"><input type="checkbox" name="bild_entfernen" value="1"><span class="form-check-label">Aktuelles Bild entfernen</span></label><?php endif; ?>
+                <span class="form-hint">JPG, PNG oder WebP, max. 5 MB – wird automatisch verkleinert.</span>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="storno_frist_std">Online-Storno bis (Stunden vor Beginn)</label>
+                <input class="form-control <?= isset($errors['storno_frist_std']) ? 'error' : '' ?>" type="number" min="0" max="720" id="storno_frist_std" name="storno_frist_std" value="<?= e($fw('storno_frist_std')) ?>" placeholder="Standard: <?= e(einstellung('storno_frist_std', '24')) ?>">
+                <?php if (isset($errors['storno_frist_std'])): ?><span class="form-error"><?= e($errors['storno_frist_std']) ?></span><?php endif; ?>
             </div>
         </div>
 

@@ -73,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'abmelden') {
         $meine = meineKursAnmeldungen($db, $kurs_id, (int)$user['id']);
         $a = $meine[$kind_id] ?? null;
-        if ($a && in_array($a['status'], ['angemeldet', 'warteliste'], true)) {
+        if ($a && in_array($a['status'], ['angemeldet', 'angefragt', 'warteliste'], true)) {
             kursStornieren($db, $kurs, $a);
             logActivity('kurs_abmeldung', "Kurs-ID: {$kurs_id}" . ($kind_id ? ", Kind-ID: {$kind_id}" : ''));
             flashMessage('success', $a['status'] === 'warteliste' ? 'Von der Warteliste entfernt.' : 'Abmeldung durchgeführt.');
@@ -111,15 +111,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $db->prepare('SELECT * FROM kurs_anmeldungen WHERE id = ? AND kurs_id = ?');
         $stmt->execute([$anmeldung_id, $kurs_id]);
         $a = $stmt->fetch();
-        if ($a && in_array($neuer_status, ['angemeldet', 'warteliste', 'storniert', 'teilgenommen'], true) && $neuer_status !== $a['status']) {
-            $db->prepare('UPDATE kurs_anmeldungen SET status = ? WHERE id = ?')->execute([$neuer_status, $anmeldung_id]);
+        if ($a && isset(ANMELDUNG_STATUS[$neuer_status]) && $neuer_status !== $a['status']) {
+            $extra = $neuer_status === 'angemeldet' && !$a['bestaetigt_am'] ? ', bestaetigt_am = ' . $db->quote(date('Y-m-d H:i:s')) . ', anfrage_bis = NULL' : '';
+            $extra .= $neuer_status === 'storniert' ? ', storniert_am = ' . $db->quote(date('Y-m-d H:i:s')) : '';
+            $db->prepare("UPDATE kurs_anmeldungen SET status = ?{$extra} WHERE id = ?")->execute([$neuer_status, $anmeldung_id]);
             logActivity('teilnehmer_status_geaendert', "Anmeldung-ID: {$anmeldung_id} -> {$neuer_status}");
             auditLog('status', 'kurs_anmeldungen', $anmeldung_id, ['status' => $a['status']], ['status' => $neuer_status]);
-            if ($a['status'] === 'warteliste' && $neuer_status === 'angemeldet') {
-                benachrichtigen((int)$a['user_id'], 'kurs', 'Platz frei: ' . $kurs['titel'], 'Die Anmeldung wurde von der Warteliste übernommen.', '/dashboard/kurs-detail.php?id=' . $kurs_id);
+            if (in_array($a['status'], ['warteliste', 'angefragt'], true) && $neuer_status === 'angemeldet') {
+                kursAnmeldungBenachrichtigen($db, $kurs, $anmeldung_id, $a['status'] === 'warteliste' ? 'warteliste_platz_frei' : 'anmeldung_bestaetigt');
             }
             // Platz frei geworden → Warteliste nachziehen
-            if ($a['status'] === 'angemeldet' && in_array($neuer_status, ['storniert', 'warteliste'], true)) {
+            if (in_array($a['status'], ['angemeldet', 'angefragt'], true) && in_array($neuer_status, ['storniert', 'warteliste'], true)) {
                 $n = kursNachruecken($db, $kurs);
                 if ($n) flashMessage('success', count($n) . ' Person(en) von der Warteliste nachgerückt.');
             }
@@ -208,12 +210,7 @@ $status_map = [
     'abgesagt'      => ['label' => 'Abgesagt',      'class' => 'badge-danger'],
     'abgeschlossen' => ['label' => 'Abgeschlossen', 'class' => 'badge-gray'],
 ];
-$teilnehmer_status_labels = [
-    'angemeldet'   => ['label' => 'Angemeldet',  'class' => 'badge-success'],
-    'warteliste'   => ['label' => 'Warteliste',  'class' => 'badge-info'],
-    'storniert'    => ['label' => 'Storniert',   'class' => 'badge-danger'],
-    'teilgenommen' => ['label' => 'Teilgenommen','class' => 'badge-gray'],
-];
+$teilnehmer_status_labels = ANMELDUNG_STATUS;
 $einheit_status = ['geplant' => 'badge-info', 'durchgefuehrt' => 'badge-success', 'storniert' => 'badge-danger'];
 $alter_text = '';
 if ($kurs['min_alter'] !== null || $kurs['max_alter'] !== null) {
@@ -296,7 +293,7 @@ $anmeldbar = array_filter($personen, fn($name, $kid) => !isset($meine[$kid]) || 
                             <span class="badge <?= $ts['class'] ?>" style="margin-left: 0.35rem;"><?= e($ts['label']) ?><?= $a['status'] === 'warteliste' ? ' · Platz ' . kursWartelistePosition($db, $kurs_id, (int)$a['id']) : '' ?></span>
                             <?php if ($a['status'] === 'angemeldet' && $kurs['preis'] > 0): ?><span class="badge <?= $a['bezahlt'] ? 'badge-success' : 'badge-warning' ?>" style="margin-left: 0.25rem;"><?= $a['bezahlt'] ? 'bezahlt' : 'Zahlung offen' ?></span><?php endif; ?>
                         </span>
-                        <?php if (in_array($a['status'], ['angemeldet', 'warteliste'], true)): ?>
+                        <?php if (in_array($a['status'], ['angemeldet', 'angefragt', 'warteliste'], true)): ?>
                         <form method="POST" onsubmit="return confirm('<?= $a['status'] === 'warteliste' ? 'Von der Warteliste nehmen?' : 'Wirklich abmelden? Der Platz geht an die Warteliste.' ?>');"><?= csrfField() ?>
                             <input type="hidden" name="action" value="abmelden"><input type="hidden" name="kind_id" value="<?= (int)$kid ?>">
                             <button type="submit" class="btn btn-ghost-light btn-sm"><?= $a['status'] === 'warteliste' ? 'Warteliste verlassen' : 'Abmelden' ?></button>

@@ -53,7 +53,7 @@
                     <li><a href="<?= APP_URL ?>/pages/vision.php">Vision</a></li>
                     <li><a href="<?= APP_URL ?>/pages/mission.php">Mission</a></li>
                     <li><a href="<?= APP_URL ?>/pages/leitbild.php">Leitbild</a></li>
-                    <li><a href="<?= APP_URL ?>/pages/leistung.php">Leistung</a></li>
+                    <li><a href="<?= APP_URL ?>/kurse">Kurse &amp; Events</a></li>
                     <li><a href="<?= APP_URL ?>/pages/partner.php">Partner*innen</a></li>
                 </ul>
             </div>
