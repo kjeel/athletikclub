@@ -94,10 +94,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             logActivity('kurs_status_geaendert', "Kurs-ID: {$kurs_id} -> {$neuer_status}");
             auditLog('status', 'kurse', $kurs_id, ['status' => $kurs['status']], ['status' => $neuer_status]);
             if ($neuer_status === 'abgesagt') {
-                $stmt = $db->prepare("SELECT DISTINCT user_id FROM kurs_anmeldungen WHERE kurs_id = ? AND status IN ('angemeldet','warteliste')");
+                // Alle Betroffenen über die Vorlage „Kursabsage“ informieren (Dashboard + E-Mail)
+                $stmt = $db->prepare("SELECT id FROM kurs_anmeldungen WHERE kurs_id = ? AND status IN ('angemeldet','angefragt','warteliste')");
                 $stmt->execute([$kurs_id]);
-                foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $uid) {
-                    benachrichtigen((int)$uid, 'kurs', 'Kurs abgesagt: ' . $kurs['titel'], 'Der Kurs ab ' . date('d.m.Y', strtotime($kurs['start_datum'])) . ' findet nicht statt.', '/dashboard/kurs-detail.php?id=' . $kurs_id);
+                foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $aid) {
+                    kursAnmeldungBenachrichtigen($db, $kurs, (int)$aid, 'kurs_abgesagt');
                 }
             }
             flashMessage('success', 'Status aktualisiert.');
@@ -350,6 +351,10 @@ $anmeldbar = array_filter($personen, fn($name, $kid) => !isset($meine[$kid]) || 
                 <button type="submit" class="btn btn-navy btn-sm">Speichern</button>
             </form>
             <p class="form-hint">Bei „Abgesagt“ werden alle Angemeldeten benachrichtigt.</p>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem;">
+                <a href="<?= APP_URL ?>/dashboard/kommunikation.php?kurs=<?= $kurs_id ?>" class="btn btn-ghost-light btn-sm">Nachricht an Teilnehmende</a>
+                <?php if (!empty($kurs['oeffentlich'])): ?><a href="<?= e(kursOeffentlichLink($kurs_id)) ?>" target="_blank" rel="noopener" class="btn btn-ghost-light btn-sm">Öffentliche Seite</a><?php endif; ?>
+            </div>
             <?php if ($warteliste && !$voll): ?>
             <form method="POST" style="margin-top: 1rem;"><?= csrfField() ?><input type="hidden" name="action" value="nachruecken">
                 <button type="submit" class="btn btn-primary btn-sm">Freie Plätze an die Warteliste vergeben</button></form>
