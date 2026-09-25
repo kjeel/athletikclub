@@ -25,7 +25,15 @@ $_scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
     || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
     ? 'https'
     : 'http';
-define('APP_URL', $_scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'aci-stmk.at'));
+// Nur bekannte Hostnamen übernehmen: Links in E-Mails (z.B. Passwort-Reset) dürfen nie auf einen
+// vom Browser untergeschobenen Host zeigen. Unbekannte Hosts → Hauptadresse.
+$_host = strtolower((string)($_SERVER['HTTP_HOST'] ?? ''));
+if (!in_array($_host, ['aci-stmk.at', 'www.aci-stmk.at'], true) && !(APP_ENV === 'development' && preg_match('/^(localhost|127\.0\.0\.1)(:\d+)?$/', $_host))) {
+    $_host = 'aci-stmk.at';
+    $_scheme = 'https';
+}
+define('APP_URL', $_scheme . '://' . $_host);
+unset($_host);
 define('APP_VERSION', '1.0.0');
 
 // Suchmaschinen: EINE Hauptadresse, auf die sich alle canonical-Links,

@@ -295,7 +295,8 @@ CREATE TABLE IF NOT EXISTS `aktivitaets_log` (
 
 -- ============================================================
 -- Initiale Daten: Standard-Admin-Account
--- Passwort: AdminACI2025! (muss nach Erstinstallation geändert werden!)
+-- Kein nutzbares Passwort: nach der Erstinstallation über „Passwort vergessen“ ein eigenes setzen
+-- oder das Konto in der Nutzerverwaltung deaktivieren, sobald ein persönliches Admin-Konto besteht.
 -- ============================================================
 INSERT IGNORE INTO `users` (`vorname`, `nachname`, `email`, `passwort_hash`, `rolle`, `email_verified`, `aktiv`)
 VALUES (

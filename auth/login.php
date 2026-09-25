@@ -19,7 +19,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $email    = trim(strtolower($_POST['email'] ?? ''));
     $password = $_POST['password'] ?? '';
-    $remember = !empty($_POST['remember']);
     $email_value = $email;
 
     if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -60,13 +59,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errors['general'] = 'Dein Konto wird gerade geprüft. Sobald wir es freigegeben haben, bekommst du eine E-Mail und kannst dich anmelden.';
             } else {
                 loginUser($user);
-
-                // Remember-me Cookie (30 Tage)
-                if ($remember) {
-                    $token = generateToken();
-                    // In Produktion: Token in DB speichern für sicheres Remember-me
-                    setcookie('remember_token', $token, time() + 60 * 60 * 24 * 30, '/', '', true, true);
-                }
 
                 logActivity('login', "Login: {$email}");
 
@@ -171,13 +163,6 @@ $verified   = isset($_GET['verified']);
                 <?php if (isset($errors['password'])): ?>
                     <span class="form-error"><?= e($errors['password']) ?></span>
                 <?php endif; ?>
-            </div>
-
-            <div class="form-group">
-                <label class="form-check">
-                    <input type="checkbox" name="remember" id="remember" value="1">
-                    <span class="form-check-label">Angemeldet bleiben</span>
-                </label>
             </div>
 
             <button type="submit" class="btn btn-primary w-full btn-lg" id="login-submit">
