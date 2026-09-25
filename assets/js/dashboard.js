@@ -117,3 +117,96 @@
     }
 
 })();
+
+// ============================================================
+// Navigation: Gruppen merken (die Gruppe der aktuellen Seite bleibt immer offen)
+// ============================================================
+(function () {
+    'use strict';
+    var gruppen = document.querySelectorAll('.nav-gruppe');
+    if (!gruppen.length) return;
+    var zustand = {};
+    try { zustand = JSON.parse(localStorage.getItem('aci-nav') || '{}') || {}; } catch (e) {}
+    gruppen.forEach(function (g) {
+        var key = g.getAttribute('data-gruppe');
+        if (!g.hasAttribute('data-aktiv') && Object.prototype.hasOwnProperty.call(zustand, key)) g.open = !!zustand[key];
+        g.addEventListener('toggle', function () {
+            zustand[key] = g.open;
+            try { localStorage.setItem('aci-nav', JSON.stringify(zustand)); } catch (e) {}
+        });
+    });
+})();
+
+// ============================================================
+// Globale Suche: Vorschläge beim Tippen (Enter öffnet die Ergebnisseite)
+// ============================================================
+(function () {
+    'use strict';
+    var form = document.querySelector('.dash-suche');
+    if (!form || !window.fetch) return;
+    var input = form.querySelector('input');
+    var liste = form.querySelector('.dash-suche-liste');
+    var timer = null, letzte = '', auswahl = -1;
+
+    function schliessen() { liste.hidden = true; auswahl = -1; }
+    function links() { return liste.querySelectorAll('a'); }
+    function markieren(i) {
+        links().forEach(function (a, j) { a.setAttribute('aria-selected', j === i ? 'true' : 'false'); });
+        auswahl = i;
+    }
+    function element(tag, cls, text) {
+        var el = document.createElement(tag);
+        if (cls) el.className = cls;
+        if (text) el.textContent = text;
+        return el;
+    }
+    function zeigen(daten) {
+        liste.innerHTML = '';
+        if (!daten.gruppen.length) liste.appendChild(element('div', 'dash-suche-leer', 'Keine Treffer'));
+        daten.gruppen.forEach(function (g) {
+            liste.appendChild(element('div', 'dash-suche-gruppe', g.label));
+            g.treffer.forEach(function (t) {
+                var a = element('a', '', t.titel);
+                a.href = t.link;
+                a.setAttribute('role', 'option');
+                if (t.info) a.appendChild(element('small', '', t.info));
+                liste.appendChild(a);
+            });
+        });
+        var alle = element('a', 'dash-suche-alle', 'Alle Ergebnisse anzeigen →');
+        alle.href = form.action + '?q=' + encodeURIComponent(daten.q);
+        liste.appendChild(alle);
+        liste.hidden = false;
+        auswahl = -1;
+    }
+    input.addEventListener('input', function () {
+        clearTimeout(timer);
+        var q = input.value.trim();
+        if (q.length < 2) { schliessen(); return; }
+        timer = setTimeout(function () {
+            if (q === letzte) { liste.hidden = false; return; }
+            letzte = q;
+            fetch(form.action + '?format=json&q=' + encodeURIComponent(q), { credentials: 'same-origin' })
+                .then(function (r) { return r.ok ? r.json() : null; })
+                .then(function (d) { if (d && d.q === input.value.trim()) zeigen(d); })
+                .catch(function () {});
+        }, 220);
+    });
+    input.addEventListener('keydown', function (e) {
+        var l = links();
+        if (liste.hidden || !l.length) return;
+        if (e.key === 'ArrowDown') { e.preventDefault(); markieren(Math.min(auswahl + 1, l.length - 1)); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); markieren(Math.max(auswahl - 1, 0)); }
+        else if (e.key === 'Enter' && auswahl >= 0) { e.preventDefault(); l[auswahl].click(); }
+        else if (e.key === 'Escape') { schliessen(); }
+    });
+    document.addEventListener('click', function (e) { if (!form.contains(e.target)) schliessen(); });
+    // Tastenkürzel „/“ fokussiert die Suche (außer beim Tippen in Feldern)
+    document.addEventListener('keydown', function (e) {
+        var el = document.activeElement;
+        if (e.key === '/' && !/INPUT|TEXTAREA|SELECT/.test(el.tagName) && !el.isContentEditable) {
+            e.preventDefault();
+            input.focus();
+        }
+    });
+})();

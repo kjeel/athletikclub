@@ -637,3 +637,101 @@
 @media (max-width: 420px) {
     .dash-glocke { width: 36px; height: 36px; }
 }
+
+/* ============================================================
+   Navigation: einklappbare Gruppen (Menü aus includes/navigation.php)
+============================================================ */
+.nav-gruppe { margin-bottom: 2px; }
+.nav-gruppe-kopf {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+    border-radius: var(--radius-md);
+}
+.nav-gruppe-kopf::-webkit-details-marker { display: none; }
+.nav-gruppe-kopf:hover { color: var(--navy-primary); }
+.nav-gruppe-kopf:focus-visible { outline: 2px solid var(--gold-accent); outline-offset: -2px; }
+.nav-gruppe-pfeil { width: 12px; height: 12px; transition: transform var(--transition-fast); opacity: 0.6; }
+.nav-gruppe:not([open]) .nav-gruppe-pfeil { transform: rotate(-90deg); }
+
+/* ============================================================
+   Kopfzeile: globale Suche und „+ Neu“
+============================================================ */
+.dash-suche {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.dash-suche > svg {
+    position: absolute;
+    left: 10px;
+    width: 15px;
+    height: 15px;
+    color: rgba(255, 255, 255, 0.6);
+    pointer-events: none;
+}
+.dash-suche input {
+    width: 220px;
+    height: 36px;
+    padding: 0 0.75rem 0 2rem;
+    border-radius: var(--radius-full);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    font-size: var(--text-sm);
+    transition: width var(--transition-base), background var(--transition-fast);
+}
+.dash-suche input::placeholder { color: rgba(255, 255, 255, 0.55); }
+.dash-suche input:focus { outline: none; width: 280px; background: rgba(255, 255, 255, 0.18); border-color: var(--gold-accent); }
+.dash-suche-liste {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: min(380px, 90vw);
+    max-height: 70vh;
+    overflow-y: auto;
+    background: var(--surface);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl);
+    padding: 0.35rem 0;
+    z-index: 1100;
+}
+.dash-suche-gruppe {
+    font-family: var(--font-heading);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 0.6rem 1rem 0.25rem;
+}
+.dash-suche-liste a {
+    display: block;
+    padding: 0.45rem 1rem;
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+    text-decoration: none;
+}
+.dash-suche-liste a small { display: block; color: var(--text-muted); font-size: 0.75rem; }
+.dash-suche-liste a:hover,
+.dash-suche-liste a[aria-selected="true"] { background: var(--bg-muted); }
+.dash-suche-alle { border-top: 1px solid var(--border-light); margin-top: 0.3rem; font-weight: 600; }
+.dash-suche-leer { padding: 0.75rem 1rem; font-size: var(--text-sm); color: var(--text-muted); }
+.dash-suche-mobil { display: none; }
+.dash-neu { padding: 0.45rem 0.8rem; }
+.user-chip.dash-neu > svg { display: block; } /* style.css blendet Chip-Pfeile mobil aus */
+.dash-neu .dropdown-menu { min-width: 190px; }
+
+@media (max-width: 1200px) {
+    .dash-suche input, .dash-suche input:focus { width: 170px; }
+}
+@media (max-width: 768px) {
+    .dash-suche { display: none; }
+    .dash-suche-mobil { display: flex; }
+    .dash-neu-text { display: none; }
+    .dash-neu { padding: 0.5rem; }
+}

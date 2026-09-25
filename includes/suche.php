@@ -67,7 +67,7 @@ function globaleSuche(PDO $db, string $q): array
     }
 
     // Projekte & Aufgaben
-    if (isTrainer() || darf('projekte.anzeigen')) {
+    if (isTrainer()) { // Projekt- und Aufgabenseiten setzen die Trainerrolle voraus
         $alle = darf('projekte.anzeigen');
         $add('projekte', 'Projekte', $abfrage("SELECT p.id, p.name, p.status, p.gemeinde FROM projekte p WHERE p.organization_id = ? AND (p.name LIKE ?$esc OR p.gemeinde LIKE ?$esc OR p.beschreibung LIKE ?$esc)"
                 . ($alle ? '' : " AND (p.leitung_id = $me OR EXISTS (SELECT 1 FROM projekt_team t WHERE t.projekt_id = p.id AND t.user_id = $me))") . " ORDER BY p.status = 'archiviert', p.name LIMIT $n", [$org, $like, $like, $like]),
@@ -126,14 +126,14 @@ function schnellaktionen(): array
     $a = [];
     if (isTrainer())                      $a[] = ['Kurs', '/dashboard/kurs-erstellen.php'];
     if (darf('events.bearbeiten'))        $a[] = ['Event', '/dashboard/events.php?neu=1'];
-    if (darfEines('kalender.erstellen', 'kalender.bearbeiten') || isTrainer()) $a[] = ['Einheit', '/dashboard/einheit-planen.php'];
-    if (darf('projekte.erstellen'))       $a[] = ['Projekt', '/dashboard/projekte.php#neu'];
-    if (isTrainer() || darf('aufgaben.erstellen')) $a[] = ['Aufgabe', '/dashboard/aufgaben.php#neu'];
+    if (isTrainer())                      $a[] = ['Einheit', '/dashboard/einheit-planen.php'];
+    if (isTrainer() && darf('projekte.erstellen')) $a[] = ['Projekt', '/dashboard/projekte.php#neu'];
+    if (isTrainer())                      $a[] = ['Aufgabe', '/dashboard/aufgaben.php#neu'];
     if (darf('rechnungen.bearbeiten'))    $a[] = ['Rechnung', '/dashboard/admin/rechnungen.php?neu=1'];
     if (darf('finanzen.bearbeiten'))      $a[] = ['Buchung', '/dashboard/admin/finanzen.php#buchung-neu'];
     if (darf('partner.erstellen'))        $a[] = ['Partner', '/dashboard/admin/partner.php?neu=1'];
     if (darf('foerderungen.bearbeiten'))  $a[] = ['Förderung', '/dashboard/admin/foerderung-erstellen.php'];
-    if (darf('kommunikation.senden'))     $a[] = ['Nachricht', '/dashboard/kommunikation.php'];
+    if (isTrainer())                      $a[] = ['Nachricht', '/dashboard/kommunikation.php'];
     if (darf('onboarding.bearbeiten'))    $a[] = ['Trainer-Onboarding', '/dashboard/admin/onboarding.php?neu=1'];
     return $a;
 }

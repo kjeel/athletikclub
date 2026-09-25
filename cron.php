@@ -25,6 +25,9 @@ if (PHP_SAPI !== 'cli') {
     }
 }
 
+// Für den Systemstatus: echter Cron-Aufruf (im Unterschied zum Rückfall-Tick beim Seitenaufruf)
+systemStatusSetzen(getDB(), 'cron_letzter_aufruf_' . currentOrgId(), date('Y-m-d H:i:s'));
+
 $erg = automationLauf(getDB());
 if ($erg === null) {
     echo "Ein anderer Lauf ist gerade aktiv.\n";

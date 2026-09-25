@@ -160,7 +160,7 @@ require_once ROOT_PATH . '/includes/dashboard-header.php';
         <?php endif; ?>
 
         <?php if ($mein && $einheit['status'] !== 'storniert'): ?>
-        <div style="padding: 1.25rem; border-top: 1px solid var(--border-light);">
+        <div id="bestaetigen" style="padding: 1.25rem; border-top: 1px solid var(--border-light);">
             <?php if (!$begonnen): ?>
                 <p class="eh-mini" style="margin: 0;">Nach der Einheit kannst du sie hier als durchgeführt bestätigen.</p>
             <?php elseif (in_array($mein['status'], ['geplant', 'durchgefuehrt'], true) && $abrechnung_offen($mein)): ?>

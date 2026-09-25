@@ -83,6 +83,12 @@ try {
     $ist_prae_empfaenger = (bool)$stmt->fetchColumn();
 } catch (Exception $e) {}
 
+// Zentrales Menü (Gruppen je Rolle/Berechtigung) und Schnellaktionen „+ Neu“
+require_once ROOT_PATH . '/includes/navigation.php';
+require_once ROOT_PATH . '/includes/suche.php';
+$nav_gruppen = navigationMenue(compact('pending_anmeldungen', 'offene_bestaetigungen', 'meine_aufgaben', 'meine_ueberfaellig', 'abrechnungen_offen', 'unread_kontakt', 'ist_prae_empfaenger'));
+$schnellaktionen = schnellaktionen();
+
 // Ungelesene News (Popup)
 $ungelesene_news = [];
 try {
@@ -199,6 +205,26 @@ try {
         </div>
 
         <div class="dash-header-actions">
+            <form class="dash-suche" action="<?= APP_URL ?>/dashboard/suche.php" method="get" role="search" autocomplete="off">
+                <label for="dash-suche-q" class="sr-only">Suche</label>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="search" id="dash-suche-q" name="q" placeholder="Suchen …" minlength="2" maxlength="80" aria-controls="dash-suche-liste" aria-autocomplete="list">
+                <div class="dash-suche-liste" id="dash-suche-liste" role="listbox" hidden></div>
+            </form>
+            <a href="<?= APP_URL ?>/dashboard/suche.php" class="dash-glocke dash-suche-mobil" aria-label="Suche" title="Suche">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </a>
+            <?php if ($schnellaktionen): ?>
+            <div class="user-chip has-dropdown dash-neu" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false" aria-label="Neu anlegen">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true" style="width: 16px; height: 16px; color: #fff;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span class="user-name dash-neu-text">Neu</span>
+                <ul class="dropdown-menu dropdown-right">
+                    <?php foreach ($schnellaktionen as [$label, $pfad]): ?>
+                        <li><a href="<?= APP_URL . $pfad ?>"><?= e($label) ?></a></li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+            <?php endif; ?>
             <a href="<?= APP_URL ?>/dashboard/benachrichtigungen.php" class="dash-glocke" aria-label="Benachrichtigungen<?= $ungelesen ? ' (' . $ungelesen . ' ungelesen)' : '' ?>" title="Benachrichtigungen">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
                 <?php if ($ungelesen > 0): ?><span class="dash-glocke-badge"><?= $ungelesen > 99 ? '99+' : $ungelesen ?></span><?php endif; ?>
@@ -250,220 +276,7 @@ try {
 
         <!-- Navigation -->
         <nav class="sidebar-nav" aria-label="Dashboard Navigation">
-
-            <!-- Allgemein -->
-            <span class="sidebar-section-label">Allgemein</span>
-            <a href="<?= APP_URL ?>/dashboard/index.php" class="sidebar-link <?= strpos($current_path, '/dashboard/index') !== false || $current_path === '/dashboard/' ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-                Übersicht
-            </a>
-            <a href="<?= APP_URL ?>/dashboard/profil.php" class="sidebar-link <?= strpos($current_path, '/dashboard/profil') !== false ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                Mein Profil
-            </a>
-            <a href="<?= APP_URL ?>/dashboard/kurse.php" class="sidebar-link <?= strpos($current_path, '/dashboard/kurse') !== false ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                Kurse
-                <?php if ($pending_anmeldungen > 0): ?>
-                    <span class="sidebar-link-badge"><?= $pending_anmeldungen ?></span>
-                <?php endif; ?>
-            </a>
-            <a href="<?= APP_URL ?>/dashboard/dokumente.php" class="sidebar-link <?= strpos($current_path, '/dashboard/dokumente') !== false ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                Dokumente
-            </a>
-            <a href="<?= APP_URL ?>/dashboard/kalender.php" class="sidebar-link <?= strpos($current_path, '/dashboard/kalender') !== false ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="8" cy="15" r="1"/><circle cx="12" cy="15" r="1"/><circle cx="16" cy="15" r="1"/></svg>
-                Kalender
-            </a>
-            <a href="<?= APP_URL ?>/dashboard/kinder.php" class="sidebar-link <?= strpos($current_path, '/dashboard/kinder') !== false ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="3"/><circle cx="17" cy="10" r="2"/><path d="M3 21v-2a5 5 0 0 1 10 0v2"/><path d="M14 21v-1a3 3 0 0 1 6 0v1"/></svg>
-                Kinder &amp; Einwilligungen
-            </a>
-            <?php if ($ist_prae_empfaenger): ?>
-            <a href="<?= APP_URL ?>/dashboard/prae-meine.php" class="sidebar-link <?= strpos($current_path, '/dashboard/prae-meine') !== false ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-                Meine PRAE
-            </a>
-            <?php endif; ?>
-            <?php $plaene_aktiv = preg_match('#/dashboard/(plaene|trainingsplan|ernaehrungsplan)#', $current_path); ?>
-            <?php $leistung_aktiv = preg_match('#/dashboard/(leistungsdiagnostik|leistungstest|leistungsprofil|ld-tests|ld-export)#', $current_path); ?>
-            <?php if (!isTrainer()): ?>
-            <a href="<?= APP_URL ?>/dashboard/plaene.php" class="sidebar-link <?= $plaene_aktiv ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6.5 6.5h11v11h-11z"/><path d="M2 12h4.5M17.5 12H22M4 8v8M20 8v8"/></svg>
-                Meine Pläne
-            </a>
-            <a href="<?= APP_URL ?>/dashboard/leistungsprofil.php" class="sidebar-link <?= $leistung_aktiv ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-                Meine Leistungswerte
-            </a>
-            <?php endif; ?>
-
-            <?php if (isTrainer()): ?>
-            <!-- Trainer-Bereich -->
-            <span class="sidebar-section-label" style="margin-top: 0.75rem;">Trainer</span>
-            <a href="<?= APP_URL ?>/dashboard/mitglieder.php" class="sidebar-link <?= strpos($current_path, '/dashboard/mitglieder') !== false ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                Mitglieder
-            </a>
-            <a href="<?= APP_URL ?>/dashboard/kurs-erstellen.php" class="sidebar-link <?= strpos($current_path, '/dashboard/kurs-erstellen') !== false ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                Kurs erstellen
-            </a>
-            <a href="<?= APP_URL ?>/dashboard/plaene.php" class="sidebar-link <?= $plaene_aktiv ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6.5 6.5h11v11h-11z"/><path d="M2 12h4.5M17.5 12H22M4 8v8M20 8v8"/></svg>
-                Trainings- &amp; Ernährungspläne
-            </a>
-            <a href="<?= APP_URL ?>/dashboard/uebungen.php" class="sidebar-link <?= strpos($current_path, '/dashboard/uebungen') !== false ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-                Übungsbibliothek
-            </a>
-            <a href="<?= APP_URL ?>/dashboard/leistungsdiagnostik.php" class="sidebar-link <?= $leistung_aktiv ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-                Leistungsdiagnostik
-            </a>
-            <a href="<?= APP_URL ?>/dashboard/umsatz.php" class="sidebar-link <?= strpos($current_path, '/dashboard/umsatz') !== false ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                Mein Umsatz
-            </a>
-            <?php if (!isAdmin()): ?>
-            <a href="<?= APP_URL ?>/dashboard/statistik.php" class="sidebar-link <?= strpos($current_path, '/dashboard/statistik') !== false ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-                Meine Statistik
-            </a>
-            <?php endif; ?>
-
-            <!-- Einsatz & Projekte -->
-            <span class="sidebar-section-label" style="margin-top: 0.75rem;">Einsatz &amp; Projekte</span>
-            <a href="<?= APP_URL ?>/dashboard/zeiterfassung.php" class="sidebar-link <?= strpos($current_path, '/dashboard/zeiterfassung') !== false || strpos($current_path, '/dashboard/einheit') !== false ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                Zeiterfassung
-                <?php if ($offene_bestaetigungen > 0): ?><span class="sidebar-link-badge"><?= $offene_bestaetigungen ?></span><?php endif; ?>
-            </a>
-            <a href="<?= APP_URL ?>/dashboard/projekte.php" class="sidebar-link <?= preg_match('#/dashboard/projekt#', $current_path) ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-                Projekte
-            </a>
-            <a href="<?= APP_URL ?>/dashboard/aufgaben.php" class="sidebar-link <?= strpos($current_path, '/dashboard/aufgaben') !== false ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-                Aufgaben
-                <?php if ($meine_aufgaben > 0): ?><span class="sidebar-link-badge" style="<?= $meine_ueberfaellig ? '' : 'background: var(--navy-light);' ?>"><?= $meine_aufgaben ?></span><?php endif; ?>
-            </a>
-            <a href="<?= APP_URL ?>/dashboard/qualifikationen.php" class="sidebar-link <?= strpos($current_path, '/dashboard/qualifikationen') !== false ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
-                Qualifikationen
-            </a>
-            <?php if (darf('ressourcen.anzeigen')): ?>
-            <a href="<?= APP_URL ?>/dashboard/ressourcen.php" class="sidebar-link <?= strpos($current_path, '/dashboard/ressourcen') !== false ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-                Ressourcen &amp; Material
-            </a>
-            <?php endif; ?>
-            <?php endif; ?>
-
-            <?php if (darfEines('partner.anzeigen', 'vertraege.anzeigen', 'foerderungen.anzeigen', 'finanzen.anzeigen', 'rollen.bearbeiten', 'audit.anzeigen') || (!isTrainer() && darf('ressourcen.anzeigen'))): ?>
-            <!-- Organisation (rollenbasiert) -->
-            <span class="sidebar-section-label" style="margin-top: 0.75rem;">Organisation</span>
-            <?php if (darf('finanzen.anzeigen')): ?>
-            <a href="<?= APP_URL ?>/dashboard/admin/finanzen.php" class="sidebar-link <?= strpos($current_path, '/admin/finanzen') !== false ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                Finanzen
-            </a>
-            <?php endif; ?>
-            <?php if (darf('partner.anzeigen')): ?>
-            <a href="<?= APP_URL ?>/dashboard/admin/partner.php" class="sidebar-link <?= strpos($current_path, '/admin/partner') !== false ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg>
-                Partner &amp; CRM
-            </a>
-            <?php endif; ?>
-            <?php if (darf('vertraege.anzeigen')): ?>
-            <a href="<?= APP_URL ?>/dashboard/admin/vertraege.php" class="sidebar-link <?= strpos($current_path, '/admin/vertraege') !== false ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-4"/></svg>
-                Verträge
-            </a>
-            <?php endif; ?>
-            <?php if (!isAdmin() && darf('foerderungen.anzeigen')): ?>
-            <a href="<?= APP_URL ?>/dashboard/admin/foerderungen.php" class="sidebar-link <?= strpos($current_path, '/admin/foerderung') !== false ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"/></svg>
-                Fördermanagement
-            </a>
-            <?php endif; ?>
-            <?php if (!isTrainer() && darf('ressourcen.anzeigen')): ?>
-            <a href="<?= APP_URL ?>/dashboard/ressourcen.php" class="sidebar-link <?= strpos($current_path, '/dashboard/ressourcen') !== false ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
-                Ressourcen &amp; Material
-            </a>
-            <?php endif; ?>
-            <?php if (darf('rollen.bearbeiten')): ?>
-            <a href="<?= APP_URL ?>/dashboard/admin/rollen.php" class="sidebar-link <?= strpos($current_path, '/admin/rollen') !== false ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                Rollen &amp; Rechte
-            </a>
-            <?php endif; ?>
-            <?php if (darf('audit.anzeigen')): ?>
-            <a href="<?= APP_URL ?>/dashboard/admin/audit.php" class="sidebar-link <?= strpos($current_path, '/admin/audit') !== false ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
-                Audit-Log
-            </a>
-            <?php endif; ?>
-            <?php endif; ?>
-
-            <?php if (isAdmin()): ?>
-            <!-- Admin-Bereich -->
-            <span class="sidebar-section-label" style="margin-top: 0.75rem;">Administration</span>
-            <a href="<?= APP_URL ?>/dashboard/statistik.php" class="sidebar-link <?= strpos($current_path, '/dashboard/statistik') !== false ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-                Statistik &amp; Auswertungen
-            </a>
-            <a href="<?= APP_URL ?>/dashboard/admin/prae.php" class="sidebar-link <?= strpos($current_path, '/admin/prae') !== false ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="6" y1="15" x2="10" y2="15"/></svg>
-                PRAE-Abrechnung
-            </a>
-            <a href="<?= APP_URL ?>/dashboard/admin/nutzerverwaltung.php" class="sidebar-link <?= strpos($current_path, '/admin/nutzerverwaltung') !== false ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                Nutzerverwaltung
-            </a>
-            <a href="<?= APP_URL ?>/dashboard/admin/inhalte.php" class="sidebar-link <?= strpos($current_path, '/admin/inhalte') !== false ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                Seiteninhalte
-                <?php if ($unread_kontakt > 0): ?>
-                    <span class="sidebar-link-badge"><?= $unread_kontakt ?></span>
-                <?php endif; ?>
-            </a>
-            <a href="<?= APP_URL ?>/dashboard/admin/umsatz.php" class="sidebar-link <?= strpos($current_path, '/admin/umsatz') !== false ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                Umsatzübersicht
-            </a>
-            <a href="<?= APP_URL ?>/dashboard/admin/abrechnungen.php" class="sidebar-link <?= strpos($current_path, '/admin/abrechnungen') !== false ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                Abrechnungen
-            </a>
-            <a href="<?= APP_URL ?>/dashboard/admin/trainerabrechnungen.php" class="sidebar-link <?= strpos($current_path, '/admin/trainerabrechnungen') !== false ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
-                Trainerabrechnungen
-                <?php if ($abrechnungen_offen > 0): ?><span class="sidebar-link-badge"><?= $abrechnungen_offen ?></span><?php endif; ?>
-            </a>
-            <a href="<?= APP_URL ?>/dashboard/admin/foerderungen.php" class="sidebar-link <?= strpos($current_path, '/admin/foerderung') !== false ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"/></svg>
-                Fördermanagement
-            </a>
-            <a href="<?= APP_URL ?>/dashboard/admin/basisfoerderung.php" class="sidebar-link <?= strpos($current_path, '/admin/basisfoerderung') !== false ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6"/><path d="M9 15h6"/></svg>
-                Basisförderung SPORTUNION &amp; Land
-            </a>
-            <a href="<?= APP_URL ?>/dashboard/admin/kooperationen.php" class="sidebar-link <?= strpos($current_path, '/admin/kooperation') !== false ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                Gemeinde-Kooperationen
-            </a>
-            <a href="<?= APP_URL ?>/dashboard/admin/tbe.php" class="sidebar-link <?= strpos($current_path, '/admin/tbe') !== false ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
-                TBE-Gesamtkonzept
-            </a>
-            <a href="<?= APP_URL ?>/dashboard/admin/news.php" class="sidebar-link <?= strpos($current_path, '/admin/news') !== false ? 'active' : '' ?>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                News
-            </a>
-            <?php endif; ?>
+            <?= navigationHtml($nav_gruppen, $current_path) ?>
         </nav>
 
         <!-- Bottom: Logout -->
