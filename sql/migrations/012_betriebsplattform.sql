@@ -288,7 +288,8 @@ CREATE TABLE IF NOT EXISTS `automation_log` (
   `created_at`      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   INDEX `idx_al_org_zeit` (`organization_id`, `created_at`),
-  INDEX `idx_al_automation` (`automation`, `created_at`)
+  INDEX `idx_al_automation` (`automation`, `created_at`),
+  INDEX `idx_al_datensatz` (`automation`, `datensatz`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------

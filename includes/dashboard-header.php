@@ -49,7 +49,14 @@ require_once ROOT_PATH . '/includes/plattform.php';
 $offene_bestaetigungen = $meine_aufgaben = $meine_ueberfaellig = $abrechnungen_offen = $ungelesen = 0;
 try {
     $db = getDB();
-    plattformFaelligkeiten($db);
+    // Automatisierungs-Engine (Rückfall ohne Cron, höchstens alle 10 Minuten); ohne Migration 012 der bisherige Tagescheck
+    try {
+        $db->query('SELECT 1 FROM automationen LIMIT 1');
+        require_once ROOT_PATH . '/includes/automation.php';
+        automationTick($db);
+    } catch (Throwable $e) {
+        plattformFaelligkeiten($db);
+    }
     $ungelesen = ungeleseneBenachrichtigungen($db, (int)$user['id']);
     if (isTrainer()) {
         $stmt = $db->prepare("SELECT COUNT(*) FROM einheit_trainer et JOIN einheiten e ON e.id = et.einheit_id WHERE et.user_id = ? AND et.status = 'geplant' AND e.status <> 'storniert' AND e.ende < ?");
