@@ -344,6 +344,10 @@ INSERT IGNORE INTO `nachricht_vorlagen` (`organization_id`, `code`, `name`, `bet
   'Hallo {{vorname}},\n\nanbei die Rechnung {{rechnung}} über {{betrag}}, zahlbar bis {{faellig}}.\nOnline ansehen: {{link}}\n\nBankverbindung: {{iban}} · Verwendungszweck: {{rechnung}}\n\n{{verein}}', 'email', 1),
  (1, 'event_anmeldung', 'Event-Anmeldung', 'Anmeldung bestätigt: {{kurs}}',
   'Hallo {{vorname}},\n\n{{person}} ist für das Event „{{kurs}}“ am {{datum}} um {{uhrzeit}} Uhr angemeldet ({{ort}}).\nDein Check-in-Code: {{link}}\n\n{{verein}}', 'beide', 1),
+ (1, 'bewerbung_eingang', 'Bewerbung erhalten', 'Danke für deine Bewerbung beim {{verein}}',
+  'Hallo {{vorname}},\n\ndanke für dein Interesse, als Trainer:in bei uns mitzuwirken! Wir haben deine Bewerbung erhalten und melden uns in Kürze bei dir.\n\nSportliche Grüße\n{{verein}}', 'email', 1),
+ (1, 'konto_einladung', 'Konto-Einladung', 'Dein Zugang zum {{verein}}',
+  'Hallo {{vorname}},\n\nfür dich wurde ein Konto im Dashboard des {{verein}} angelegt.\nLege dein Passwort über diesen Link fest (7 Tage gültig):\n{{link}}\n\nSportliche Grüße\n{{verein}}', 'email', 1),
  (1, 'einheit_bestaetigen', 'Einheit bestätigen', 'Bitte Einheit bestätigen: {{kurs}}',
   'Hallo {{vorname}},\n\nbitte bestätige die Einheit „{{kurs}}“ vom {{datum}} (Dauer, Teilnehmende, Anwesenheit): {{link}}\n\n{{verein}}', 'intern', 1);
 

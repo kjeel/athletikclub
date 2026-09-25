@@ -173,6 +173,34 @@ try {
     <?php endif; ?>
 </div>
 
+<?php
+// Trainer-Onboarding (laufende Vorgänge mit Fortschritt)
+$onboarding_laufend = [];
+if (darf('onboarding.anzeigen')) {
+    try {
+        require_once ROOT_PATH . '/includes/onboarding.php';
+        $stmt = $db->prepare("SELECT * FROM onboarding WHERE organization_id = ? AND status NOT IN ('aktiv','abgelehnt','zurueckgezogen') ORDER BY created_at LIMIT 6");
+        $stmt->execute([currentOrgId()]);
+        foreach ($stmt->fetchAll() as $o) $onboarding_laufend[] = $o + ['fp' => onboardingFortschritt($db, (int)$o['id'])];
+    } catch (Exception $e) {}
+}
+?>
+<?php if ($onboarding_laufend): ?>
+<div class="table-card hb-karte">
+    <div class="table-card-header"><h2 class="table-card-title">Trainer-Onboarding</h2><a href="<?= APP_URL ?>/dashboard/admin/onboarding.php" class="btn btn-ghost-light btn-sm">Alle</a></div>
+    <div class="hb-liste">
+        <?php foreach ($onboarding_laufend as $o): ?>
+        <a class="hb-eintrag" href="<?= APP_URL ?>/dashboard/admin/onboarding.php?id=<?= (int)$o['id'] ?>" style="grid-template-columns: minmax(0, 1fr) auto;">
+            <span><span class="hb-text"><strong><?= e($o['vorname'] . ' ' . $o['nachname']) ?></strong> · <?= e(ONBOARDING_STATUS[$o['status']]['label']) ?></span>
+                <span style="display: block; height: 8px; border-radius: 4px; background: var(--bg-muted); overflow: hidden; margin: 0.35rem 0 0.2rem;"><span style="display: block; height: 100%; width: <?= (int)$o['fp']['prozent'] ?>%; background: var(--gold-accent);"></span></span>
+                <?php if ($o['fp']['fehlend']): ?><span class="hb-bereich" style="text-transform: none; letter-spacing: 0;">Fehlend: <?= e(implode(', ', array_slice($o['fp']['fehlend'], 0, 3))) ?><?= count($o['fp']['fehlend']) > 3 ? ' …' : '' ?></span><?php endif; ?></span>
+            <span class="hb-anzahl"><?= (int)$o['fp']['prozent'] ?> %</span>
+        </a>
+        <?php endforeach; ?>
+    </div>
+</div>
+<?php endif; ?>
+
 <!-- KPI Cards -->
 <div class="kpi-grid">
     <?php if (isAdmin()): ?>

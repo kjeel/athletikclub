@@ -31,6 +31,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db = getDB();
             $db->prepare('INSERT INTO kontakt_anfragen (organization_id, name, email, betreff, nachricht) VALUES (?, ?, ?, ?, ?)')
                ->execute([currentOrgId(), $name, $email, $betreff, $nachricht]);
+            $anfrage_id = (int)$db->lastInsertId();
+
+            // Onboarding-Vorgang anlegen und Eingang bestätigen (Migration 012 evtl. noch nicht eingespielt)
+            try {
+                require_once ROOT_PATH . '/includes/onboarding.php';
+                onboardingAnlegen($db, ['vorname' => $vorname, 'nachname' => $nachname, 'email' => $email, 'schwerpunkt' => $qualifikation ?: null, 'nachricht' => $nachricht], $anfrage_id);
+                nachrichtAnAdresse($db, $email, $vorname, 'bewerbung_eingang', [], 'bewerbung:' . $anfrage_id);
+                benachrichtigeAdmins($db, 'projekt', 'Neue Trainer-Bewerbung: ' . $name, $qualifikation ?: null, '/dashboard/admin/onboarding.php');
+            } catch (Throwable $e) {}
 
             $mail_body  = "Neue Trainer-Anbindungsanfrage über die Website:\n\n";
             $mail_body .= "Name: {$name}\nE-Mail: {$email}\nQualifikation/Schwerpunkt: {$qualifikation}\n\nNachricht:\n{$nachricht}";
